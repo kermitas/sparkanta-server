@@ -1,13 +1,22 @@
-package as.sparkanta.ama.actor.tcp
+package as.sparkanta.ama.actor.tcp.server
 
-import akka.actor.{ Props, Actor, ActorLogging }
+import akka.actor.{ Props, Actor, ActorRef, ActorLogging }
 import as.akka.broadcaster.Broadcaster
+import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import Tcp._
 import java.net.InetSocketAddress
 
+object TcpServer {
+  sealed trait Message extends Serializable
+  sealed trait OutgoingMessage extends Message
+  class NewIncomingConnection(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val tcpConnectionHandlerActor: ActorRef) extends OutgoingMessage
+}
+
 class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor with ActorLogging {
+
+  import TcpServer._
 
   def this(amaConfig: AmaConfig) = this(amaConfig, TcpServerConfig.fromTopKey(amaConfig.config))
 
@@ -32,7 +41,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   override def receive = {
     case _: Bound                               => boundSuccess
     case CommandFailed(_: Bind)                 => boundFailed
-    case Connected(remoteAddress, localAddress) => incomingConnection(remoteAddress, localAddress)
+    case Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress)
     case message                                => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -47,10 +56,11 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     amaConfig.sendInitializationResult(new Exception(message))
   }
 
-  protected def incomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): Unit = {
+  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): Unit = {
     log.info(s"New incoming connection form $remoteAddress (to $localAddress).")
     val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress))
     val tcpConnectionHandler = context.actorOf(props)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler)
     sender() ! Register(tcpConnectionHandler)
   }
 }

@@ -19,7 +19,7 @@ object SparkantaServerProject {
                      ScalaTestSettings() ++
                      AmaSettings() ++
                      AkkaSlf4JSettings() ++
-                     Slf4jSettings() ++
+                     LogbackClassicSettings() ++
                      mainClassSettings(mainClassFullyQualifiedName) ++
                      PackSettings(mainClassFullyQualifiedName) ++
                      AssemblySettings(mainClassFullyQualifiedName)

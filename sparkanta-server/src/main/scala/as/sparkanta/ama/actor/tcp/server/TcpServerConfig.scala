@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp
+package as.sparkanta.ama.actor.tcp.server
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
