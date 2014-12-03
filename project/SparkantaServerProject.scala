@@ -26,6 +26,6 @@ object SparkantaServerProject {
     )
 
   protected def mainClassSettings(mainClassFullyQualifiedName: String) = Seq (
-    mainClass := Some(mainClassFullyQualifiedName)
+    mainClass in (Compile,run) := Some(mainClassFullyQualifiedName)
   )
 }
