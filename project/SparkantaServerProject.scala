@@ -3,8 +3,8 @@ import Keys._
 
 object SparkantaServerProject {
 
-  lazy final val projectName = SparkantaProject.projectName + "-server"
-  lazy final val mainClassFullyQualifiedName = "as.sparkanta.server.Main"
+  lazy final val projectName                 = SparkantaProject.projectName + "-server"
+  lazy final val mainClassFullyQualifiedName = "as.ama.Main"
 
   def apply(version: String, sparkantaApi: Project) =
     Project(
@@ -17,7 +17,8 @@ object SparkantaServerProject {
 
       settings     = CommonSettings(projectName, version) ++
                      ScalaTestSettings() ++
-                     AkkaSettings() ++
+                     AmaSettings() ++
+                     AkkaSlf4JSettings() ++
                      Slf4jSettings() ++
                      mainClassSettings(mainClassFullyQualifiedName) ++
                      PackSettings(mainClassFullyQualifiedName) ++
