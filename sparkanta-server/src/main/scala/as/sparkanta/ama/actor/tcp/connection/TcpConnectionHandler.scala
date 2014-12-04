@@ -19,8 +19,8 @@ object TcpConnectionHandler {
   case object CompletingMessageBody extends State
 
   sealed trait StateData extends Serializable
-  case object CompletingMessageHeaderStateData extends StateData
-  case class CompletingMessageBodyStateData(bodyLength: Short) extends StateData
+  case class CompletingMessageHeaderStateData(buffer: ByteString) extends StateData
+  case class CompletingMessageBodyStateData(bodyLength: Short, buffer: ByteString) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
@@ -49,7 +49,6 @@ class TcpConnectionHandler(
 
   import TcpConnectionHandler._
 
-  protected var buffer: ByteString = CompactByteString.empty
   protected var inactivityCancellable: Cancellable = _
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -60,10 +59,10 @@ class TcpConnectionHandler(
   }
 
   setInactivityTimeout
-  startWith(CompletingMessageHeader, CompletingMessageHeaderStateData)
+  startWith(CompletingMessageHeader, new CompletingMessageHeaderStateData(CompactByteString.empty))
 
   when(CompletingMessageHeader) {
-    case Event(Tcp.Received(data), CompletingMessageHeaderStateData) => successOrStopWithFailure { analyzeIncomingMessageHeader(data) }
+    case Event(Tcp.Received(data), sd: CompletingMessageHeaderStateData) => successOrStopWithFailure { analyzeIncomingMessageHeader(data, sd) }
   }
 
   when(CompletingMessageBody) {
@@ -121,28 +120,26 @@ class TcpConnectionHandler(
     case e: Exception => stop(FSM.Failure(e))
   }
 
-  protected def analyzeIncomingMessageHeader(data: ByteString) = {
+  protected def analyzeIncomingMessageHeader(data: ByteString, sd: CompletingMessageHeaderStateData) = {
     resetInactivityTimeout
 
-    val newBufferAndNextState = analyzeBuffer(None, buffer ++ data) match {
-      case (Some(bodyLength), newBuffer) => (newBuffer, goto(CompletingMessageBody) using new CompletingMessageBodyStateData(bodyLength))
-      case (None, newBuffer)             => (newBuffer, stay using CompletingMessageHeaderStateData)
+    val nextState = analyzeBuffer(None, sd.buffer ++ data) match {
+      case (Some(bodyLength), newBuffer) => goto(CompletingMessageBody) using new CompletingMessageBodyStateData(bodyLength, newBuffer)
+      case (None, newBuffer)             => stay using new CompletingMessageHeaderStateData(newBuffer)
     }
 
-    buffer = newBufferAndNextState._1
-    newBufferAndNextState._2
+    nextState
   }
 
   protected def analyzeIncomingMessageBody(data: ByteString, sd: CompletingMessageBodyStateData) = {
     resetInactivityTimeout
 
-    val newBufferAndNextState = analyzeBuffer(Some(sd.bodyLength), buffer ++ data) match {
-      case (Some(bodyLength), newBuffer) => (newBuffer, stay using sd.copy(bodyLength = bodyLength))
-      case (None, newBuffer)             => (newBuffer, goto(CompletingMessageHeader) using CompletingMessageHeaderStateData)
+    val nextState = analyzeBuffer(Some(sd.bodyLength), sd.buffer ++ data) match {
+      case (Some(bodyLength), newBuffer) => stay using new CompletingMessageBodyStateData(bodyLength, newBuffer)
+      case (None, newBuffer)             => goto(CompletingMessageHeader) using new CompletingMessageHeaderStateData(newBuffer)
     }
 
-    buffer = newBufferAndNextState._1
-    newBufferAndNextState._2
+    nextState
   }
 
   /**
