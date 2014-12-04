@@ -1,6 +1,6 @@
 package as.sparkanta.ama.actor.tcp.message
 
-import akka.actor.{ ActorLogging, Actor }
+import akka.actor.{ ActorLogging, Actor, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
@@ -10,6 +10,10 @@ import Tcp._
 import akka.util.ByteString
 
 class IncomingMessageListener(amaConfig: AmaConfig, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress) extends Actor with ActorLogging {
+
+  override val supervisorStrategy = OneForOneStrategy() {
+    case _ => SupervisorStrategy.Escalate
+  }
 
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).

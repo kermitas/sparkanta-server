@@ -1,6 +1,6 @@
 package as.sparkanta.ama.actor.tcp.connection
 
-import akka.actor._
+import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props }
 import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
@@ -34,6 +34,10 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   import TcpConnectionHandler._
 
   protected var buffer: ByteString = CompactByteString.empty
+
+  override val supervisorStrategy = OneForOneStrategy() {
+    case _ => SupervisorStrategy.Escalate
+  }
 
   startWith(CompletingMessageHeader, CompletingMessageHeaderStateData)
 

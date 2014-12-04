@@ -1,6 +1,6 @@
 package as.sparkanta.ama.actor.tcp.server
 
-import akka.actor.{ Props, Actor, ActorRef, ActorLogging }
+import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import as.sparkanta.ama.config.AmaConfig
@@ -20,12 +20,15 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
 
   def this(amaConfig: AmaConfig) = this(amaConfig, TcpServerConfig.fromTopKey(amaConfig.config))
 
+  override val supervisorStrategy = OneForOneStrategy() {
+    case _ => SupervisorStrategy.Stop
+  }
+
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
   override def preStart() {
     try {
-
       // notifying broadcaster to register us with given classifier
       amaConfig.broadcaster ! new Broadcaster.Register(self, new TcpServerClassifier)
 
