@@ -12,7 +12,7 @@ import akka.util.ActorNameGenerator
 object TcpServer {
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
-  class NewIncomingConnection(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val tcpConnectionHandlerActor: ActorRef) extends OutgoingMessage
+  class NewIncomingConnection(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val tcpConnectionHandlerActor: ActorRef, val tcpActor: ActorRef) extends OutgoingMessage
 }
 
 class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor with ActorLogging {
@@ -65,7 +65,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit = {
     log.info(s"New incoming connection form $remoteAddress (to $localAddress).")
     val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor)
-    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler, tcpActor)
     tcpActor ! Register(tcpConnectionHandler)
   }
 

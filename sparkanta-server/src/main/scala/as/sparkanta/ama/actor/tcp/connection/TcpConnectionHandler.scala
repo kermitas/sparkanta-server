@@ -23,13 +23,15 @@ object TcpConnectionHandler {
   case class CompletingMessageBodyStateData(bodyLength: Short, buffer: ByteString) extends StateData
 
   sealed trait Message extends Serializable
+  sealed trait InternalMessage extends Message
+  case object InactivityTimeout extends InternalMessage
   sealed trait OutgoingMessage extends Message
   class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
   class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
   class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef) extends OutgoingMessage
 
   class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
-  object InactivityTimeout
+
 }
 
 class TcpConnectionHandler(
@@ -98,7 +100,7 @@ class TcpConnectionHandler(
 
   protected def startIncomingMessageListenerActor: ActorRef = {
     val incomingMessageListenerActor = {
-      val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress))
+      val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor))
       context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName)
     }
 
@@ -216,17 +218,17 @@ class TcpConnectionHandler(
     val notificationToPublishOnBroadcaster = reason match {
 
       case FSM.Normal => {
-        log.debug(s"Stopping (normal), state $currentState, data $stateData")
+        log.debug(s"Stopping (normal), state $currentState, data $stateData.")
         new ConnectionClosed(remoteAddress, localAddress, None)
       }
 
       case FSM.Shutdown => {
-        log.debug(s"Stopping (shutdown), state $currentState, data $stateData")
+        log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
         new ConnectionClosed(remoteAddress, localAddress, None)
       }
 
       case FSM.Failure(cause) => {
-        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData")
+        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
           case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress, Some(cwle))
