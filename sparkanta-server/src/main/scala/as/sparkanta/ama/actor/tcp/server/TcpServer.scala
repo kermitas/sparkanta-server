@@ -47,7 +47,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   override def receive = {
     case _: Bound                               => boundSuccess
     case CommandFailed(_: Bind)                 => boundFailed
-    case Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress)
+    case Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
     case message                                => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -62,15 +62,15 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     amaConfig.sendInitializationResult(new Exception(message))
   }
 
-  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): Unit = {
+  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit = {
     log.info(s"New incoming connection form $remoteAddress (to $localAddress).")
-    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress)
+    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor)
     amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler)
-    sender() ! Register(tcpConnectionHandler)
+    tcpActor ! Register(tcpConnectionHandler)
   }
 
-  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): ActorRef = {
-    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress))
+  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): ActorRef = {
+    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress, tcpActor))
     context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.getNextName)
   }
 }

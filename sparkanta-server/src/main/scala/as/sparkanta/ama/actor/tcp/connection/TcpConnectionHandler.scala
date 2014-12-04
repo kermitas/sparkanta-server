@@ -1,6 +1,8 @@
 package as.sparkanta.ama.actor.tcp.connection
 
-import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props }
+import scala.language.postfixOps
+import scala.concurrent.duration._
+import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props, Cancellable }
 import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
@@ -27,26 +29,45 @@ object TcpConnectionHandler {
   class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef) extends OutgoingMessage
 
   class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
+  object InactivityTimeout
 }
 
-class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
+class TcpConnectionHandler(
+  amaConfig:     AmaConfig,
+  config:        TcpConnectionHandlerConfig,
+  remoteAddress: InetSocketAddress,
+  localAddress:  InetSocketAddress,
+  tcpActor:      ActorRef
+) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
+
+  def this(
+    amaConfig:     AmaConfig,
+    remoteAddress: InetSocketAddress,
+    localAddress:  InetSocketAddress,
+    tcpActor:      ActorRef
+  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor)
 
   import TcpConnectionHandler._
 
   protected var buffer: ByteString = CompactByteString.empty
+  protected var inactivityCancellable: Cancellable = _
 
   override val supervisorStrategy = OneForOneStrategy() {
-    case _ => SupervisorStrategy.Escalate
+    case t: Throwable => {
+      stop(FSM.Failure(new Exception("Terminating because once of child actors failed.", t)))
+      SupervisorStrategy.Stop
+    }
   }
 
+  setInactivityTimeout
   startWith(CompletingMessageHeader, CompletingMessageHeaderStateData)
 
   when(CompletingMessageHeader) {
-    case Event(Tcp.Received(data), CompletingMessageHeaderStateData) => successOrStopWithFailure { analyzeIncomingMessageHeader(data, sender()) }
+    case Event(Tcp.Received(data), CompletingMessageHeaderStateData) => successOrStopWithFailure { analyzeIncomingMessageHeader(data) }
   }
 
   when(CompletingMessageBody) {
-    case Event(Tcp.Received(data), sd: CompletingMessageBodyStateData) => successOrStopWithFailure { analyzeIncomingMessageBody(data, sender(), sd) }
+    case Event(Tcp.Received(data), sd: CompletingMessageBodyStateData) => successOrStopWithFailure { analyzeIncomingMessageBody(data, sd) }
   }
 
   onTransition {
@@ -55,6 +76,8 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
 
   whenUnhandled {
     case Event(Tcp.PeerClosed, stateData)             => connectionWasLost
+
+    case Event(InactivityTimeout, stateData)          => inactivityTimeout
 
     case Event(Terminated(diedChildActor), stateData) => childActorDied(diedChildActor)
 
@@ -98,8 +121,10 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
     case e: Exception => stop(FSM.Failure(e))
   }
 
-  protected def analyzeIncomingMessageHeader(data: ByteString, tcpActor: ActorRef) = {
-    val newBufferAndNextState = analyzeBuffer(None, buffer ++ data, tcpActor) match {
+  protected def analyzeIncomingMessageHeader(data: ByteString) = {
+    resetInactivityTimeout
+
+    val newBufferAndNextState = analyzeBuffer(None, buffer ++ data) match {
       case (Some(bodyLength), newBuffer) => (newBuffer, goto(CompletingMessageBody) using new CompletingMessageBodyStateData(bodyLength))
       case (None, newBuffer)             => (newBuffer, stay using CompletingMessageHeaderStateData)
     }
@@ -108,8 +133,10 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
     newBufferAndNextState._2
   }
 
-  protected def analyzeIncomingMessageBody(data: ByteString, tcpActor: ActorRef, sd: CompletingMessageBodyStateData) = {
-    val newBufferAndNextState = analyzeBuffer(Some(sd.bodyLength), buffer ++ data, tcpActor) match {
+  protected def analyzeIncomingMessageBody(data: ByteString, sd: CompletingMessageBodyStateData) = {
+    resetInactivityTimeout
+
+    val newBufferAndNextState = analyzeBuffer(Some(sd.bodyLength), buffer ++ data) match {
       case (Some(bodyLength), newBuffer) => (newBuffer, stay using sd.copy(bodyLength = bodyLength))
       case (None, newBuffer)             => (newBuffer, goto(CompletingMessageHeader) using CompletingMessageHeaderStateData)
     }
@@ -122,7 +149,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
    *
    * @param bodyLength if set that means that message body is read right now
    */
-  protected def analyzeBuffer(bodyLength: Option[Short], buffer: ByteString, tcpActor: ActorRef): (Option[Short], ByteString) = bodyLength match {
+  protected def analyzeBuffer(bodyLength: Option[Short], buffer: ByteString): (Option[Short], ByteString) = bodyLength match {
 
     // body length is set, let's see if there are enough data in buffer
     case Some(bodyLength) => getAvailable(bodyLength, buffer) match {
@@ -130,7 +157,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
       // we successfully took from buffer message body
       case Some((messageBody, newBuffer)) => {
         amaConfig.broadcaster ! new IncomingMessage(remoteAddress, localAddress, messageBody, tcpActor)
-        analyzeBuffer(None, newBuffer, tcpActor)
+        analyzeBuffer(None, newBuffer)
       }
 
       // we need bodyLength bytes to be in buffer but there are less than that, let's wait for new data
@@ -147,7 +174,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
       case Some((messageHeader, newBuffer)) => {
         val bodyLength = readShort(messageHeader)
         log.debug(s"Incoming command body is $bodyLength bytes.")
-        analyzeBuffer(Some(bodyLength), newBuffer, tcpActor)
+        analyzeBuffer(Some(bodyLength), newBuffer)
       }
 
       // we need messageHeaderLength bytes to be in buffer but there are less than that, let's wait for new data
@@ -172,9 +199,21 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
     None
   }
 
+  protected def resetInactivityTimeout: Unit = {
+    inactivityCancellable.cancel()
+    setInactivityTimeout
+  }
+
+  protected def setInactivityTimeout: Unit = {
+    import context.dispatcher
+    inactivityCancellable = context.system.scheduler.schedule(config.inactivityTimeoutInSeconds seconds, config.inactivityTimeoutInSeconds seconds, self, InactivityTimeout)
+  }
+
   protected def childActorDied(diedChildActor: ActorRef) = stop(FSM.Failure(new Exception(s"Stopping because our child actor $diedChildActor died.")))
 
   protected def connectionWasLost = stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress)))
+
+  protected def inactivityTimeout = stop(FSM.Failure(new Exception(s"Closing inactive connection for more than ${config.inactivityTimeoutInSeconds} seconds.")))
 
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
     val notificationToPublishOnBroadcaster = reason match {
