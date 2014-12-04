@@ -82,20 +82,21 @@ class IncomingMessageListener(
   }
 
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage) = {
-    log.debug(s"Received ${incomingMessage.messageBody.length} bytes.")
+    log.debug(s"Received ${incomingMessage.messageBody.length} bytes from unidentified device.")
 
     // TODO: to remove
     incomingMessage.tcpActor ! Write(ByteString(incomingMessage.messageBody))
 
     // TODO: deserialize (from bytes into object) and it should be Hello message that will contains device id
     // TODO: if yes then spawn child actor OutgoingMessageListener and pass to it tcpActor, deviceId
-    // TODO: register on child actors deatch
+    // TODO: register on child actors death
+    // TODO: if not then throw exception
 
     goto(Identified) using new IdentifiedStateData("abcdefghij", System.currentTimeMillis)
   }
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage, sd: IdentifiedStateData) = {
-    log.debug(s"Received ${incomingMessage.messageBody.length} bytes from device ${sd.deviceId}.")
+    log.debug(s"Received ${incomingMessage.messageBody.length} bytes from device '${sd.deviceId}'.")
 
     // TODO: to remove
     incomingMessage.tcpActor ! Write(ByteString(incomingMessage.messageBody))
@@ -115,7 +116,7 @@ class IncomingMessageListener(
       case _ => None
     }
 
-    val deviceIdMessage = deviceId.map(id => s", device id $id.").getOrElse(".")
+    val deviceIdMessage = deviceId.map(deviceId => s", device id '$deviceId'.").getOrElse(".")
 
     reason match {
 
