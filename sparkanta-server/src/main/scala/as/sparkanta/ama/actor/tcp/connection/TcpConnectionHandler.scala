@@ -1,11 +1,11 @@
 package as.sparkanta.ama.actor.tcp.connection
 
-import akka.actor.{ Actor, ActorRef, FSM, Props }
+import akka.actor._
 import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ ByteString, CompactByteString }
-import as.sparkanta.ama.actor.tcp.message.MessageListener
+import as.sparkanta.ama.actor.tcp.message.IncomingMessageListener
 import java.io.{ DataInputStream, ByteArrayInputStream }
 
 object TcpConnectionHandler {
@@ -50,7 +50,9 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   }
 
   whenUnhandled {
-    case Event(Tcp.PeerClosed, stateData) => connectionWasLost
+    case Event(Tcp.PeerClosed, stateData)             => connectionWasLost
+
+    case Event(Terminated(diedChildActor), stateData) => stop(FSM.Failure(new Exception(s"Stopping because our child actor $diedChildActor died.")))
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -65,7 +67,17 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   initialize
 
   override def preStart(): Unit = {
-    context.actorOf(Props(new MessageListener(amaConfig, remoteAddress, localAddress)))
+    startIncomingMessageListener
+  }
+
+  protected def startIncomingMessageListener: Unit = {
+
+    val incomingMessageListener = {
+      val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress))
+      context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName)
+    }
+
+    context.watch(incomingMessageListener)
   }
 
   /**
@@ -84,7 +96,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   protected def analyzeIncomingMessageHeader(data: ByteString, tcpActor: ActorRef) = {
     val newBufferAndNextState = analyzeBuffer(None, buffer ++ data, tcpActor) match {
       case (Some(bodyLength), newBuffer) => (newBuffer, goto(CompletingMessageBody) using new CompletingMessageBodyStateData(bodyLength))
-      case (None, newBuffer) => (newBuffer, stay using CompletingMessageHeaderStateData)
+      case (None, newBuffer)             => (newBuffer, stay using CompletingMessageHeaderStateData)
     }
 
     buffer = newBufferAndNextState._1
@@ -94,7 +106,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   protected def analyzeIncomingMessageBody(data: ByteString, tcpActor: ActorRef, sd: CompletingMessageBodyStateData) = {
     val newBufferAndNextState = analyzeBuffer(Some(sd.bodyLength), buffer ++ data, tcpActor) match {
       case (Some(bodyLength), newBuffer) => (newBuffer, stay using sd.copy(bodyLength = bodyLength))
-      case (None, newBuffer) => (newBuffer, goto(CompletingMessageHeader) using CompletingMessageHeaderStateData)
+      case (None, newBuffer)             => (newBuffer, goto(CompletingMessageHeader) using CompletingMessageHeaderStateData)
     }
 
     buffer = newBufferAndNextState._1

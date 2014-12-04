@@ -9,14 +9,14 @@ import akka.io.Tcp
 import Tcp._
 import akka.util.ByteString
 
-class MessageListener(amaConfig: AmaConfig, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress) extends Actor with ActorLogging {
+class IncomingMessageListener(amaConfig: AmaConfig, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress) extends Actor with ActorLogging {
 
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
   override def preStart() {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new MessageListenerClassifier(context.parent))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingMessageListenerClassifier(context.parent))
   }
 
   override def receive = {
