@@ -7,6 +7,7 @@ import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import Tcp._
 import java.net.InetSocketAddress
+import akka.util.ActorNameGenerator
 
 object TcpServer {
   sealed trait Message extends Serializable
@@ -19,6 +20,8 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   import TcpServer._
 
   def this(amaConfig: AmaConfig) = this(amaConfig, TcpServerConfig.fromTopKey(amaConfig.config))
+
+  protected val tcpConnectionHandlerActorNamesGenerator = new ActorNameGenerator(classOf[TcpConnectionHandler].getSimpleName + "-%s")
 
   override val supervisorStrategy = OneForOneStrategy() {
     case _ => SupervisorStrategy.Stop
@@ -61,9 +64,13 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
 
   protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): Unit = {
     log.info(s"New incoming connection form $remoteAddress (to $localAddress).")
-    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress))
-    val tcpConnectionHandler = context.actorOf(props)
+    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress)
     amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler)
     sender() ! Register(tcpConnectionHandler)
+  }
+
+  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress): ActorRef = {
+    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress))
+    context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.getNextName)
   }
 }

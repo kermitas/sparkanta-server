@@ -56,7 +56,7 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   whenUnhandled {
     case Event(Tcp.PeerClosed, stateData)             => connectionWasLost
 
-    case Event(Terminated(diedChildActor), stateData) => stop(FSM.Failure(new Exception(s"Stopping because our child actor $diedChildActor died.")))
+    case Event(Terminated(diedChildActor), stateData) => childActorDied(diedChildActor)
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -71,17 +71,18 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   initialize
 
   override def preStart(): Unit = {
-    startIncomingMessageListener
+    startIncomingMessageListenerActor
   }
 
-  protected def startIncomingMessageListener: Unit = {
-
-    val incomingMessageListener = {
+  protected def startIncomingMessageListenerActor: ActorRef = {
+    val incomingMessageListenerActor = {
       val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress))
       context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName)
     }
 
-    context.watch(incomingMessageListener)
+    context.watch(incomingMessageListenerActor)
+
+    incomingMessageListenerActor
   }
 
   /**
@@ -170,6 +171,8 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
   } else {
     None
   }
+
+  protected def childActorDied(diedChildActor: ActorRef) = stop(FSM.Failure(new Exception(s"Stopping because our child actor $diedChildActor died.")))
 
   protected def connectionWasLost = stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress)))
 
