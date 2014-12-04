@@ -22,8 +22,8 @@ object TcpConnectionHandler {
 
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
-  class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends OutgoingMessage
-  class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends OutgoingMessage
+  class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
+  class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
   class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef) extends OutgoingMessage
 
   class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
@@ -181,20 +181,21 @@ class TcpConnectionHandler(amaConfig: AmaConfig, remoteAddress: InetSocketAddres
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData")
-        new ConnectionClosed(remoteAddress, localAddress)
+        new ConnectionClosed(remoteAddress, localAddress, None)
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData")
-        new ConnectionClosed(remoteAddress, localAddress)
+        new ConnectionClosed(remoteAddress, localAddress, None)
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData")
 
         cause match {
-          case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress)
-          case _                                => new ConnectionClosed(remoteAddress, localAddress)
+          case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress, Some(cwle))
+          case e: Exception                     => new ConnectionClosed(remoteAddress, localAddress, Some(e))
+          case _                                => new ConnectionClosed(remoteAddress, localAddress, None)
         }
       }
     }
