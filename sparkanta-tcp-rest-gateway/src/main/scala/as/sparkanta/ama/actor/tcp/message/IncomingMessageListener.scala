@@ -11,6 +11,7 @@ import akka.util.FSMSuccessOrStop
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
 import as.sparkanta.internal.message.MessageFromDevice
 import as.sparkanta.gateway.message.IncomingMessage
+import as.sparkanta.gateway.message.DeviceIsDown
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -20,10 +21,6 @@ object IncomingMessageListener {
   sealed trait StateData extends Serializable
   case object UnidentifiedStateData extends StateData
   case class IdentifiedStateData(sparkDeviceId: String, softwareVersion: Int, identificationTimeInMs: Long) extends StateData
-
-  sealed trait Message extends Serializable
-  sealed trait OutgoingMessage extends Message
-  class DeviceIsDown(val runtimeId: Long, val sparkDeviceId: String, val timeInSystemInMs: Long) extends OutgoingMessage
 }
 
 class IncomingMessageListener(
