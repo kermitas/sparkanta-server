@@ -30,7 +30,7 @@ object TcpConnectionHandler {
   class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception], val runtimeId: Long) extends OutgoingMessage
   class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef, val runtimeId: Long) extends OutgoingMessage
 
-  class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
+  class ConnectionWasLostException(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Connection (runtimeId $runtimeId) between us ($localAddress) and remote ($remoteAddress) was lost.")
 }
 
 class TcpConnectionHandler(
@@ -55,7 +55,7 @@ class TcpConnectionHandler(
   protected var inactivityCancellable: Cancellable = _
 
   override val supervisorStrategy = OneForOneStrategy() {
-    case t: Throwable => {
+    case t => {
       stop(FSM.Failure(new Exception("Terminating because once of child actors failed.", t)))
       SupervisorStrategy.Stop
     }
@@ -198,7 +198,7 @@ class TcpConnectionHandler(
 
   protected def childActorDied(diedChildActor: ActorRef) = stop(FSM.Failure(new Exception(s"Stopping because our child actor $diedChildActor died.")))
 
-  protected def connectionWasLost = stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress)))
+  protected def connectionWasLost = stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress, runtimeId)))
 
   protected def inactivityTimeout = stop(FSM.Failure(new Exception(s"Closing inactive connection for more than ${config.inactivityTimeoutInSeconds} seconds.")))
 
@@ -219,7 +219,7 @@ class TcpConnectionHandler(
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
-          case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress, Some(cwle), runtimeId)
+          case cwle: ConnectionWasLostException => new ConnectionWasLost(remoteAddress, localAddress, Some(cwle), runtimeId)
           case e: Exception                     => new ConnectionClosed(remoteAddress, localAddress, Some(e), runtimeId)
           case _                                => new ConnectionClosed(remoteAddress, localAddress, None, runtimeId)
         }

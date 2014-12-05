@@ -20,7 +20,7 @@ object IncomingMessageListener {
 
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
-  class DeviceIsDown(val deviceId: String, timeInSystemInMs: Long) extends OutgoingMessage
+  class DeviceIsDown(val deviceId: String, val timeInSystemInMs: Long, val runtimeId: Long) extends OutgoingMessage
 }
 
 class IncomingMessageListener(
@@ -34,7 +34,10 @@ class IncomingMessageListener(
   import IncomingMessageListener._
 
   override val supervisorStrategy = OneForOneStrategy() {
-    case _ => SupervisorStrategy.Escalate
+    case t => {
+      stop(FSM.Failure(new Exception("Terminating because once of child actors failed.", t)))
+      SupervisorStrategy.Escalate
+    }
   }
 
   startWith(Unidentified, UnidentifiedStateData)
@@ -89,7 +92,7 @@ class IncomingMessageListener(
     // TODO: to remove
     incomingMessage.tcpActor ! Write(ByteString(incomingMessage.messageBody))
 
-    // TODO: deserialize (from bytes into object)  and publish on broadcaster
+    // TODO: deserialize (from bytes into object) and publish on broadcaster wrapped into some object that will contains deviceId and runtimeId
 
     stay using sd
   }
@@ -98,7 +101,7 @@ class IncomingMessageListener(
 
     val deviceId = stateData match {
       case IdentifiedStateData(deviceId, identificationTimeInMs) => {
-        amaConfig.broadcaster ! new DeviceIsDown(deviceId, System.currentTimeMillis - identificationTimeInMs)
+        amaConfig.broadcaster ! new DeviceIsDown(deviceId, System.currentTimeMillis - identificationTimeInMs, runtimeId)
         Some(deviceId)
       }
       case _ => None
