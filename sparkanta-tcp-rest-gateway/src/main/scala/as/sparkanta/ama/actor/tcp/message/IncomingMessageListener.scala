@@ -10,6 +10,7 @@ import Tcp._
 import akka.util.FSMSuccessOrStop
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
 import as.sparkanta.internal.message.MessageFromDevice
+import as.sparkanta.gateway.message.IncomingMessage
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -47,11 +48,11 @@ class IncomingMessageListener(
   startWith(Unidentified, UnidentifiedStateData)
 
   when(Unidentified) {
-    case Event(im: TcpConnectionHandler.IncomingMessage, UnidentifiedStateData) => successOrStopWithFailure { analyzeIncomingMessageFromUnidentifiedDevice(im) }
+    case Event(im: IncomingMessage, UnidentifiedStateData) => successOrStopWithFailure { analyzeIncomingMessageFromUnidentifiedDevice(im) }
   }
 
   when(Identified) {
-    case Event(im: TcpConnectionHandler.IncomingMessage, sd: IdentifiedStateData) => successOrStopWithFailure { analyzeIncomingMessageFromIdentifiedDevice(im, sd) }
+    case Event(im: IncomingMessage, sd: IdentifiedStateData) => successOrStopWithFailure { analyzeIncomingMessageFromIdentifiedDevice(im, sd) }
   }
 
   onTransition {
@@ -76,7 +77,7 @@ class IncomingMessageListener(
     amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingMessageListenerClassifier(runtimeId))
   }
 
-  protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage) = {
+  protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: IncomingMessage) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from unidentified device.")
 
     deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec] match {
@@ -90,7 +91,7 @@ class IncomingMessageListener(
     }
   }
 
-  protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage, sd: IdentifiedStateData) = {
+  protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: IncomingMessage, sd: IdentifiedStateData) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")
 
     val messageFormDevice = deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec]

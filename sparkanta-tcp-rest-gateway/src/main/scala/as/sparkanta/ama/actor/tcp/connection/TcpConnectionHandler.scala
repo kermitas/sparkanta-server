@@ -9,6 +9,7 @@ import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString, CompactByteString }
 import as.sparkanta.ama.actor.tcp.message.{ OutgoingMessageListener, IncomingMessageListener }
 import java.io.{ DataInputStream, ByteArrayInputStream }
+import as.sparkanta.gateway.message.{ ConnectionWasLost, ConnectionClosed, IncomingMessage }
 
 object TcpConnectionHandler {
 
@@ -25,10 +26,6 @@ object TcpConnectionHandler {
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
   case object InactivityTimeout extends InternalMessage
-  sealed trait OutgoingMessage extends Message
-  class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception], val runtimeId: Long) extends OutgoingMessage
-  class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception], val runtimeId: Long) extends OutgoingMessage
-  class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef, val runtimeId: Long) extends OutgoingMessage
 
   class ConnectionWasLostException(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Connection (runtimeId $runtimeId) between us ($localAddress) and remote ($remoteAddress) was lost.")
 }

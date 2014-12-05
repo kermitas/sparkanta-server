@@ -2,7 +2,7 @@ package as.sparkanta.ama.actor.tcp.message
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
+import as.sparkanta.gateway.message.IncomingMessage
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -10,7 +10,7 @@ import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
  */
 class IncomingMessageListenerClassifier(runtimeId: Long) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: TcpConnectionHandler.IncomingMessage if a.runtimeId == runtimeId => Some(a)
+    case a: IncomingMessage if a.runtimeId == runtimeId => Some(a)
     case _ => None
   }
 }
