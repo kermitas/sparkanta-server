@@ -7,7 +7,7 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import akka.io.Tcp
 import Tcp._
-import akka.util.ByteString
+import akka.util.{ ByteString, FSMSuccessOrStop }
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -28,7 +28,7 @@ class IncomingMessageListener(
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
   tcpActor:      ActorRef
-) extends FSM[IncomingMessageListener.State, IncomingMessageListener.StateData] {
+) extends FSM[IncomingMessageListener.State, IncomingMessageListener.StateData] with FSMSuccessOrStop[IncomingMessageListener.State, IncomingMessageListener.StateData] {
 
   import IncomingMessageListener._
 
@@ -66,19 +66,6 @@ class IncomingMessageListener(
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingMessageListenerClassifier(context.parent))
-  }
-
-  /**
-   * Use this method to surround initialization, for example:
-   *
-   * when(Initializing) {
-   *   case Event(true, InitializingStateData) => successOrStop { ... }
-   * }
-   */
-  protected def successOrStopWithFailure(f: => State): State = try {
-    f
-  } catch {
-    case e: Exception => stop(FSM.Failure(e))
   }
 
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage) = {

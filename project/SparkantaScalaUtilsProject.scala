@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 
-object ScalaUtilsProject {
+object SparkantaScalaUtilsProject {
 
   lazy final val projectName = SparkantaProject.projectName + "-scala-utils"
 

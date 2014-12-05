@@ -6,7 +6,7 @@ import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Termin
 import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
-import akka.util.{ ByteString, CompactByteString }
+import akka.util.{ FSMSuccessOrStop, ByteString, CompactByteString }
 import as.sparkanta.ama.actor.tcp.message.IncomingMessageListener
 import java.io.{ DataInputStream, ByteArrayInputStream }
 
@@ -40,7 +40,7 @@ class TcpConnectionHandler(
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
   tcpActor:      ActorRef
-) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
+) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] with FSMSuccessOrStop[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
 
   def this(
     amaConfig:     AmaConfig,
@@ -107,19 +107,6 @@ class TcpConnectionHandler(
     context.watch(incomingMessageListenerActor)
 
     incomingMessageListenerActor
-  }
-
-  /**
-   * Use this method to surround initialization, for example:
-   *
-   * when(Initializing) {
-   *   case Event(true, InitializingStateData) => successOrStop { ... }
-   * }
-   */
-  protected def successOrStopWithFailure(f: => State): State = try {
-    f
-  } catch {
-    case e: Exception => stop(FSM.Failure(e))
   }
 
   protected def analyzeIncomingMessageHeader(data: ByteString, sd: CompletingMessageHeaderStateData) = {

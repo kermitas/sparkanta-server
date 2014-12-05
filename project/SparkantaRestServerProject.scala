@@ -5,14 +5,14 @@ object SparkantaRestServerProject {
 
   lazy final val projectName = SparkantaProject.projectName + "-rest-server"
 
-  def apply(version: String, sparkantaApi: Project) =
+  def apply(version: String, api: Project) =
     Project(
       id           = projectName,
       base         = file(projectName),
 
-      aggregate    = Seq(sparkantaApi),
-      dependencies = Seq(sparkantaApi),
-      delegates    = Seq(sparkantaApi),
+      aggregate    = Seq(api),
+      dependencies = Seq(api),
+      delegates    = Seq(api),
 
       settings     = CommonSettings(projectName, version)
     )

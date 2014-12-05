@@ -4,11 +4,12 @@ object Build extends sbt.Build {
 
   // --- projects definition
 
-  lazy val scalaUtils              = ScalaUtilsProject(version)
+  lazy val scalaUtils     = SparkantaScalaUtilsProject(version)
+  lazy val akkaUtils      = SparkantaAkkaUtilsProject(version)
 
-  lazy val sparkantaApi            = SparkantaApiProject(version, scalaUtils)
-  lazy val sparkantaTcpRestGateway = SparkantaTcpRestGatewayProject(version, sparkantaApi)
-  lazy val sparkantaRestServer     = SparkantaRestServerProject(version, sparkantaApi)
+  lazy val api            = SparkantaApiProject(version, scalaUtils)
+  lazy val tcpRestGateway = SparkantaTcpRestGatewayProject(version, api, akkaUtils)
+  lazy val restServer     = SparkantaRestServerProject(version, api)
 
-  lazy val sparkanta               = SparkantaProject(version, sparkantaTcpRestGateway, sparkantaRestServer)
+  lazy val sparkanta      = SparkantaProject(version, tcpRestGateway, restServer)
 }
