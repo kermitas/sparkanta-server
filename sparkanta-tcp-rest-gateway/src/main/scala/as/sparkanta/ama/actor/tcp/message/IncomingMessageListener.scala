@@ -8,10 +8,9 @@ import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Deserializators, Hello }
 import as.sparkanta.internal.message.MessageFromDevice
-import as.sparkanta.gateway.message.IncomingMessage
-import as.sparkanta.gateway.message.DeviceIsDown
+import as.sparkanta.gateway.message.{ DeviceIsDown, IncomingMessage }
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -77,10 +76,10 @@ class IncomingMessageListener(
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: IncomingMessage) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from unidentified device.")
 
-    deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec] match {
+    deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker] match {
       case hello: Hello => {
         log.debug(s"Device of runtimeId $runtimeId identified itself as sparkDeviceId ${hello.sparkDeviceId}, softwareVersion ${hello.softwareVersion}.")
-        amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello.sparkDeviceId, hello)
+        amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
         goto(Identified) using new IdentifiedStateData(hello.sparkDeviceId, hello.softwareVersion, System.currentTimeMillis)
       }
 
@@ -91,10 +90,10 @@ class IncomingMessageListener(
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: IncomingMessage, sd: IdentifiedStateData) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")
 
-    val messageFormDevice = deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec]
+    val messageFormDevice = deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker]
     log.debug(s"Received ${messageFormDevice.getClass.getSimpleName} message from device of runtimeId $runtimeId.")
 
-    amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, messageFormDevice)
+    amaConfig.broadcaster ! new MessageFromDevice(runtimeId, messageFormDevice)
 
     stay using sd
   }
