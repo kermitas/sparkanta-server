@@ -5,14 +5,14 @@ object SparkantaProject {
 
   lazy final val projectName = "sparkanta"
 
-  def apply(version: String, sparkantaTcpRestGateway: Project) =
+  def apply(version: String, sparkantaTcpRestGateway: Project, sparkantaRestServer: Project) =
     Project(
       id           = projectName,
       base         = file("."),
 
-      aggregate    = Seq(sparkantaTcpRestGateway),
-      dependencies = Seq(sparkantaTcpRestGateway),
-      delegates    = Seq(sparkantaTcpRestGateway),
+      aggregate    = Seq(sparkantaTcpRestGateway, sparkantaRestServer),
+      dependencies = Seq(sparkantaTcpRestGateway, sparkantaRestServer),
+      delegates    = Seq(sparkantaTcpRestGateway, sparkantaRestServer),
 
       settings     = CommonSettings(projectName, version)
     )

@@ -6,6 +6,7 @@ object Build extends sbt.Build {
 
   lazy val sparkantaApi            = SparkantaApiProject(version)
   lazy val sparkantaTcpRestGateway = SparkantaTcpRestGatewayProject(version, sparkantaApi)
+  lazy val sparkantaRestServer     = SparkantaRestServerProject(version, sparkantaApi)
 
-  lazy val sparkanta               = SparkantaProject(version, sparkantaTcpRestGateway)
+  lazy val sparkanta               = SparkantaProject(version, sparkantaTcpRestGateway, sparkantaRestServer)
 }
