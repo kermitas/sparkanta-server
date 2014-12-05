@@ -5,11 +5,15 @@ object SparkantaApiProject {
 
   lazy final val projectName = SparkantaProject.projectName + "-api"
 
-  def apply(version: String) =
+  def apply(version: String, scalaUtils: Project) =
     Project(
-      id       = projectName,
-      base     = file(projectName),
+      id           = projectName,
+      base         = file(projectName),
 
-      settings = CommonSettings(projectName, version)
+      aggregate    = Seq(scalaUtils),
+      dependencies = Seq(scalaUtils),
+      delegates    = Seq(scalaUtils),
+
+      settings     = CommonSettings(projectName, version)
     )
 }
