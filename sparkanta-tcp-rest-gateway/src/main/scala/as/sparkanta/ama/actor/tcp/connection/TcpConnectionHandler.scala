@@ -31,7 +31,6 @@ object TcpConnectionHandler {
   class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef, val runtimeId: Long) extends OutgoingMessage
 
   class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
-
 }
 
 class TcpConnectionHandler(
@@ -102,7 +101,7 @@ class TcpConnectionHandler(
 
   protected def startIncomingMessageListenerActor: ActorRef = {
     val incomingMessageListenerActor = {
-      val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor))
+      val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
       context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName)
     }
 

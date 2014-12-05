@@ -8,9 +8,9 @@ import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class IncomingMessageListenerClassifier(requiredSender: ActorRef) extends Classifier {
+class IncomingMessageListenerClassifier(runtimeId: Long) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: TcpConnectionHandler.IncomingMessage if sender.equals(requiredSender) => Some(a)
+    case a: TcpConnectionHandler.IncomingMessage if a.runtimeId == runtimeId => Some(a)
     case _ => None
   }
 }

@@ -27,7 +27,8 @@ class IncomingMessageListener(
   amaConfig:     AmaConfig,
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
-  tcpActor:      ActorRef
+  tcpActor:      ActorRef,
+  runtimeId:     Long
 ) extends FSM[IncomingMessageListener.State, IncomingMessageListener.StateData] with FSMSuccessOrStop[IncomingMessageListener.State, IncomingMessageListener.StateData] {
 
   import IncomingMessageListener._
@@ -65,7 +66,7 @@ class IncomingMessageListener(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingMessageListenerClassifier(context.parent))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingMessageListenerClassifier(runtimeId))
   }
 
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage) = {
