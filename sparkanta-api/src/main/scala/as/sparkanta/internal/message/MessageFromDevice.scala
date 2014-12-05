@@ -1,4 +1,4 @@
-package as.sparkanta.message.internal.api
+package as.sparkanta.internal.message
 
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec }
 

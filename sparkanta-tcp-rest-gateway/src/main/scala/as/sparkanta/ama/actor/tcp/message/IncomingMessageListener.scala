@@ -9,7 +9,7 @@ import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
-import as.sparkanta.message.internal.api.MessageFromDevice
+import as.sparkanta.internal.message.MessageFromDevice
 
 object IncomingMessageListener {
   sealed trait State extends Serializable

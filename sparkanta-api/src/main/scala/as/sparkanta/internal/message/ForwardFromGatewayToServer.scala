@@ -1,4 +1,4 @@
-package as.sparkanta.message.internal.api
+package as.sparkanta.internal.message
 
 /**
  * Marker trait. It defined that this message should be forwarded from tcp-rest-gateway to rest-server.
