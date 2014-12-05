@@ -100,7 +100,7 @@ class TcpConnectionHandler(
   protected def startIncomingMessageListenerActor: ActorRef = {
     val incomingMessageListenerActor = {
       val props = Props(new IncomingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
-      context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName)
+      context.actorOf(props, name = classOf[IncomingMessageListener].getSimpleName + "-" + runtimeId)
     }
 
     context.watch(incomingMessageListenerActor)
@@ -111,7 +111,7 @@ class TcpConnectionHandler(
   protected def startOutgoingMessageListenerActor: ActorRef = {
     val outgoingMessageListenerActor = {
       val props = Props(new OutgoingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
-      context.actorOf(props, name = classOf[OutgoingMessageListener].getSimpleName)
+      context.actorOf(props, name = classOf[OutgoingMessageListener].getSimpleName + "-" + runtimeId)
     }
 
     context.watch(outgoingMessageListenerActor)
