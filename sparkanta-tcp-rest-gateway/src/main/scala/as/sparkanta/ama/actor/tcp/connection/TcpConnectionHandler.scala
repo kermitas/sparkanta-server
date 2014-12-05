@@ -7,7 +7,7 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString, CompactByteString }
-import as.sparkanta.ama.actor.tcp.message.IncomingMessageListener
+import as.sparkanta.ama.actor.tcp.message.{ OutgoingMessageListener, IncomingMessageListener }
 import java.io.{ DataInputStream, ByteArrayInputStream }
 
 object TcpConnectionHandler {
@@ -97,6 +97,7 @@ class TcpConnectionHandler(
 
   override def preStart(): Unit = {
     startIncomingMessageListenerActor
+    startOutgoingMessageListenerActor
   }
 
   protected def startIncomingMessageListenerActor: ActorRef = {
@@ -108,6 +109,17 @@ class TcpConnectionHandler(
     context.watch(incomingMessageListenerActor)
 
     incomingMessageListenerActor
+  }
+
+  protected def startOutgoingMessageListenerActor: ActorRef = {
+    val outgoingMessageListenerActor = {
+      val props = Props(new OutgoingMessageListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+      context.actorOf(props, name = classOf[OutgoingMessageListener].getSimpleName)
+    }
+
+    context.watch(outgoingMessageListenerActor)
+
+    outgoingMessageListenerActor
   }
 
   protected def analyzeIncomingMessageHeader(data: ByteString, sd: CompletingMessageHeaderStateData) = {

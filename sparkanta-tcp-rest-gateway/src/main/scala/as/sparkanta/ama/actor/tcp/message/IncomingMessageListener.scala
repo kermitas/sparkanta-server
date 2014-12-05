@@ -1,6 +1,6 @@
 package as.sparkanta.ama.actor.tcp.message
 
-import akka.actor.{ Actor, ActorRef, FSM, OneForOneStrategy, SupervisorStrategy }
+import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
@@ -8,6 +8,8 @@ import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import akka.io.Tcp
 import Tcp._
 import akka.util.{ ByteString, FSMSuccessOrStop }
+import as.sparkanta.message.device.api.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
+import as.sparkanta.message.internal.api.MessageFromDevice
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -16,11 +18,11 @@ object IncomingMessageListener {
 
   sealed trait StateData extends Serializable
   case object UnidentifiedStateData extends StateData
-  case class IdentifiedStateData(deviceId: String, identificationTimeInMs: Long) extends StateData
+  case class IdentifiedStateData(sparkDeviceId: String, softwareVersion: Int, identificationTimeInMs: Long) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
-  class DeviceIsDown(val deviceId: String, val timeInSystemInMs: Long, val runtimeId: Long) extends OutgoingMessage
+  class DeviceIsDown(val runtimeId: Long, val sparkDeviceId: String, val timeInSystemInMs: Long) extends OutgoingMessage
 }
 
 class IncomingMessageListener(
@@ -32,6 +34,8 @@ class IncomingMessageListener(
 ) extends FSM[IncomingMessageListener.State, IncomingMessageListener.StateData] with FSMSuccessOrStop[IncomingMessageListener.State, IncomingMessageListener.StateData] {
 
   import IncomingMessageListener._
+
+  protected val deserializators = new Deserializators
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -75,52 +79,52 @@ class IncomingMessageListener(
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from unidentified device.")
 
-    // TODO: to remove
-    incomingMessage.tcpActor ! Write(ByteString(incomingMessage.messageBody))
+    deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec] match {
+      case hello: Hello => {
+        log.debug(s"Device of runtimeId $runtimeId identified itself as sparkDeviceId ${hello.sparkDeviceId}, softwareVersion ${hello.softwareVersion}.")
+        amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello.sparkDeviceId, hello)
+        goto(Identified) using new IdentifiedStateData(hello.sparkDeviceId, hello.softwareVersion, System.currentTimeMillis)
+      }
 
-    // TODO: deserialize (from bytes into object) and it should be Hello message that will contains device id
-    // TODO: if yes then spawn child actor OutgoingMessageListener and pass to it tcpActor, deviceId
-    // TODO: register on child actors death
-    // TODO: if not then throw exception
-
-    goto(Identified) using new IdentifiedStateData("abcdefghij", System.currentTimeMillis)
+      case unknownMessage => stop(FSM.Failure(new Exception(s"First message from device should be ${classOf[Hello].getSimpleName}, not ${unknownMessage.getClass.getSimpleName}.")))
+    }
   }
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: TcpConnectionHandler.IncomingMessage, sd: IdentifiedStateData) = {
-    log.debug(s"Received ${incomingMessage.messageBody.length} bytes from device '${sd.deviceId}'.")
+    log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")
 
-    // TODO: to remove
-    incomingMessage.tcpActor ! Write(ByteString(incomingMessage.messageBody))
+    val messageFormDevice = deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceSpec]
+    log.debug(s"Received ${messageFormDevice.getClass.getSimpleName} message from device of runtimeId $runtimeId.")
 
-    // TODO: deserialize (from bytes into object) and publish on broadcaster wrapped into some object that will contains deviceId and runtimeId
+    amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, messageFormDevice)
 
     stay using sd
   }
 
   protected def terminate(reason: FSM.Reason, currentState: IncomingMessageListener.State, stateData: IncomingMessageListener.StateData): Unit = {
 
-    val deviceId = stateData match {
-      case IdentifiedStateData(deviceId, identificationTimeInMs) => {
-        amaConfig.broadcaster ! new DeviceIsDown(deviceId, System.currentTimeMillis - identificationTimeInMs, runtimeId)
-        Some(deviceId)
+    val sparkDeviceId = stateData match {
+      case IdentifiedStateData(sparkDeviceId, softwareVersion, identificationTimeInMs) => {
+        amaConfig.broadcaster ! new DeviceIsDown(runtimeId, sparkDeviceId, System.currentTimeMillis - identificationTimeInMs)
+        Some(sparkDeviceId)
       }
       case _ => None
     }
 
-    val deviceIdMessage = deviceId.map(deviceId => s", device id '$deviceId'.").getOrElse(".")
+    val sparkDeviceIdMessage = sparkDeviceId.map(sparkDeviceId => s", sparkDeviceId '$sparkDeviceId'.").getOrElse(".")
 
     reason match {
 
       case FSM.Normal => {
-        log.debug(s"Stopping (normal), state $currentState, data $stateData$deviceIdMessage")
+        log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
       }
 
       case FSM.Shutdown => {
-        log.debug(s"Stopping (shutdown), state $currentState, data $stateData$deviceIdMessage")
+        log.debug(s"Stopping (shutdown), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
       }
 
       case FSM.Failure(cause) => {
-        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData$deviceIdMessage")
+        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
       }
     }
   }
