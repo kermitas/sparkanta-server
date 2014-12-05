@@ -9,22 +9,9 @@ import Tcp._
 import java.net.InetSocketAddress
 import akka.util.ActorNameGenerator
 import java.util.concurrent.atomic.AtomicLong
-
-object TcpServer {
-  sealed trait Message extends Serializable
-  sealed trait OutgoingMessage extends Message
-  class NewIncomingConnection(
-    val remoteAddress:             InetSocketAddress,
-    val localAddress:              InetSocketAddress,
-    val tcpConnectionHandlerActor: ActorRef,
-    val tcpActor:                  ActorRef,
-    val runtimeId:                 Long
-  ) extends OutgoingMessage
-}
+import as.sparkanta.gateway.message.NewIncomingConnection
 
 class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor with ActorLogging {
-
-  import TcpServer._
 
   def this(amaConfig: AmaConfig) = this(amaConfig, TcpServerConfig.fromTopKey(amaConfig.config))
 
