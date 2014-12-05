@@ -1,5 +1,4 @@
-/*
-package as.sparkanta.message.device.api
+package as.sparkanta.device.message
 
 import java.io.{ InputStream, ByteArrayInputStream }
 
@@ -19,4 +18,3 @@ class Deserializators(protected final val deserializators: Seq[Deserializator[Me
     deserializators.find(_.commandCode == commandCode).map(_.deserialize(is).asInstanceOf[T]).getOrElse(throw new Exception(s"Unknown command $commandCode code."))
 
 }
-*/

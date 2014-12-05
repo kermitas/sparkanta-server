@@ -7,8 +7,8 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import akka.io.Tcp
 import Tcp._
-import akka.util.{ ByteString, FSMSuccessOrStop }
-import as.sparkanta.message.device.api.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
+import akka.util.FSMSuccessOrStop
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceSpec, Deserializators, Hello }
 import as.sparkanta.message.internal.api.MessageFromDevice
 
 object IncomingMessageListener {

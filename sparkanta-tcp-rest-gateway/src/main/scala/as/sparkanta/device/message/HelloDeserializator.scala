@@ -1,5 +1,4 @@
-/*
-package as.sparkanta.message.device.api
+package as.sparkanta.device.message
 
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
@@ -34,4 +33,3 @@ class HelloDeserializatorVersion1 extends Deserializator[Hello] {
     new Hello(softwareVersion, sparkDeviceId)
   }
 }
-*/ 
