@@ -26,9 +26,9 @@ object TcpConnectionHandler {
   sealed trait InternalMessage extends Message
   case object InactivityTimeout extends InternalMessage
   sealed trait OutgoingMessage extends Message
-  class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
-  class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception]) extends OutgoingMessage
-  class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef) extends OutgoingMessage
+  class ConnectionWasLost(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception], val runtimeId: Long) extends OutgoingMessage
+  class ConnectionClosed(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val exception: Option[Exception], val runtimeId: Long) extends OutgoingMessage
+  class IncomingMessage(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val messageBody: Array[Byte], val tcpActor: ActorRef, val runtimeId: Long) extends OutgoingMessage
 
   class ConnectionWasLostException(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress) extends Exception(s"Connection between us ($localAddress) and remote ($remoteAddress) was lost.")
 
@@ -39,15 +39,17 @@ class TcpConnectionHandler(
   config:        TcpConnectionHandlerConfig,
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
-  tcpActor:      ActorRef
+  tcpActor:      ActorRef,
+  runtimeId:     Long
 ) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] with FSMSuccessOrStop[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
 
   def this(
     amaConfig:     AmaConfig,
     remoteAddress: InetSocketAddress,
     localAddress:  InetSocketAddress,
-    tcpActor:      ActorRef
-  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor)
+    tcpActor:      ActorRef,
+    runtimeId:     Long
+  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId)
 
   import TcpConnectionHandler._
 
@@ -142,7 +144,7 @@ class TcpConnectionHandler(
 
       // we successfully took from buffer message body
       case Some((messageBody, newBuffer)) => {
-        amaConfig.broadcaster ! new IncomingMessage(remoteAddress, localAddress, messageBody, tcpActor)
+        amaConfig.broadcaster ! new IncomingMessage(remoteAddress, localAddress, messageBody, tcpActor, runtimeId)
         analyzeBuffer(None, newBuffer)
       }
 
@@ -206,21 +208,21 @@ class TcpConnectionHandler(
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        new ConnectionClosed(remoteAddress, localAddress, None)
+        new ConnectionClosed(remoteAddress, localAddress, None, runtimeId)
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        new ConnectionClosed(remoteAddress, localAddress, None)
+        new ConnectionClosed(remoteAddress, localAddress, Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), runtimeId)
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
-          case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress, Some(cwle))
-          case e: Exception                     => new ConnectionClosed(remoteAddress, localAddress, Some(e))
-          case _                                => new ConnectionClosed(remoteAddress, localAddress, None)
+          case cwle: ConnectionWasLostException => new ConnectionWasLost(cwle.remoteAddress, cwle.localAddress, Some(cwle), runtimeId)
+          case e: Exception                     => new ConnectionClosed(remoteAddress, localAddress, Some(e), runtimeId)
+          case _                                => new ConnectionClosed(remoteAddress, localAddress, None, runtimeId)
         }
       }
     }

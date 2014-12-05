@@ -4,7 +4,11 @@ import java.io.{ InputStream, ByteArrayInputStream }
 
 class Deserializators(protected final val deserializators: Seq[Deserializator[MessageFormDevice]]) {
 
-  def this() = this(Seq(new HelloDeserializator))
+  def this() = this(
+    Seq(
+      new HelloDeserializator
+    )
+  )
 
   def deserialize[T <: MessageFormDevice](byteArray: Array[Byte]): T = deserialize[T](new ByteArrayInputStream(byteArray))
 

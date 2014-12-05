@@ -8,11 +8,18 @@ import akka.io.{ IO, Tcp }
 import Tcp._
 import java.net.InetSocketAddress
 import akka.util.ActorNameGenerator
+import java.util.concurrent.atomic.AtomicLong
 
 object TcpServer {
   sealed trait Message extends Serializable
   sealed trait OutgoingMessage extends Message
-  class NewIncomingConnection(val remoteAddress: InetSocketAddress, val localAddress: InetSocketAddress, val tcpConnectionHandlerActor: ActorRef, val tcpActor: ActorRef) extends OutgoingMessage
+  class NewIncomingConnection(
+    val remoteAddress:             InetSocketAddress,
+    val localAddress:              InetSocketAddress,
+    val tcpConnectionHandlerActor: ActorRef,
+    val tcpActor:                  ActorRef,
+    val runtimeId:                 Long
+  ) extends OutgoingMessage
 }
 
 class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor with ActorLogging {
@@ -63,14 +70,15 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   }
 
   protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit = {
-    log.info(s"New incoming connection form $remoteAddress (to $localAddress).")
-    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor)
-    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler, tcpActor)
+    val runtimeId = tcpConnectionHandlerActorNamesGenerator.numberThatWillBeUsedToGenerateNextName
+    log.info(s"New incoming connection form $remoteAddress (to $localAddress), assigning runtime id $runtimeId.")
+    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor, runtimeId)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler, tcpActor, runtimeId)
     tcpActor ! Register(tcpConnectionHandler)
   }
 
-  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): ActorRef = {
-    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress, tcpActor))
-    context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.getNextName)
+  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
+    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+    context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.nextName)
   }
 }

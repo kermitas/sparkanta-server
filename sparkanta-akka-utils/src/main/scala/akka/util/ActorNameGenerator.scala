@@ -15,5 +15,7 @@ class ActorNameGenerator(val namePattern: String, number: AtomicLong) {
 
   def this(namePattern: String) = this(namePattern, 0)
 
-  def getNextName: String = namePattern.format(number.getAndIncrement)
+  def nextName: String = namePattern.format(number.getAndIncrement)
+
+  def numberThatWillBeUsedToGenerateNextName: Long = number.get
 }
