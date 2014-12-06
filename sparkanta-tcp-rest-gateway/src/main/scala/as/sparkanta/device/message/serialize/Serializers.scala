@@ -1,8 +1,8 @@
-/*
-package as.sparkanta.device.message
+package as.sparkanta.device.message.serialize
 
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 import java.io.OutputStream
+import as.sparkanta.device.message.Hello
 
 class Serializers extends Serializer[MessageToDeviceMarker] {
 
@@ -11,4 +11,3 @@ class Serializers extends Serializer[MessageToDeviceMarker] {
     case unknownMessageToDevice => throw new Exception(s"Unknown object ${unknownMessageToDevice.getClass.getSimpleName}, don't know how to serialize.")
   }
 }
-*/ 

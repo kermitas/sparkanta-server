@@ -2,9 +2,10 @@ import org.scalatest.{ FeatureSpec, Matchers }
 
 import java.net.Socket
 import scala.io.StdIn
-import as.sparkanta.device.message.{ Hello, HelloSerializerVersion1, MessageHeader65536 }
+import as.sparkanta.device.message.{ Hello, MessageHeader65536 }
+import as.sparkanta.device.message.serialize.HelloSerializerVersion1
 
-class HelloCommandSender extends FeatureSpec with Matchers {
+class HelloCommandSenderTest extends FeatureSpec with Matchers {
 
   scenario("sending hello command") {
 

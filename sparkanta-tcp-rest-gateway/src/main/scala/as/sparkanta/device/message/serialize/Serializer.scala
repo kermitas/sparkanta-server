@@ -1,5 +1,4 @@
-/*
-package as.sparkanta.device.message
+package as.sparkanta.device.message.serialize
 
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 import java.io.{ ByteArrayOutputStream, OutputStream }
@@ -14,4 +13,3 @@ trait Serializer[T <: MessageToDeviceMarker] {
 
   def serialize(messageToDevice: T, os: OutputStream)
 }
-*/ 
