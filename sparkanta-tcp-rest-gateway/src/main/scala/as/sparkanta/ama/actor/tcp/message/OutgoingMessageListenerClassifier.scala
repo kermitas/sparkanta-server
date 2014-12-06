@@ -2,7 +2,7 @@ package as.sparkanta.ama.actor.tcp.message
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.gateway.message.MessageToDevice
+import as.sparkanta.internal.message.MessageToDevice
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)

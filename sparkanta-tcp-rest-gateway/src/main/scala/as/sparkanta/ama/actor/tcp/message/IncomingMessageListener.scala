@@ -4,12 +4,12 @@ import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
-import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Deserializators, Hello }
-import as.sparkanta.gateway.message.{ MessageFromDevice, DeviceIsDown, IncomingMessage }
+import as.sparkanta.gateway.message.{ DeviceIsDown, IncomingMessage }
+import as.sparkanta.internal.message.MessageFromDevice
 
 object IncomingMessageListener {
   sealed trait State extends Serializable

@@ -1,4 +1,4 @@
-package as.sparkanta.gateway.message
+package as.sparkanta.internal.message
 
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 
