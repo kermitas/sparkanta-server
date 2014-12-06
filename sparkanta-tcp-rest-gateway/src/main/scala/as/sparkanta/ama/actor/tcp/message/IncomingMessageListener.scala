@@ -7,9 +7,9 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Deserializators, Hello }
-import as.sparkanta.gateway.message.{ DeviceIsDown, IncomingMessage }
-import as.sparkanta.internal.message.MessageFromDevice
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Deserializators, Deserializator, Hello }
+import as.sparkanta.gateway.message.IncomingMessage
+import as.sparkanta.internal.message.{ DeviceIsDown, MessageFromDevice }
 
 object IncomingMessageListener {
   sealed trait State extends Serializable
@@ -31,7 +31,7 @@ class IncomingMessageListener(
 
   import IncomingMessageListener._
 
-  protected val deserializators = new Deserializators
+  protected val deserializators: Deserializator[MessageFormDeviceMarker] = new Deserializators
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -75,9 +75,9 @@ class IncomingMessageListener(
   protected def analyzeIncomingMessageFromUnidentifiedDevice(incomingMessage: IncomingMessage) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from unidentified device.")
 
-    deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker] match {
+    deserialize(incomingMessage.messageBody) match {
       case hello: Hello => {
-        log.debug(s"Device of runtimeId $runtimeId identified itself as sparkDeviceId ${hello.sparkDeviceId}, softwareVersion ${hello.softwareVersion}.")
+        log.debug(s"Device of runtimeId $runtimeId identified itself as sparkDeviceId '${hello.sparkDeviceId}', softwareVersion ${hello.softwareVersion}.")
 
         if (isSoftwareVersionSupported(hello.softwareVersion)) {
           amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
@@ -91,7 +91,9 @@ class IncomingMessageListener(
     }
   }
 
-  protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true
+  protected def deserialize(messageBody: Array[Byte]): MessageFormDeviceMarker = deserializators.deserialize(messageBody)
+
+  protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true // TODO: implement in future
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: IncomingMessage, sd: IdentifiedStateData) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")

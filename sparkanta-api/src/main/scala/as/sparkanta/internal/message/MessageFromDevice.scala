@@ -5,4 +5,4 @@ import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarke
 class MessageFromDevice(
   val runtimeId:         Long,
   val messageFromDevice: MessageFormDeviceMarker
-) extends Serializable
+) extends ForwardToRestServer

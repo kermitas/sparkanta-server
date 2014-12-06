@@ -7,7 +7,7 @@ import akka.io.Tcp
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageHeader65536, MessageHeader }
+import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageHeader65536, MessageHeader, Serializers, Serializer }
 import as.sparkanta.internal.message.MessageToDevice
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
@@ -49,6 +49,7 @@ class OutgoingMessageListener(
 
   protected val messageHeader: MessageHeader = new MessageHeader65536
   protected val outgoingBuffer = new ListBuffer[MessageToDeviceMarker]
+  protected val serializers: Serializer[MessageToDeviceMarker] = new Serializers
   protected var waitingForAckCancellable: Option[Cancellable] = None
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -129,7 +130,7 @@ class OutgoingMessageListener(
     stay using WaitingForAckStateData
   }
 
-  protected def serialize(messageToDevice: MessageToDeviceMarker): Array[Byte] = ??? // TODO !!
+  protected def serialize(messageToDevice: MessageToDeviceMarker): Array[Byte] = serializers.serialize(messageToDevice)
 
   protected def resetWaitingForAckTimeout: Unit = {
     cancelWaitingForAckTimeout
