@@ -1,7 +1,8 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
+import as.sparkanta.device.message.Hello
 
 class HelloDeserializator extends Deserializator[Hello] {
 

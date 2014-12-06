@@ -1,6 +1,7 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.deserialize
 
 import java.io.{ InputStream, ByteArrayInputStream }
+import as.sparkanta.device.message.MessageFormDevice
 
 trait Deserializator[+T <: MessageFormDevice] {
   def commandCode: Int

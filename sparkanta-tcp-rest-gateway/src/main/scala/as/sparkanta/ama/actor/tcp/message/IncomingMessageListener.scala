@@ -7,7 +7,8 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Deserializators, Deserializator, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Hello }
+import as.sparkanta.device.message.deserialize.{ Deserializators, Deserializator }
 import as.sparkanta.gateway.message.IncomingMessage
 import as.sparkanta.internal.message.{ DeviceIsDown, MessageFromDevice }
 

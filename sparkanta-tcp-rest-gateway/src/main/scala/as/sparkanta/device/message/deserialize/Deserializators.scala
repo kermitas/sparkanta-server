@@ -1,6 +1,7 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
+import as.sparkanta.device.message.MessageFormDevice
 
 class Deserializators(protected final val deserializators: Seq[Deserializator[MessageFormDevice]]) extends Deserializator[MessageFormDevice] {
 
