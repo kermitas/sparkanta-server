@@ -7,10 +7,9 @@ import akka.io.Tcp
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
-import as.sparkanta.internal.message.MessageToDevice
+import as.sparkanta.gateway.message.MessageToDevice
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageHeader65536, MessageHeader }
 import scala.collection.mutable.ListBuffer
-import java.io.{ DataOutputStream, ByteArrayOutputStream }
 import akka.util.{ FSMSuccessOrStop, ByteString }
 
 object OutgoingMessageListener {
