@@ -8,20 +8,17 @@ import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString, CompactByteString }
 import as.sparkanta.ama.actor.tcp.message.{ OutgoingMessageListener, IncomingMessageListener }
-import java.io.{ DataInputStream, ByteArrayInputStream }
 import as.sparkanta.gateway.message.{ ConnectionWasLost, ConnectionClosed, IncomingMessage }
+import as.sparkanta.device.message.{ MessageHeader, MessageHeader65536 }
 
 object TcpConnectionHandler {
-
-  lazy final val messageHeaderLength: Short = 2
-
   sealed trait State extends Serializable
   case object CompletingMessageHeader extends State
   case object CompletingMessageBody extends State
 
   sealed trait StateData extends Serializable
   case class CompletingMessageHeaderStateData(buffer: ByteString) extends StateData
-  case class CompletingMessageBodyStateData(bodyLength: Short, buffer: ByteString) extends StateData
+  case class CompletingMessageBodyStateData(bodyLength: Int, buffer: ByteString) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -49,6 +46,7 @@ class TcpConnectionHandler(
 
   import TcpConnectionHandler._
 
+  protected val messageHeader: MessageHeader = new MessageHeader65536
   protected var inactivityCancellable: Cancellable = _
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -145,7 +143,7 @@ class TcpConnectionHandler(
    *
    * @param bodyLength if set that means that message body is read right now
    */
-  protected def analyzeBuffer(bodyLength: Option[Short], buffer: ByteString): (Option[Short], ByteString) = bodyLength match {
+  protected def analyzeBuffer(bodyLength: Option[Int], buffer: ByteString): (Option[Int], ByteString) = bodyLength match {
 
     // body length is set, let's see if there are enough data in buffer
     case Some(bodyLength) => getAvailable(bodyLength, buffer) match {
@@ -164,29 +162,24 @@ class TcpConnectionHandler(
     }
 
     // body length is not set, let's see if there are all bytes header bytes in buffer
-    case None => getAvailable(messageHeaderLength, buffer) match {
+    case None => getAvailable(messageHeader.messageHeaderLength, buffer) match {
 
       // we successfully took from buffer bytes needed to calculate message body length
-      case Some((messageHeader, newBuffer)) => {
-        val bodyLength = readShort(messageHeader)
+      case Some((messageHeaderAsBytes, newBuffer)) => {
+        val bodyLength = messageHeader.readMessageLength(messageHeaderAsBytes)
         log.debug(s"Incoming command body is $bodyLength bytes.")
         analyzeBuffer(Some(bodyLength), newBuffer)
       }
 
-      // we need messageHeaderLength bytes to be in buffer but there are less than that, let's wait for new data
+      // we need messageHeader.messageHeaderLength bytes to be in buffer but there are less than that, let's wait for new data
       case None => (None, buffer)
     }
   }
 
   /**
-   * Read two first bytes from array and calculate [[Short]].
-   */
-  protected def readShort(array: Array[Byte]): Short = new DataInputStream(new ByteArrayInputStream(array)).readShort
-
-  /**
    * If can will take (and remove) first numberOfBytes from buffer.
    */
-  protected def getAvailable(numberOfBytes: Short, buffer: ByteString): Option[(Array[Byte], ByteString)] = if (buffer.size >= numberOfBytes) {
+  protected def getAvailable(numberOfBytes: Int, buffer: ByteString): Option[(Array[Byte], ByteString)] = if (buffer.size >= numberOfBytes) {
     val array: Array[Byte] = new Array[Byte](numberOfBytes)
     buffer.copyToArray(array, 0, numberOfBytes)
     val newBuffer = buffer.drop(numberOfBytes)
@@ -209,7 +202,7 @@ class TcpConnectionHandler(
 
   protected def connectionWasLost = stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress, runtimeId)))
 
-  protected def inactivityTimeout = stop(FSM.Failure(new Exception(s"Closing inactive connection for more than ${config.inactivityTimeoutInSeconds} seconds.")))
+  protected def inactivityTimeout = stop(FSM.Failure(new Exception(s"Connection inactive for more than ${config.inactivityTimeoutInSeconds} seconds, closing connection.")))
 
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
     val notificationToPublishOnBroadcaster = reason match {
@@ -236,5 +229,6 @@ class TcpConnectionHandler(
     }
 
     amaConfig.broadcaster ! notificationToPublishOnBroadcaster
+    tcpActor ! Tcp.Close
   }
 }

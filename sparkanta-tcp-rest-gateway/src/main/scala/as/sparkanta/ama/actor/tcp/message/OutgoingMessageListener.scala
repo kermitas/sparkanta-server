@@ -1,17 +1,20 @@
 package as.sparkanta.ama.actor.tcp.message
 
-import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy }
+import scala.language.postfixOps
+import scala.concurrent.duration._
+import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy }
 import akka.io.Tcp
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import as.sparkanta.internal.message.MessageToDevice
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageHeader65536, MessageHeader }
 import scala.collection.mutable.ListBuffer
 import java.io.{ DataOutputStream, ByteArrayOutputStream }
 import akka.util.{ FSMSuccessOrStop, ByteString }
 
 object OutgoingMessageListener {
+
   sealed trait State extends Serializable
   case object WaitingForSomethingToSend extends State
   case object WaitingForAck extends State
@@ -23,19 +26,31 @@ object OutgoingMessageListener {
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
   object Ack extends InternalMessage with Tcp.Event
+  object AckTimeout extends InternalMessage
 }
 
 class OutgoingMessageListener(
   amaConfig:     AmaConfig,
+  config:        OutgoingMessageListenerConfig,
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
   tcpActor:      ActorRef,
   runtimeId:     Long
 ) extends FSM[OutgoingMessageListener.State, OutgoingMessageListener.StateData] with FSMSuccessOrStop[OutgoingMessageListener.State, OutgoingMessageListener.StateData] {
 
+  def this(
+    amaConfig:     AmaConfig,
+    remoteAddress: InetSocketAddress,
+    localAddress:  InetSocketAddress,
+    tcpActor:      ActorRef,
+    runtimeId:     Long
+  ) = this(amaConfig, OutgoingMessageListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId)
+
   import OutgoingMessageListener._
 
+  protected val messageHeader: MessageHeader = new MessageHeader65536
   protected val outgoingBuffer = new ListBuffer[MessageToDeviceMarker]
+  protected var waitingForAckCancellable: Option[Cancellable] = None
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -60,6 +75,14 @@ class OutgoingMessageListener(
   }
 
   whenUnhandled {
+    case Event(AckTimeout, stateData) => {
+      stop(FSM.Failure(new Exception(s"No ACK for more than ${config.waitingForAckTimeoutInSeconds} seconds, closing connection.")))
+    }
+
+    case Event(Tcp.CommandFailed(_), stateData) => {
+      stop(FSM.Failure(new Exception("Write request failed.")))
+    }
+
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
       stay using stateData
@@ -79,37 +102,53 @@ class OutgoingMessageListener(
 
   protected def sendRequestWhileNothingToDo(messageToDevice: MessageToDeviceMarker) = {
     serializeAndSendToWire(messageToDevice)
+    setWaitingForAckTimeout
     goto(WaitingForAck) using WaitingForAckStateData
   }
 
-  protected def sendRequestWhileWaitingForAck(messageToDevice: MessageToDeviceMarker) = {
+  protected def sendRequestWhileWaitingForAck(messageToDevice: MessageToDeviceMarker) = if (outgoingBuffer.size >= config.maximumNumberOfBufferedMessages) {
+    stop(FSM.Failure(new Exception(s"Maximum number of ${config.maximumNumberOfBufferedMessages} buffered messages to send reached.")))
+  } else {
     outgoingBuffer += messageToDevice
     stay using WaitingForAckStateData
   }
 
   protected def serializeAndSendToWire(messageToDevice: MessageToDeviceMarker): Unit = {
-    val headerWithMessageToDeviceAsByteArray = addMessageHeader(serialize(messageToDevice))
+    val headerWithMessageToDeviceAsByteArray = messageHeader.prepareMessageToGo(serialize(messageToDevice))
     tcpActor ! new Tcp.Write(ByteString(headerWithMessageToDeviceAsByteArray), Ack)
   }
 
   protected def ackReceived = if (outgoingBuffer.isEmpty) {
+    cancelWaitingForAckTimeout
     goto(WaitingForSomethingToSend) using WaitingForSomethingToSendStateData
   } else {
+    cancelWaitingForAckTimeout
     val messageToDevice = outgoingBuffer.head
     outgoingBuffer -= messageToDevice
     serializeAndSendToWire(messageToDevice)
+    setWaitingForAckTimeout
     stay using WaitingForAckStateData
   }
 
   protected def serialize(messageToDevice: MessageToDeviceMarker): Array[Byte] = ??? // TODO !!
 
-  protected def addMessageHeader(messageToDeviceAsByteArray: Array[Byte]): Array[Byte] = {
-    val baos = new ByteArrayOutputStream
-    val dos = new DataOutputStream(baos)
-    dos.writeShort(messageToDeviceAsByteArray.length)
-    dos.write(messageToDeviceAsByteArray)
-    dos.flush
-    baos.toByteArray
+  protected def resetWaitingForAckTimeout: Unit = {
+    cancelWaitingForAckTimeout
+    setWaitingForAckTimeout
+  }
+
+  protected def cancelWaitingForAckTimeout: Unit = {
+    waitingForAckCancellable.map(_.cancel)
+    waitingForAckCancellable = None
+  }
+
+  protected def setWaitingForAckTimeout: Unit = waitingForAckCancellable match {
+    case Some(waitingForAckCancellable) => throw new IllegalStateException("Can not set 'waiting for ack timeout' when it is alread set.")
+
+    case None => {
+      import context.dispatcher
+      waitingForAckCancellable = Some(context.system.scheduler.schedule(config.waitingForAckTimeoutInSeconds seconds, config.waitingForAckTimeoutInSeconds seconds, self, AckTimeout))
+    }
   }
 
   protected def terminate(reason: FSM.Reason, currentState: OutgoingMessageListener.State, stateData: OutgoingMessageListener.StateData) = reason match {

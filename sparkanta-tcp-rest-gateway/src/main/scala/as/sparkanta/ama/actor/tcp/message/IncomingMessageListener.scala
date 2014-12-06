@@ -79,13 +79,20 @@ class IncomingMessageListener(
     deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker] match {
       case hello: Hello => {
         log.debug(s"Device of runtimeId $runtimeId identified itself as sparkDeviceId ${hello.sparkDeviceId}, softwareVersion ${hello.softwareVersion}.")
-        amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
-        goto(Identified) using new IdentifiedStateData(hello.sparkDeviceId, hello.softwareVersion, System.currentTimeMillis)
+
+        if (isSoftwareVersionSupported(hello.softwareVersion)) {
+          amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
+          goto(Identified) using new IdentifiedStateData(hello.sparkDeviceId, hello.softwareVersion, System.currentTimeMillis)
+        } else {
+          stop(FSM.Failure(new Exception(s"Software version ${hello.softwareVersion} is not supported.")))
+        }
       }
 
       case unknownMessage => stop(FSM.Failure(new Exception(s"First message from device should be ${classOf[Hello].getSimpleName}, not ${unknownMessage.getClass.getSimpleName}.")))
     }
   }
+
+  protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: IncomingMessage, sd: IdentifiedStateData) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")
