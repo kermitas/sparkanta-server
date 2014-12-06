@@ -3,11 +3,11 @@ package as.sparkanta.device.message.deserialize
 import java.io.InputStream
 import as.sparkanta.device.message.MessageFormDevice
 
-class Deserializators(protected final val deserializators: Seq[Deserializator[MessageFormDevice]]) extends Deserializator[MessageFormDevice] {
+class Deserializers(protected final val deserializers: Seq[Deserializer[MessageFormDevice]]) extends Deserializer[MessageFormDevice] {
 
   def this() = this(
     Seq(
-      new HelloDeserializator
+      new HelloDeserializer
     )
   )
 
@@ -16,6 +16,6 @@ class Deserializators(protected final val deserializators: Seq[Deserializator[Me
   override def deserialize(is: InputStream): MessageFormDevice = deserialize(is, is.read)
 
   protected def deserialize(is: InputStream, commandCode: Int): MessageFormDevice =
-    deserializators.find(_.commandCode == commandCode).map(_.deserialize(is)).getOrElse(throw new Exception(s"Unknown command $commandCode code, can not deserialize."))
+    deserializers.find(_.commandCode == commandCode).map(_.deserialize(is)).getOrElse(throw new Exception(s"Unknown command $commandCode code, can not deserialize."))
 
 }

@@ -4,25 +4,25 @@ import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
 import as.sparkanta.device.message.Hello
 
-class HelloDeserializator extends Deserializator[Hello] {
+class HelloDeserializer extends Deserializer[Hello] {
 
-  protected lazy final val currentDeserializator = new HelloDeserializatorVersion1
+  protected lazy final val currentDeserializer = new HelloDeserializerVersion1
 
-  protected lazy final val deserializators = Map[Int, Deserializator[Hello]](
-    1 -> currentDeserializator
+  protected lazy final val deserializers = Map[Int, Deserializer[Hello]](
+    1 -> currentDeserializer
   )
 
   override def commandCode: Int = Hello.commandCode
 
   override def deserialize(is: InputStream): Hello = deserialize(is, is.read)
 
-  protected def deserialize(is: InputStream, version: Int): Hello = deserializators.get(version) match {
-    case Some(deserializators) => deserializators.deserialize(is)
-    case None                  => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, version: Int): Hello = deserializers.get(version) match {
+    case Some(deserializers) => deserializers.deserialize(is)
+    case None                => throw SerializationVersionNotSupportedException(version)
   }
 }
 
-class HelloDeserializatorVersion1 extends Deserializator[Hello] {
+class HelloDeserializerVersion1 extends Deserializer[Hello] {
   override def commandCode: Int = ???
 
   override def deserialize(is: InputStream): Hello = {

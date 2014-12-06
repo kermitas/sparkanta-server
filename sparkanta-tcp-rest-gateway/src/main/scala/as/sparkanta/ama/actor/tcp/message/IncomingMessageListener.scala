@@ -8,7 +8,7 @@ import akka.io.Tcp
 import Tcp._
 import akka.util.FSMSuccessOrStop
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Hello }
-import as.sparkanta.device.message.deserialize.{ Deserializators, Deserializator }
+import as.sparkanta.device.message.deserialize.{ Deserializers, Deserializer }
 import as.sparkanta.gateway.message.IncomingMessage
 import as.sparkanta.internal.message.{ DeviceIsDown, MessageFromDevice }
 
@@ -32,7 +32,7 @@ class IncomingMessageListener(
 
   import IncomingMessageListener._
 
-  protected val deserializators: Deserializator[MessageFormDeviceMarker] = new Deserializators
+  protected val deserializers: Deserializer[MessageFormDeviceMarker] = new Deserializers
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -92,14 +92,14 @@ class IncomingMessageListener(
     }
   }
 
-  protected def deserialize(messageBody: Array[Byte]): MessageFormDeviceMarker = deserializators.deserialize(messageBody)
+  protected def deserialize(messageBody: Array[Byte]): MessageFormDeviceMarker = deserializers.deserialize(messageBody)
 
   protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true // TODO: implement in future
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(incomingMessage: IncomingMessage, sd: IdentifiedStateData) = {
     log.debug(s"Received ${incomingMessage.messageBody.length} bytes from identified device.")
 
-    val messageFormDevice = deserializators.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker]
+    val messageFormDevice = deserializers.deserialize(incomingMessage.messageBody).asInstanceOf[MessageFormDeviceMarker]
     log.debug(s"Received ${messageFormDevice.getClass.getSimpleName} message from device of runtimeId $runtimeId.")
 
     amaConfig.broadcaster ! new MessageFromDevice(runtimeId, messageFormDevice)
