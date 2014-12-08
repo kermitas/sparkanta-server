@@ -6,20 +6,18 @@ import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Termin
 import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
-import akka.util.{ FSMSuccessOrStop, ByteString, CompactByteString }
-//import as.sparkanta.ama.actor.tcp.message.{ OutgoingMessageListener, IncomingMessageListener }
-import as.sparkanta.gateway.message.{ ConnectionClosed, SoftwareVersionWasIdentified }
-//import as.sparkanta.device.message.{ MessageHeader, MessageHeader65536 }
+import akka.util.{ FSMSuccessOrStop, ByteString }
+import as.sparkanta.ama.actor.tcp.message.OutgoingDataListener
+import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
 
 object TcpConnectionHandler {
-
   sealed trait State extends Serializable
   case object Unidentified extends State
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
   case class UnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, unidentifiedTimeout: Cancellable) extends StateData
-  case class WaitingForDataStateData(softwareVersion: Int, incomingDataListener: ActorRef) extends StateData
+  case class WaitingForDataStateData(softwareVersion: Int, incomingDataListener: ActorRef, outgoingDataListener: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -68,8 +66,8 @@ class TcpConnectionHandler(
   }
 
   when(WaitingForData, stateTimeout = config.inactivityTimeoutInSeconds seconds) {
-    case Event(Tcp.Received(data), sd: WaitingForDataStateData) => successOrStopWithFailure {
-      sd.incomingDataListener ! data
+    case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
+      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, sd.incomingDataListener, sd.outgoingDataListener)
       stay using sd
     }
 
@@ -113,23 +111,29 @@ class TcpConnectionHandler(
 
     sd.incomingDataBuffer.getSoftwareVersion match {
       case Some(softwareVersion) => {
-        sd.unidentifiedTimeout.cancel()
+        sd.unidentifiedTimeout.cancel
 
         if (isSoftwareVersionCorrect(softwareVersion)) {
+
+          val outgoingDataListener: ActorRef = {
+            val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+            context.actorOf(props, name = classOf[OutgoingDataListener].getSimpleName + "-" + runtimeId)
+          }
+
+          context.watch(outgoingDataListener)
+
+          // ---
 
           val incomingDataListener: ActorRef = null // TODO start IncomingDataListener
 
           context.watch(incomingDataListener)
-          incomingDataListener ! sd.incomingDataBuffer.getBuffer
+          incomingDataListener ! new DataFromDevice(sd.incomingDataBuffer.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, incomingDataListener, outgoingDataListener)
 
-          val outgoingDataListener: ActorRef = null // TODO start OutgoingDataListener
-          context.watch(outgoingDataListener)
-
-          // TODO publish something on broadcaster?
+          // ---
 
           amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, incomingDataListener, outgoingDataListener)
 
-          goto(WaitingForData) using new WaitingForDataStateData(softwareVersion, incomingDataListener)
+          goto(WaitingForData) using new WaitingForDataStateData(softwareVersion, incomingDataListener, outgoingDataListener)
         } else {
           throw new Exception(s"Software version $softwareVersion is not supported.")
         }
@@ -144,7 +148,7 @@ class TcpConnectionHandler(
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
 
     val softwareVersion = stateData match {
-      case WaitingForDataStateData(softwareVersion, incomingDataListener) => Some(softwareVersion)
+      case WaitingForDataStateData(softwareVersion, incomingDataListener, outgoingDataListener) => Some(softwareVersion)
       case _ => None
     }
 
