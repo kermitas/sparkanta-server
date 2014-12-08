@@ -3,7 +3,6 @@ package as.sparkanta.ama.actor.disconnectall
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import as.sparkanta.server.message.{ DisconnectAllDevices => DisconnectAllDevicesMessage }
-import as.sparkanta.gateway.message.{ NewIncomingConnection, ConnectionClosed }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -12,8 +11,6 @@ import as.sparkanta.gateway.message.{ NewIncomingConnection, ConnectionClosed }
 class DisconnectAllDevicesClassifier extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
     case a: DisconnectAllDevicesMessage => Some(a)
-    case a: NewIncomingConnection       => Some(a)
-    case a: ConnectionClosed            => Some(a)
     case _                              => None
   }
 }

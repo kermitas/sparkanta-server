@@ -1,16 +1,23 @@
 package as.sparkanta.ama.actor.disconnectall
 
+import scala.language.postfixOps
+import scala.concurrent.duration._
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
 import as.akka.broadcaster.Broadcaster
+import as.sparkanta.gateway.message.{ GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.{ DisconnectAllDevices => DisconnectAllDevicesMessage, MessageToDevice }
-import as.sparkanta.gateway.message.{ NewIncomingConnection, ConnectionClosed }
 import as.sparkanta.device.message.Disconnect
-import scala.collection.mutable.ListBuffer
+import akka.pattern.ask
+import scala.util.{ Success, Failure }
+
+object DisconnectAllDevices {
+  lazy final val queryingAllDevicesTimeoutInSeconds = 2
+}
 
 class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
-  protected val currentDevices = ListBuffer[Long]()
+  import DisconnectAllDevices._
 
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
@@ -27,15 +34,20 @@ class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging
   }
 
   override def receive = {
-    case nic: NewIncomingConnection => if (!currentDevices.contains(nic.runtimeId)) currentDevices += nic.runtimeId
 
-    case cc: ConnectionClosed       => currentDevices -= cc.runtimeId
+    case dad: DisconnectAllDevicesMessage => disconnectAll(dad.delayBeforeNextConnectionInSeconds)
 
-    case dad: DisconnectAllDevicesMessage => {
-      val disconnect = new Disconnect(dad.delayBeforeNextConnectionInSeconds)
-      currentDevices.foreach(amaConfig.broadcaster ! new MessageToDevice(_, disconnect))
+    case message                          => log.warning(s"Unhandled $message send by ${sender()}")
+  }
+
+  protected def disconnectAll(delayBeforeNextConnectionInSeconds: Int): Unit = {
+    val disconnect = new Disconnect(delayBeforeNextConnectionInSeconds)
+
+    import context.dispatcher
+
+    ask(amaConfig.broadcaster, new GetCurrentDevices)(queryingAllDevicesTimeoutInSeconds seconds).mapTo[CurrentDevices].map(_.devices).onComplete {
+      case Success(devices) => devices.foreach(r => amaConfig.broadcaster ! new MessageToDevice(r.runtimeId, disconnect))
+      case Failure(t)       => log.error(t, "Could not query all devices that are currently in system.")
     }
-
-    case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 }
