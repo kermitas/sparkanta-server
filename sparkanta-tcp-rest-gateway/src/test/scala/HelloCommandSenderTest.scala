@@ -2,7 +2,7 @@ import org.scalatest.{ FeatureSpec, Matchers }
 
 import java.net.Socket
 import scala.io.StdIn
-import as.sparkanta.device.message.{ Hello, MessageOfLength65536HeaderReader }
+import as.sparkanta.device.message.{ Hello, Message65536LengthHeader }
 import as.sparkanta.device.message.serialize.Serializers
 
 class HelloCommandSenderTest extends FeatureSpec with Matchers {
@@ -19,7 +19,7 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
     val helloMessageAsByteArray = {
       val hello = new Hello("Alice has a cat")
       val helloAsByteArray = new Serializers().serialize(hello)
-      new MessageOfLength65536HeaderReader().prepareMessageToGo(helloAsByteArray)
+      new Message65536LengthHeader().prepareMessageToGo(helloAsByteArray)
     }
 
     val socket = new Socket("localhost", 8080)

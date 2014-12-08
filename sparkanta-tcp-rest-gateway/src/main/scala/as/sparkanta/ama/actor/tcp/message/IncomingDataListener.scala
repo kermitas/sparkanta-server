@@ -9,7 +9,7 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageLengthHeaderReader, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageLengthHeader, Hello }
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice }
 
@@ -35,7 +35,7 @@ class IncomingDataListener(
   tcpActor:                      ActorRef,
   runtimeId:                     Long,
   softwareVersion:               Int,
-  messageLengthHeaderReader:     MessageLengthHeaderReader,
+  messageLengthHeader:           MessageLengthHeader,
   messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
 ) extends FSM[IncomingDataListener.State, IncomingDataListener.StateData] with FSMSuccessOrStop[IncomingDataListener.State, IncomingDataListener.StateData] {
 
@@ -46,13 +46,13 @@ class IncomingDataListener(
     tcpActor:                      ActorRef,
     runtimeId:                     Long,
     softwareVersion:               Int,
-    messageLengthHeaderReader:     MessageLengthHeaderReader,
+    messageLengthHeader:           MessageLengthHeader,
     messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
-  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeaderReader, messageFromDeviceDeserializer)
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
 
   import IncomingDataListener._
 
-  protected val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeaderReader, messageFromDeviceDeserializer)
+  protected val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeader, messageFromDeviceDeserializer)
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {

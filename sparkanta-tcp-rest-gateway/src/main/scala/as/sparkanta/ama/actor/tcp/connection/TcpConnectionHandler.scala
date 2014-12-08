@@ -9,7 +9,7 @@ import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.ama.actor.tcp.message.{ OutgoingDataListener, IncomingDataListener }
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
-import as.sparkanta.device.message.MessageOfLength65536HeaderReader
+import as.sparkanta.device.message.Message65536LengthHeader
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
 
@@ -142,12 +142,12 @@ class TcpConnectionHandler(
 
     val softwareVersion = 1
 
-    val messageLengthHeaderReader = new MessageOfLength65536HeaderReader
+    val messageLengthHeader = new Message65536LengthHeader
 
     // ---
 
     val outgoingDataListener: ActorRef = {
-      val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeaderReader, new Serializers))
+      val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, new Serializers))
       context.actorOf(props, name = classOf[OutgoingDataListener].getSimpleName + "-" + runtimeId)
     }
 
@@ -156,7 +156,7 @@ class TcpConnectionHandler(
     // ---
 
     val incomingDataListener: ActorRef = {
-      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeaderReader, new Deserializers))
+      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeader, new Deserializers))
       context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
     }
 

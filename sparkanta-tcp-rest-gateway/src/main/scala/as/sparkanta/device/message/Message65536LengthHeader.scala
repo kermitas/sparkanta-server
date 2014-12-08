@@ -2,7 +2,7 @@ package as.sparkanta.device.message
 
 import java.io.{ ByteArrayOutputStream, ByteArrayInputStream, DataOutputStream, DataInputStream }
 
-class MessageOfLength65536HeaderReader extends MessageLengthHeaderReader {
+class Message65536LengthHeader extends MessageLengthHeader {
 
   lazy final val messageHeaderLength: Int = 2
 
@@ -22,6 +22,6 @@ class MessageOfLength65536HeaderReader extends MessageLengthHeaderReader {
     dos.flush
     baos.toByteArray
   } else {
-    throw new IllegalArgumentException(s"Passed array length can be maximally $maxMessageLength (currently it is ${messageAsByteArray.length}).")
+    throw new IllegalArgumentException(s"Passed array length can be maximally $maxMessageLength bytes long (currently it is ${messageAsByteArray.length}).")
   }
 }

@@ -4,14 +4,14 @@ import akka.actor.{ Actor, ActorLogging, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.serialize.Serializer
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageLengthHeaderReader }
+import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, MessageLengthHeader }
 import as.sparkanta.gateway.message.{ DataToDevice, MessageToDevice }
 
 class OutgoingMessageListener(
-  val amaConfig:                 AmaConfig,
-  val runtimeId:                 Long,
-  val serializer:                Serializer[MessageToDeviceMarker],
-  val messageLengthHeaderReader: MessageLengthHeaderReader
+  val amaConfig:           AmaConfig,
+  val runtimeId:           Long,
+  val serializer:          Serializer[MessageToDeviceMarker],
+  val messageLengthHeader: MessageLengthHeader
 ) extends Actor with ActorLogging {
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -34,7 +34,7 @@ class OutgoingMessageListener(
 
   protected def serializeMessageToDevice(messageToDevice: MessageToDeviceMarker): Unit = {
     val messageToDeviceAsBytes = serializer.serialize(messageToDevice)
-    val dataToDevice = messageLengthHeaderReader.prepareMessageToGo(messageToDeviceAsBytes)
+    val dataToDevice = messageLengthHeader.prepareMessageToGo(messageToDeviceAsBytes)
     amaConfig.broadcaster ! new DataToDevice(runtimeId, dataToDevice)
   }
 }
