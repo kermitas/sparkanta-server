@@ -1,9 +1,9 @@
 import sbt._
 import Keys._
 
-object SparkantaApiProject {
+object SparkantaCommonProject {
 
-  lazy final val projectName = SparkantaProject.projectName + "-api"
+  lazy final val projectName = SparkantaProject.projectName + "-common"
 
   def apply(version: String, scalaUtils: Project) =
     Project(

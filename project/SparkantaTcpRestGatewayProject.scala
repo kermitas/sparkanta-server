@@ -6,14 +6,14 @@ object SparkantaTcpRestGatewayProject {
   lazy final val projectName                 = SparkantaProject.projectName + "-tcp-rest-gateway"
   lazy final val mainClassFullyQualifiedName = "as.ama.Main"
 
-  def apply(version: String, api: Project, akkaUtils: Project) =
+  def apply(version: String, common: Project, akkaUtils: Project) =
     Project(
       id           = projectName,
       base         = file(projectName),
 
-      aggregate    = Seq(api, akkaUtils),
-      dependencies = Seq(api, akkaUtils),
-      delegates    = Seq(api, akkaUtils),
+      aggregate    = Seq(common, akkaUtils),
+      dependencies = Seq(common, akkaUtils),
+      delegates    = Seq(common, akkaUtils),
 
       settings     = CommonSettings(projectName, version) ++
                      ScalaTestSettings() ++
