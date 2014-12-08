@@ -7,7 +7,7 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.ama.actor.tcp.message.OutgoingDataListener
+import as.sparkanta.ama.actor.tcp.message.{ OutgoingDataListener, IncomingDataListener }
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
 
 object TcpConnectionHandler {
@@ -55,23 +55,23 @@ class TcpConnectionHandler(
   }
 
   {
-    val softwareVersionUnidentifiedTimeout = context.system.scheduler.scheduleOnce(config.identificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
+    val softwareVersionUnidentifiedTimeout = context.system.scheduler.scheduleOnce(config.softwareVersionIdentificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
     startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), softwareVersionUnidentifiedTimeout))
   }
 
   when(SoftwareVersionUnidentified) {
     case Event(Tcp.Received(data), sd: SoftwareVersionUnidentifiedStateData)    => successOrStopWithFailure { analyzeIncomingData(data, sd) }
 
-    case Event(IdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.identificationTimeoutInSeconds} seconds) reached.") }
+    case Event(IdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.softwareVersionIdentificationTimeoutInSeconds} seconds) reached.") }
   }
 
-  when(WaitingForData, stateTimeout = config.inactivityTimeoutInSeconds seconds) {
+  when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
       amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, sd.incomingDataListener, sd.outgoingDataListener)
       stay using sd
     }
 
-    case Event(StateTimeout, sd: WaitingForDataStateData) => successOrStopWithFailure { throw new Exception(s"Inactivity timeout (${config.inactivityTimeoutInSeconds} seconds) reached.") }
+    case Event(StateTimeout, sd: WaitingForDataStateData) => successOrStopWithFailure { throw new Exception(s"Incoming data inactivity timeout (${config.incomingDataInactivityTimeoutInSeconds} seconds) reached.") }
   }
 
   onTransition {
@@ -125,7 +125,10 @@ class TcpConnectionHandler(
 
           // ---
 
-          val incomingDataListener: ActorRef = null // TODO start IncomingDataListener
+          val incomingDataListener: ActorRef = {
+            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+            context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
+          }
 
           context.watch(incomingDataListener)
           incomingDataListener ! new DataFromDevice(sd.incomingDataBuffer.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, incomingDataListener, outgoingDataListener)

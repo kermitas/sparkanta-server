@@ -9,15 +9,15 @@ object TcpConnectionHandlerConfig {
 
   final val topConfigKey = classOf[TcpConnectionHandlerConfig].getSimpleName
 
-  final val identificationTimeoutInSecondsConfigKey = "identificationTimeoutInSeconds"
-  final val inactivityTimeoutInSecondsConfigKey = "inactivityTimeoutInSeconds"
+  final val softwareVersionIdentificationTimeoutInSecondsConfigKey = "softwareVersionIdentificationTimeoutInSeconds"
+  final val incomingDataInactivityTimeoutInSecondsConfigKey = "incomingDataInactivityTimeoutInSeconds"
   final val identificationStringConfigKey = "identificationString"
 
   /**
    * Assumes that Config contains:
    *
    *   TcpConnectionHandlerConfig {
-   *     identificationTimeoutInSeconds = ...
+   *     softwareVersionIdentificationTimeoutInSeconds = ...
    *     ...
    *   }
    */
@@ -26,20 +26,20 @@ object TcpConnectionHandlerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   identificationTimeoutInSeconds = ...
+   *   softwareVersionIdentificationTimeoutInSeconds = ...
    *   ...
    */
   def apply(config: Config = ConfigFactory.load): TcpConnectionHandlerConfig = {
-    val identificationTimeoutInSeconds = config.getInt(identificationTimeoutInSecondsConfigKey)
-    val inactivityTimeoutInSeconds = config.getInt(inactivityTimeoutInSecondsConfigKey)
+    val softwareVersionIdentificationTimeoutInSeconds = config.getInt(softwareVersionIdentificationTimeoutInSecondsConfigKey)
+    val incomingDataInactivityTimeoutInSeconds = config.getInt(incomingDataInactivityTimeoutInSecondsConfigKey)
     val identificationString = config.getString(identificationStringConfigKey)
 
-    new TcpConnectionHandlerConfig(identificationTimeoutInSeconds, inactivityTimeoutInSeconds, identificationString)
+    new TcpConnectionHandlerConfig(softwareVersionIdentificationTimeoutInSeconds, incomingDataInactivityTimeoutInSeconds, identificationString)
   }
 }
 
 class TcpConnectionHandlerConfig(
-  val identificationTimeoutInSeconds: Int,
-  val inactivityTimeoutInSeconds:     Int,
-  val identificationString:           String
+  val softwareVersionIdentificationTimeoutInSeconds: Int,
+  val incomingDataInactivityTimeoutInSeconds:        Int,
+  val identificationString:                          String
 )
