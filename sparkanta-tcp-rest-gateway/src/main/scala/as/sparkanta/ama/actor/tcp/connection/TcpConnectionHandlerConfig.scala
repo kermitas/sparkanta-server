@@ -9,13 +9,15 @@ object TcpConnectionHandlerConfig {
 
   final val topConfigKey = classOf[TcpConnectionHandlerConfig].getSimpleName
 
+  final val identificationTimeoutInSecondsConfigKey = "identificationTimeoutInSeconds"
   final val inactivityTimeoutInSecondsConfigKey = "inactivityTimeoutInSeconds"
+  final val identificationStringConfigKey = "identificationString"
 
   /**
    * Assumes that Config contains:
    *
    *   TcpConnectionHandlerConfig {
-   *     inactivityTimeoutInSeconds = ...
+   *     identificationTimeoutInSeconds = ...
    *     ...
    *   }
    */
@@ -24,16 +26,20 @@ object TcpConnectionHandlerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   inactivityTimeoutInSeconds = ...
+   *   identificationTimeoutInSeconds = ...
    *   ...
    */
   def apply(config: Config = ConfigFactory.load): TcpConnectionHandlerConfig = {
-    val inactivityTimeoutInSeconds = config.getLong(inactivityTimeoutInSecondsConfigKey)
+    val identificationTimeoutInSeconds = config.getInt(identificationTimeoutInSecondsConfigKey)
+    val inactivityTimeoutInSeconds = config.getInt(inactivityTimeoutInSecondsConfigKey)
+    val identificationString = config.getString(identificationStringConfigKey)
 
-    new TcpConnectionHandlerConfig(inactivityTimeoutInSeconds)
+    new TcpConnectionHandlerConfig(identificationTimeoutInSeconds, inactivityTimeoutInSeconds, identificationString)
   }
 }
 
 class TcpConnectionHandlerConfig(
-  val inactivityTimeoutInSeconds: Long
+  val identificationTimeoutInSeconds: Int,
+  val inactivityTimeoutInSeconds:     Int,
+  val identificationString:           String
 )

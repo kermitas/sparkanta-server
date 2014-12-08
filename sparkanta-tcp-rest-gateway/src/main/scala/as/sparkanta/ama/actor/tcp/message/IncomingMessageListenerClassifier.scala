@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.ama.actor.tcp.message
 
 import akka.actor.ActorRef
@@ -14,3 +15,4 @@ class IncomingMessageListenerClassifier(runtimeId: Long) extends Classifier {
     case _ => None
   }
 }
+*/ 

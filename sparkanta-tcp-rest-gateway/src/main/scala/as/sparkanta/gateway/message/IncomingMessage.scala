@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import java.net.InetSocketAddress
@@ -10,3 +11,4 @@ class IncomingMessage(
   val tcpActor:      ActorRef,
   val runtimeId:     Long
 ) extends Serializable
+*/ 

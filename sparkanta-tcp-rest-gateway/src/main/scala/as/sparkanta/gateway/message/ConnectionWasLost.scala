@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import java.net.InetSocketAddress
@@ -8,3 +9,4 @@ class ConnectionWasLost(
   val exception:     Option[Exception],
   val runtimeId:     Long
 ) extends Serializable
+*/ 

@@ -4,9 +4,9 @@ import java.net.InetSocketAddress
 import akka.actor.ActorRef
 
 class NewIncomingConnection(
-  val remoteAddress:             InetSocketAddress,
-  val localAddress:              InetSocketAddress,
-  val tcpConnectionHandlerActor: ActorRef,
-  val tcpActor:                  ActorRef,
-  val runtimeId:                 Long
+  val remoteAddress:        InetSocketAddress,
+  val localAddress:         InetSocketAddress,
+  val runtimeId:            Long,
+  val tcpActor:             ActorRef,
+  val tcpConnectionHandler: ActorRef
 ) extends Serializable

@@ -60,7 +60,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     val runtimeId = tcpConnectionHandlerActorNamesGenerator.numberThatWillBeUsedToGenerateNextName
     log.info(s"New incoming connection form $remoteAddress (to $localAddress), assigning runtime id $runtimeId.")
     val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor, runtimeId)
-    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, tcpConnectionHandler, tcpActor, runtimeId)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, runtimeId, tcpActor, tcpConnectionHandler)
     tcpActor ! Register(tcpConnectionHandler)
   }
 
