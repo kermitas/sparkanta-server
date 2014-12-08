@@ -12,11 +12,11 @@ import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, Software
 
 object TcpConnectionHandler {
   sealed trait State extends Serializable
-  case object Unidentified extends State
+  case object SoftwareVersionUnidentified extends State
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case class UnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, unidentifiedTimeout: Cancellable) extends StateData
+  case class SoftwareVersionUnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionUnidentifiedTimeout: Cancellable) extends StateData
   case class WaitingForDataStateData(softwareVersion: Int, incomingDataListener: ActorRef, outgoingDataListener: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
@@ -55,14 +55,14 @@ class TcpConnectionHandler(
   }
 
   {
-    val unidentifiedTimeout = context.system.scheduler.scheduleOnce(config.identificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
-    startWith(Unidentified, new UnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), unidentifiedTimeout))
+    val softwareVersionUnidentifiedTimeout = context.system.scheduler.scheduleOnce(config.identificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
+    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), softwareVersionUnidentifiedTimeout))
   }
 
-  when(Unidentified) {
-    case Event(Tcp.Received(data), sd: UnidentifiedStateData)    => successOrStopWithFailure { analyzeIncomingData(data, sd) }
+  when(SoftwareVersionUnidentified) {
+    case Event(Tcp.Received(data), sd: SoftwareVersionUnidentifiedStateData)    => successOrStopWithFailure { analyzeIncomingData(data, sd) }
 
-    case Event(IdentificationTimeout, sd: UnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Identification timeout (${config.identificationTimeoutInSeconds} seconds) reached.") }
+    case Event(IdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.identificationTimeoutInSeconds} seconds) reached.") }
   }
 
   when(WaitingForData, stateTimeout = config.inactivityTimeoutInSeconds seconds) {
@@ -106,14 +106,15 @@ class TcpConnectionHandler(
     context.watch(tcpActor)
   }
 
-  protected def analyzeIncomingData(data: ByteString, sd: UnidentifiedStateData) = {
+  protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
     sd.incomingDataBuffer.bufferIncomingData(data)
 
     sd.incomingDataBuffer.getSoftwareVersion match {
       case Some(softwareVersion) => {
-        sd.unidentifiedTimeout.cancel
 
-        if (isSoftwareVersionCorrect(softwareVersion)) {
+        sd.softwareVersionUnidentifiedTimeout.cancel
+
+        if (isSoftwareVersionSupported(softwareVersion)) {
 
           val outgoingDataListener: ActorRef = {
             val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
@@ -143,7 +144,7 @@ class TcpConnectionHandler(
     }
   }
 
-  protected def isSoftwareVersionCorrect(softwareVersion: Int): Boolean = true // TODO: in future perform softwareVersion checking
+  protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true // TODO: in future perform software version checking
 
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
 

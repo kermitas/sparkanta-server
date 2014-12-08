@@ -5,11 +5,11 @@ import akka.actor.ActorRef
 
 class SoftwareVersionWasIdentified(
   val softwareVersion:           Int,
-  remoteAddress:                 InetSocketAddress,
-  localAddress:                  InetSocketAddress,
-  runtimeId:                     Long,
-  tcpActor:                      ActorRef,
-  tcpConnectionHandler:          ActorRef,
+  val remoteAddress:             InetSocketAddress,
+  val localAddress:              InetSocketAddress,
+  val runtimeId:                 Long,
+  val tcpActor:                  ActorRef,
+  val tcpConnectionHandler:      ActorRef,
   val incomingDataListenerActor: ActorRef,
   val outgoingDataListenerActor: ActorRef
-) extends NewIncomingConnection(remoteAddress, localAddress, runtimeId, tcpActor, tcpConnectionHandler)
+) extends Serializable
