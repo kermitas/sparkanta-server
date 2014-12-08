@@ -9,9 +9,10 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Disconnect, MessageLengthHeader, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, Hello }
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice }
+import as.sparkanta.server.message.MessageToDevice
 
 object IncomingDataListener {
 
@@ -80,11 +81,16 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)                      => goto(Disconnecting) using new DisconnectingStateData(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, System.currentTimeMillis)
   }
 
-  when(WaitingForData) {
+  when(WaitingForData, stateTimeout = config.sendPingOnIncomingDataInactivityIntervalInSeconds seconds) {
     case Event(dataFromDevice: DataFromDevice, sd: WaitingForDataStateData) => successOrStopWithFailure { analyzeIncomingDataFromIdentifiedDevice(dataFromDevice.data, sd) }
 
     case Event(_: Disconnect, sd: WaitingForDataStateData) => {
       goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
+    }
+
+    case Event(StateTimeout, sd: WaitingForDataStateData) => {
+      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Ping)
+      stay using sd
     }
   }
 
