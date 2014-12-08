@@ -9,7 +9,7 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
 
   scenario("sending hello command") {
 
-    val hello = new Hello(13, "Alice has a cat")
+    val hello = new Hello("Alice has a cat")
     val helloAsByteArray = new HelloSerializerVersion1().serialize(hello)
     val datagram = new MessageHeader65536().prepareMessageToGo(helloAsByteArray)
 

@@ -26,11 +26,10 @@ class HelloDeserializerVersion1 extends Deserializer[Hello] {
   override def commandCode: Int = ???
 
   override def deserialize(is: InputStream): Hello = {
-    val softwareVersion = is.read
     val sparkDeviceIdLength = is.read
     val sparkDeviceIdAsByteArray = new Array[Byte](sparkDeviceIdLength)
     is.read(sparkDeviceIdAsByteArray)
     val sparkDeviceId = new String(sparkDeviceIdAsByteArray)
-    new Hello(softwareVersion, sparkDeviceId)
+    new Hello(sparkDeviceId)
   }
 }

@@ -16,8 +16,8 @@ object TcpConnectionHandler {
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case class SoftwareVersionUnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
-  case class WaitingForDataStateData(softwareVersion: Int, incomingDataListener: ActorRef, outgoingDataListener: ActorRef) extends StateData
+  case class SoftwareVersionUnidentifiedStateData(incomingDataReader: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
+  case class WaitingForDataStateData(softwareVersion: Int) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -67,7 +67,7 @@ class TcpConnectionHandler(
 
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
-      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, sd.incomingDataListener, sd.outgoingDataListener)
+      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress, runtimeId)
       stay using sd
     }
 
@@ -107,9 +107,9 @@ class TcpConnectionHandler(
   }
 
   protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
-    sd.incomingDataBuffer.bufferIncomingData(data)
+    sd.incomingDataReader.bufferIncomingData(data)
 
-    sd.incomingDataBuffer.getSoftwareVersion match {
+    sd.incomingDataReader.getSoftwareVersion match {
       case Some(softwareVersion) => {
 
         sd.softwareVersionIdentificationTimeout.cancel
@@ -126,18 +126,18 @@ class TcpConnectionHandler(
           // ---
 
           val incomingDataListener: ActorRef = {
-            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion))
             context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
           }
 
           context.watch(incomingDataListener)
-          incomingDataListener ! new DataFromDevice(sd.incomingDataBuffer.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, incomingDataListener, outgoingDataListener)
+          incomingDataListener ! new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
 
           // ---
 
-          amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress, runtimeId, tcpActor, self, incomingDataListener, outgoingDataListener)
+          amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress, runtimeId)
 
-          goto(WaitingForData) using new WaitingForDataStateData(softwareVersion, incomingDataListener, outgoingDataListener)
+          goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
         } else {
           throw new Exception(s"Software version $softwareVersion is not supported.")
         }
@@ -152,8 +152,8 @@ class TcpConnectionHandler(
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
 
     val softwareVersion = stateData match {
-      case WaitingForDataStateData(softwareVersion, incomingDataListener, outgoingDataListener) => Some(softwareVersion)
-      case _ => None
+      case WaitingForDataStateData(softwareVersion) => Some(softwareVersion)
+      case _                                        => None
     }
 
     val closedByRemoteSide = reason match {
