@@ -9,18 +9,18 @@ import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.gateway.message.DataToDevice
+import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation }
 import as.sparkanta.device.message.{ MessageLengthHeader, MessageToDevice => MessageToDeviceMarker }
 import as.sparkanta.device.message.serialize.Serializer
 
 object OutgoingDataListener {
   sealed trait State extends Serializable
-  case object WaitingForSomethingToSend extends State
+  case object WaitingForDataToSend extends State
   case object WaitingForAck extends State
 
   sealed trait StateData extends Serializable
-  case object WaitingForSomethingToSendStateData extends StateData
-  case class WaitingForAckStateData(outgoingBuffer: ListBuffer[ByteString], waitingForAckTimeout: Cancellable) extends StateData
+  case object WaitingForDataToSendStateData extends StateData
+  case class WaitingForAckStateData(outgoingBuffer: ListBuffer[(DataToDevice, ActorRef)], waitingForAckTimeout: Cancellable, currentlySendingDataToDevice: DataToDevice, senderOfDataToDevice: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -58,16 +58,16 @@ class OutgoingDataListener(
     }
   }
 
-  startWith(WaitingForSomethingToSend, WaitingForSomethingToSendStateData)
+  startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
-  when(WaitingForSomethingToSend) {
-    case Event(dataToDevice: DataToDevice, WaitingForSomethingToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice.data) }
+  when(WaitingForDataToSend) {
+    case Event(dataToDevice: DataToDevice, WaitingForDataToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice, sender) }
   }
 
   when(WaitingForAck) {
     case Event(Ack, sd: WaitingForAckStateData)                        => successOrStopWithFailure { ackReceived(sd) }
 
-    case Event(dataToDevice: DataToDevice, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice.data, sd) }
+    case Event(dataToDevice: DataToDevice, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice, sender, sd) }
 
     case Event(AckTimeout, sd: WaitingForAckStateData)                 => successOrStopWithFailure { throw new Exception(s"No ACK for more than ${config.waitingForAckTimeoutInSeconds} seconds, closing connection.") }
   }
@@ -102,31 +102,32 @@ class OutgoingDataListener(
     context.watch(outgoingMessageListener)
   }
 
-  protected def sendRequestWhileNothingToDo(dataToDevice: ByteString) = {
-    val waitingForAckTimeout = sendToWire(dataToDevice)
-    goto(WaitingForAck) using new WaitingForAckStateData(new ListBuffer[ByteString], waitingForAckTimeout)
+  protected def sendRequestWhileNothingToDo(dataToDevice: DataToDevice, sender: ActorRef) = {
+    val waitingForAckTimeout = sendToWire(dataToDevice.data)
+    goto(WaitingForAck) using new WaitingForAckStateData(new ListBuffer[(DataToDevice, ActorRef)], waitingForAckTimeout, dataToDevice, sender)
   }
 
-  protected def sendRequestWhileWaitingForAck(dataToDevice: ByteString, sd: WaitingForAckStateData) = if (sd.outgoingBuffer.size >= config.maximumNumberOfBufferedMessages) {
+  protected def sendRequestWhileWaitingForAck(dataToDevice: DataToDevice, sender: ActorRef, sd: WaitingForAckStateData) = if (sd.outgoingBuffer.size > config.maximumNumberOfBufferedMessages) {
     stop(FSM.Failure(new Exception(s"Maximum number of ${config.maximumNumberOfBufferedMessages} buffered messages to send reached.")))
   } else {
-    sd.outgoingBuffer += dataToDevice
+    sd.outgoingBuffer += Tuple2(dataToDevice, sender)
     stay using sd
   }
 
   protected def ackReceived(sd: WaitingForAckStateData) = {
 
     sd.waitingForAckTimeout.cancel
+    sd.senderOfDataToDevice ! new DataToDeviceSendConfirmation(sd.currentlySendingDataToDevice)
 
     if (sd.outgoingBuffer.isEmpty) {
-      goto(WaitingForSomethingToSend) using WaitingForSomethingToSendStateData
+      goto(WaitingForDataToSend) using WaitingForDataToSendStateData
     } else {
-      val dataToDevice = sd.outgoingBuffer.head
-      sd.outgoingBuffer -= dataToDevice
+      val dataToDeviceAndSender = sd.outgoingBuffer.head
+      sd.outgoingBuffer -= dataToDeviceAndSender
 
-      val waitingForAckTimeout = sendToWire(dataToDevice)
+      val waitingForAckTimeout = sendToWire(dataToDeviceAndSender._1.data)
 
-      stay using sd.copy(waitingForAckTimeout = waitingForAckTimeout)
+      stay using sd.copy(waitingForAckTimeout = waitingForAckTimeout, currentlySendingDataToDevice = dataToDeviceAndSender._1, senderOfDataToDevice = dataToDeviceAndSender._2)
     }
   }
 

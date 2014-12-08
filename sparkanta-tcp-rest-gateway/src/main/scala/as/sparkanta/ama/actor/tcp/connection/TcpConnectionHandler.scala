@@ -183,7 +183,7 @@ class TcpConnectionHandler(
       case _ => false
     }
 
-    val notificationToPublishOnBroadcaster = reason match {
+    val connectionClosed: ConnectionClosed = reason match {
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
@@ -209,7 +209,7 @@ class TcpConnectionHandler(
       }
     }
 
-    amaConfig.broadcaster ! notificationToPublishOnBroadcaster
+    amaConfig.broadcaster ! connectionClosed
     if (tcpActorDied) tcpActor ! Tcp.Close
   }
 }
