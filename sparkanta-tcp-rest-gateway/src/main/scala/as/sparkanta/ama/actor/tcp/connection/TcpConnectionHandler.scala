@@ -7,7 +7,8 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.ama.actor.tcp.message.{ OutgoingDataListener, IncomingDataListener }
+import as.sparkanta.ama.actor.tcp.message.OutgoingDataListener
+import as.sparkanta.ama.actor.message.incoming.IncomingDataListener
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
 import as.sparkanta.device.message.Message65536LengthHeader
 import as.sparkanta.device.message.deserialize.Deserializers

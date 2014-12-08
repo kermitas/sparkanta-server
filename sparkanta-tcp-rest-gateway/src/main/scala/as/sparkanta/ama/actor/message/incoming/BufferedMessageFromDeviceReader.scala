@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp.message
+package as.sparkanta.ama.actor.message.incoming
 
 import akka.util.{ ByteString, CompactByteString }
 import as.sparkanta.device.message.{ MessageFormDevice, MessageLengthHeader }

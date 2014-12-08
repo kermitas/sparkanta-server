@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp.message
+package as.sparkanta.ama.actor.message.incoming
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
