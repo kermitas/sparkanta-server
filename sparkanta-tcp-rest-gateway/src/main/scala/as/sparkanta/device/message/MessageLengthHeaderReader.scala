@@ -1,6 +1,6 @@
 package as.sparkanta.device.message
 
-trait MessageHeader {
+trait MessageLengthHeaderReader {
 
   def messageHeaderLength: Int
 

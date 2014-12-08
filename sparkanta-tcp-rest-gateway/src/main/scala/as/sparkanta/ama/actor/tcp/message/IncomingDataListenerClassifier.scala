@@ -10,7 +10,7 @@ import as.sparkanta.gateway.message.DataFromDevice
  */
 class IncomingDataListenerClassifier(runtimeId: Long) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: DataFromDevice if a.runtimeId == runtimeId => Some(a.data)
+    case a: DataFromDevice if a.runtimeId == runtimeId => Some(a)
     case _ => None
   }
 }

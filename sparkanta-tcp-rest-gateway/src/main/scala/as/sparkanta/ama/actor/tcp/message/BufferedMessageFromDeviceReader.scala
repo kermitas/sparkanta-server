@@ -1,10 +1,10 @@
 package as.sparkanta.ama.actor.tcp.message
 
 import akka.util.{ ByteString, CompactByteString }
-import as.sparkanta.device.message.{ MessageFormDevice, MessageHeader }
+import as.sparkanta.device.message.{ MessageFormDevice, MessageLengthHeaderReader }
 import as.sparkanta.device.message.deserialize.Deserializer
 
-class BufferedMessageFromDeviceReader(messageHeader: MessageHeader, deserializer: Deserializer[MessageFormDevice]) {
+class BufferedMessageFromDeviceReader(messageHeader: MessageLengthHeaderReader, deserializer: Deserializer[MessageFormDevice]) {
 
   protected var buffer: ByteString = CompactByteString.empty
   protected var incomingMessageLength: Option[Int] = None

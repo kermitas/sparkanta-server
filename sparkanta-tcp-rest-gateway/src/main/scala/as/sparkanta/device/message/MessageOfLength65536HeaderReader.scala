@@ -2,7 +2,7 @@ package as.sparkanta.device.message
 
 import java.io.{ ByteArrayOutputStream, ByteArrayInputStream, DataOutputStream, DataInputStream }
 
-class MessageHeader65536 extends MessageHeader {
+class MessageOfLength65536HeaderReader extends MessageLengthHeaderReader {
 
   lazy final val messageHeaderLength: Int = 2
 

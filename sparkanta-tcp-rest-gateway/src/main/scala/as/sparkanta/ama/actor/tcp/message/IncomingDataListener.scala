@@ -9,10 +9,10 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageHeader65536, Hello }
-import as.sparkanta.device.message.deserialize.Deserializers
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageLengthHeaderReader, Hello }
+import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.internal.message.{ DeviceIsDown, MessageFromDevice }
-import as.sparkanta.gateway.message.SparkDeviceIdWasIdentified
+import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice }
 
 object IncomingDataListener {
   sealed trait State extends Serializable
@@ -29,27 +29,31 @@ object IncomingDataListener {
 }
 
 class IncomingDataListener(
-  amaConfig:       AmaConfig,
-  config:          IncomingDataListenerConfig,
-  remoteAddress:   InetSocketAddress,
-  localAddress:    InetSocketAddress,
-  tcpActor:        ActorRef,
-  runtimeId:       Long,
-  softwareVersion: Int
+  amaConfig:                     AmaConfig,
+  config:                        IncomingDataListenerConfig,
+  remoteAddress:                 InetSocketAddress,
+  localAddress:                  InetSocketAddress,
+  tcpActor:                      ActorRef,
+  runtimeId:                     Long,
+  softwareVersion:               Int,
+  messageLengthHeaderReader:     MessageLengthHeaderReader,
+  messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
 ) extends FSM[IncomingDataListener.State, IncomingDataListener.StateData] with FSMSuccessOrStop[IncomingDataListener.State, IncomingDataListener.StateData] {
 
   def this(
-    amaConfig:       AmaConfig,
-    remoteAddress:   InetSocketAddress,
-    localAddress:    InetSocketAddress,
-    tcpActor:        ActorRef,
-    runtimeId:       Long,
-    softwareVersion: Int
-  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion)
+    amaConfig:                     AmaConfig,
+    remoteAddress:                 InetSocketAddress,
+    localAddress:                  InetSocketAddress,
+    tcpActor:                      ActorRef,
+    runtimeId:                     Long,
+    softwareVersion:               Int,
+    messageLengthHeaderReader:     MessageLengthHeaderReader,
+    messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeaderReader, messageFromDeviceDeserializer)
 
   import IncomingDataListener._
 
-  protected val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(new MessageHeader65536, new Deserializers)
+  protected val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeaderReader, messageFromDeviceDeserializer)
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -64,13 +68,13 @@ class IncomingDataListener(
   }
 
   when(SparkDeviceIdUnidentified) {
-    case Event(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData)         => successOrStopWithFailure { analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice, sd) }
+    case Event(dataFromDevice: DataFromDevice, sd: SparkDeviceIdUnidentifiedStateData)     => successOrStopWithFailure { analyzeIncomingDataFromUnidentifiedDevice(dataFromDevice.data, sd) }
 
     case Event(SparkDeviceIdIdentificationTimeout, sd: SparkDeviceIdUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Spark device id identification timeout (${config.sparkDeviceIdIdentificationTimeoutInSeconds} seconds) reached.") }
   }
 
   when(WaitingForData) {
-    case Event(dataFromDevice: ByteString, sd: WaitingForDataStateData) => successOrStopWithFailure { analyzeIncomingMessageFromIdentifiedDevice(dataFromDevice, sd) }
+    case Event(dataFromDevice: DataFromDevice, sd: WaitingForDataStateData) => successOrStopWithFailure { analyzeIncomingDataFromIdentifiedDevice(dataFromDevice.data, sd) }
   }
 
   onTransition {
@@ -95,8 +99,8 @@ class IncomingDataListener(
     amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingDataListenerClassifier(runtimeId))
   }
 
-  protected def analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData) = {
-    log.debug(s"Received ${dataFromDevice.size} bytes from runtimeId $runtimeId.")
+  protected def analyzeIncomingDataFromUnidentifiedDevice(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData) = {
+    log.debug(s"Received ${dataFromDevice.size} bytes from device of runtimeId $runtimeId.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
@@ -107,28 +111,30 @@ class IncomingDataListener(
         case hello: Hello => {
           sd.sparkDeviceIdIdentificationTimeout.cancel
 
-          log.debug(s"Device runtimeId $runtimeId successfully identified as spark device id '${hello.sparkDeviceId}'.")
+          log.debug(s"Device runtimeId $runtimeId successfully identified (${hello.getClass.getSimpleName} message) itself as spark device id '${hello.sparkDeviceId}'.")
 
           amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
           amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
-          self ! ByteString.empty
+          self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
           goto(WaitingForData) using new WaitingForDataStateData(hello.sparkDeviceId, System.currentTimeMillis)
         }
 
-        case unknownFirstMessage => throw new Exception(s"First message from device should be ${classOf[Hello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
+        case unknownFirstMessage => throw new Exception(s"First message from device of runtimeId $runtimeId should be ${classOf[Hello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
       }
 
       case None => stay using sd
     }
   }
 
-  protected def analyzeIncomingMessageFromIdentifiedDevice(dataFromDevice: ByteString, sd: WaitingForDataStateData) = {
-    log.debug(s"Received ${dataFromDevice.length} bytes from runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
+  protected def analyzeIncomingDataFromIdentifiedDevice(dataFromDevice: ByteString, sd: WaitingForDataStateData) = {
+    log.debug(s"Received ${dataFromDevice.length} bytes from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
     var messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     while (messageFromDevice.isDefined) {
+      log.debug(s"Received message ${messageFromDevice.get.getClass.getSimpleName} from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
+
       amaConfig.broadcaster ! new MessageFromDevice(runtimeId, messageFromDevice.get)
       messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     }

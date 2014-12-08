@@ -9,6 +9,8 @@ import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.ama.actor.tcp.message.{ OutgoingDataListener, IncomingDataListener }
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
+import as.sparkanta.device.message.MessageOfLength65536HeaderReader
+import as.sparkanta.device.message.deserialize.Deserializers
 
 object TcpConnectionHandler {
   sealed trait State extends Serializable
@@ -114,6 +116,8 @@ class TcpConnectionHandler(
 
         sd.softwareVersionIdentificationTimeout.cancel
 
+        log.debug(s"Device of runtimeId $runtimeId successfully send identification string ('${config.identificationString}') and software version $softwareVersion.")
+
         if (isSoftwareVersionSupported(softwareVersion)) {
 
           val outgoingDataListener: ActorRef = {
@@ -126,12 +130,12 @@ class TcpConnectionHandler(
           // ---
 
           val incomingDataListener: ActorRef = {
-            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion))
+            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, new MessageOfLength65536HeaderReader, new Deserializers))
             context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
           }
 
           context.watch(incomingDataListener)
-          incomingDataListener ! sd.incomingDataReader.getBuffer //new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
+          incomingDataListener ! new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
 
           // ---
 
