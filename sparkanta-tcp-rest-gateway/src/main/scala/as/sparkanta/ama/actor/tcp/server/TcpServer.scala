@@ -24,7 +24,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
-  override def preStart() {
+  override def preStart(): Unit = {
     try {
       // notifying broadcaster to register us with given classifier
       amaConfig.broadcaster ! new Broadcaster.Register(self, new TcpServerClassifier)

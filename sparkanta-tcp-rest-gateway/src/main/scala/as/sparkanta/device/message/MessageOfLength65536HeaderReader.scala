@@ -11,7 +11,7 @@ class MessageOfLength65536HeaderReader extends MessageLengthHeaderReader {
   override def readMessageLength(messageAsByteArray: Array[Byte]): Int = if (messageAsByteArray.length >= messageHeaderLength) {
     new DataInputStream(new ByteArrayInputStream(messageAsByteArray)).readShort
   } else {
-    throw new IllegalArgumentException(s"Passed byte array length should be at least $messageHeaderLength (currently it is ${messageAsByteArray.length}).")
+    throw new IllegalArgumentException(s"Passed byte array length should be at least $messageHeaderLength bytes long (currently it is ${messageAsByteArray.length}).")
   }
 
   override def prepareMessageToGo(messageAsByteArray: Array[Byte]): Array[Byte] = if (messageAsByteArray.length <= maxMessageLength) {

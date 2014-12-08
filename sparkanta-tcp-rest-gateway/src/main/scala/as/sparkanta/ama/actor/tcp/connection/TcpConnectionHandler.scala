@@ -11,6 +11,7 @@ import as.sparkanta.ama.actor.tcp.message.{ OutgoingDataListener, IncomingDataLi
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
 import as.sparkanta.device.message.MessageOfLength65536HeaderReader
 import as.sparkanta.device.message.deserialize.Deserializers
+import as.sparkanta.device.message.serialize.Serializers
 
 object TcpConnectionHandler {
   sealed trait State extends Serializable
@@ -118,30 +119,16 @@ class TcpConnectionHandler(
 
         log.debug(s"Device of runtimeId $runtimeId successfully send identification string ('${config.identificationString}') and software version $softwareVersion.")
 
-        if (isSoftwareVersionSupported(softwareVersion)) {
+        if (softwareVersion == 1) {
 
-          val outgoingDataListener: ActorRef = {
-            val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
-            context.actorOf(props, name = classOf[OutgoingDataListener].getSimpleName + "-" + runtimeId)
-          }
+          // according to softwareVersion we should here create all needed infrastructure for communication with device of this software version
 
-          context.watch(outgoingDataListener)
-
-          // ---
-
-          val incomingDataListener: ActorRef = {
-            val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, new MessageOfLength65536HeaderReader, new Deserializers))
-            context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
-          }
-
-          context.watch(incomingDataListener)
-          incomingDataListener ! new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
-
-          // ---
+          prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer)
 
           amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress, runtimeId)
 
           goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
+
         } else {
           throw new Exception(s"Software version $softwareVersion is not supported.")
         }
@@ -151,7 +138,33 @@ class TcpConnectionHandler(
     }
   }
 
-  protected def isSoftwareVersionSupported(softwareVersion: Int): Boolean = true // TODO: in future perform software version checking
+  protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString): Unit = {
+
+    val softwareVersion = 1
+
+    val messageLengthHeaderReader = new MessageOfLength65536HeaderReader
+
+    // ---
+
+    val outgoingDataListener: ActorRef = {
+      val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeaderReader, new Serializers))
+      context.actorOf(props, name = classOf[OutgoingDataListener].getSimpleName + "-" + runtimeId)
+    }
+
+    context.watch(outgoingDataListener)
+
+    // ---
+
+    val incomingDataListener: ActorRef = {
+      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeaderReader, new Deserializers))
+      context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
+    }
+
+    context.watch(incomingDataListener)
+    incomingDataListener ! new DataFromDevice(incomingDataBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
+
+    // ---
+  }
 
   protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
 

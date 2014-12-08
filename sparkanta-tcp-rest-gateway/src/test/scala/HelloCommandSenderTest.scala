@@ -18,7 +18,7 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
 
     val helloMessageAsByteArray = {
       val hello = new Hello("Alice has a cat")
-      val helloAsByteArray: Array[Byte] = new Serializers().serialize(hello)
+      val helloAsByteArray = new Serializers().serialize(hello)
       new MessageOfLength65536HeaderReader().prepareMessageToGo(helloAsByteArray)
     }
 

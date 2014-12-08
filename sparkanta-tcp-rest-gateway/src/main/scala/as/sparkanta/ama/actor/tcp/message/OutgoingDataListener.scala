@@ -2,13 +2,16 @@ package as.sparkanta.ama.actor.tcp.message
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
-import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy }
+import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy, Props, Terminated }
 import akka.io.Tcp
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
+import as.sparkanta.gateway.message.DataToDevice
+import as.sparkanta.device.message.{ MessageLengthHeaderReader, MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.serialize.Serializer
 
 object OutgoingDataListener {
   sealed trait State extends Serializable
@@ -26,21 +29,25 @@ object OutgoingDataListener {
 }
 
 class OutgoingDataListener(
-  amaConfig:     AmaConfig,
-  config:        OutgoingDataListenerConfig,
-  remoteAddress: InetSocketAddress,
-  localAddress:  InetSocketAddress,
-  tcpActor:      ActorRef,
-  runtimeId:     Long
+  amaConfig:                     AmaConfig,
+  config:                        OutgoingDataListenerConfig,
+  remoteAddress:                 InetSocketAddress,
+  localAddress:                  InetSocketAddress,
+  tcpActor:                      ActorRef,
+  runtimeId:                     Long,
+  val messageLengthHeaderReader: MessageLengthHeaderReader,
+  val serializer:                Serializer[MessageToDeviceMarker]
 ) extends FSM[OutgoingDataListener.State, OutgoingDataListener.StateData] with FSMSuccessOrStop[OutgoingDataListener.State, OutgoingDataListener.StateData] {
 
   def this(
-    amaConfig:     AmaConfig,
-    remoteAddress: InetSocketAddress,
-    localAddress:  InetSocketAddress,
-    tcpActor:      ActorRef,
-    runtimeId:     Long
-  ) = this(amaConfig, OutgoingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId)
+    amaConfig:                 AmaConfig,
+    remoteAddress:             InetSocketAddress,
+    localAddress:              InetSocketAddress,
+    tcpActor:                  ActorRef,
+    runtimeId:                 Long,
+    messageLengthHeaderReader: MessageLengthHeaderReader,
+    serializer:                Serializer[MessageToDeviceMarker]
+  ) = this(amaConfig, OutgoingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeaderReader, serializer)
 
   import OutgoingDataListener._
 
@@ -54,15 +61,15 @@ class OutgoingDataListener(
   startWith(WaitingForSomethingToSend, WaitingForSomethingToSendStateData)
 
   when(WaitingForSomethingToSend) {
-    case Event(dataToDevice: ByteString, WaitingForSomethingToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice) }
+    case Event(dataToDevice: DataToDevice, WaitingForSomethingToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice.data) }
   }
 
   when(WaitingForAck) {
-    case Event(Ack, sd: WaitingForAckStateData)                      => successOrStopWithFailure { ackReceived(sd) }
+    case Event(Ack, sd: WaitingForAckStateData)                        => successOrStopWithFailure { ackReceived(sd) }
 
-    case Event(dataToDevice: ByteString, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice, sd) }
+    case Event(dataToDevice: DataToDevice, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice.data, sd) }
 
-    case Event(AckTimeout, sd: WaitingForAckStateData)               => successOrStopWithFailure { throw new Exception(s"No ACK for more than ${config.waitingForAckTimeoutInSeconds} seconds, closing connection.") }
+    case Event(AckTimeout, sd: WaitingForAckStateData)                 => successOrStopWithFailure { throw new Exception(s"No ACK for more than ${config.waitingForAckTimeoutInSeconds} seconds, closing connection.") }
   }
 
   onTransition {
@@ -70,7 +77,9 @@ class OutgoingDataListener(
   }
 
   whenUnhandled {
-    case Event(Tcp.CommandFailed(_), stateData) => { stop(FSM.Failure(new Exception("Write request failed."))) }
+    case Event(Tcp.CommandFailed(_), stateData)         => { stop(FSM.Failure(new Exception("Write request failed."))) }
+
+    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died."))
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -87,6 +96,10 @@ class OutgoingDataListener(
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataListenerClassifier(runtimeId))
+
+    val props = Props(new OutgoingMessageListener(amaConfig, runtimeId, serializer, messageLengthHeaderReader))
+    val outgoingMessageListener = context.actorOf(props, name = classOf[OutgoingMessageListener].getSimpleName + "-" + runtimeId)
+    context.watch(outgoingMessageListener)
   }
 
   protected def sendRequestWhileNothingToDo(dataToDevice: ByteString) = {

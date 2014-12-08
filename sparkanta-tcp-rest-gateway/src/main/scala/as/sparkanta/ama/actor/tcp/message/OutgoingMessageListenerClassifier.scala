@@ -2,15 +2,15 @@ package as.sparkanta.ama.actor.tcp.message
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.gateway.message.DataToDevice
+import as.sparkanta.gateway.message.MessageToDevice
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class OutgoingDataListenerClassifier(runtimeId: Long) extends Classifier {
+class OutgoingMessageListenerClassifier(runtimeId: Long) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: DataToDevice if a.runtimeId == runtimeId => Some(a)
+    case a: MessageToDevice if a.runtimeId == runtimeId => Some(a)
     case _ => None
   }
 }
