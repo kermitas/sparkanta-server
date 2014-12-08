@@ -9,18 +9,24 @@ import java.net.InetSocketAddress
 import akka.io.Tcp
 import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageLengthHeader, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Disconnect, MessageLengthHeader, Hello }
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice }
 
 object IncomingDataListener {
+
+  lazy final val sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead = s"[no sparkDeviceId was set before ${classOf[Disconnect].getSimpleName}]"
+
   sealed trait State extends Serializable
   case object SparkDeviceIdUnidentified extends State
   case object WaitingForData extends State
+  case object Disconnecting extends State
 
   sealed trait StateData extends Serializable
   case class SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout: Cancellable) extends StateData
-  case class WaitingForDataStateData(sparkDeviceId: String, sparkDeviceIdIdentificationTimeInMs: Long) extends StateData
+  class IdentifiedSparkDeviceId(val sparkDeviceId: String, val sparkDeviceIdIdentificationTimeInMs: Long) extends StateData
+  case class WaitingForDataStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
+  case class DisconnectingStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -70,10 +76,20 @@ class IncomingDataListener(
     case Event(dataFromDevice: DataFromDevice, sd: SparkDeviceIdUnidentifiedStateData)     => successOrStopWithFailure { analyzeIncomingDataFromUnidentifiedDevice(dataFromDevice.data, sd) }
 
     case Event(SparkDeviceIdIdentificationTimeout, sd: SparkDeviceIdUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Spark device id identification timeout (${config.sparkDeviceIdIdentificationTimeoutInSeconds} seconds) reached.") }
+
+    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)                      => goto(Disconnecting) using new DisconnectingStateData(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, System.currentTimeMillis)
   }
 
   when(WaitingForData) {
     case Event(dataFromDevice: DataFromDevice, sd: WaitingForDataStateData) => successOrStopWithFailure { analyzeIncomingDataFromIdentifiedDevice(dataFromDevice.data, sd) }
+
+    case Event(_: Disconnect, sd: WaitingForDataStateData) => {
+      goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
+    }
+  }
+
+  when(Disconnecting) {
+    case Event(_, sd: DisconnectingStateData) => stay using sd // do not analyze anything that was read when disconnecting is in progress
   }
 
   onTransition {
@@ -144,13 +160,8 @@ class IncomingDataListener(
   protected def terminate(reason: FSM.Reason, currentState: IncomingDataListener.State, stateData: IncomingDataListener.StateData): Unit = {
 
     val sparkDeviceId = stateData match {
-      case WaitingForDataStateData(sparkDeviceId, identificationTimeInMs) => Some(sparkDeviceId)
-      case _ => None
-    }
-
-    stateData match {
-      case WaitingForDataStateData(sparkDeviceId, identificationTimeInMs) => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, sparkDeviceId, System.currentTimeMillis - identificationTimeInMs)
-      case _ =>
+      case isdi: IdentifiedSparkDeviceId => Some(isdi.sparkDeviceId)
+      case _                             => None
     }
 
     val sparkDeviceIdMessage = sparkDeviceId.map(sparkDeviceId => s", sparkDeviceId '$sparkDeviceId'.").getOrElse(".")
@@ -168,6 +179,11 @@ class IncomingDataListener(
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
       }
+    }
+
+    stateData match {
+      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
+      case _                             =>
     }
   }
 }
