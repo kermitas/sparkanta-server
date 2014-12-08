@@ -35,7 +35,7 @@ class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging
 
   override def receive = {
 
-    case dad: DisconnectAllDevicesMessage => disconnectAll(dad.delayBeforeNextConnectionInSeconds)
+    case dad: DisconnectAllDevicesMessage => disconnectAll(dad.delayBeforeNextConnectionAttemptInSeconds)
 
     case message                          => log.warning(s"Unhandled $message send by ${sender()}")
   }
