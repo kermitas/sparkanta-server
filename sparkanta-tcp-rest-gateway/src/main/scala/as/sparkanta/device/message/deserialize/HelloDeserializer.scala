@@ -17,8 +17,8 @@ class HelloDeserializer extends Deserializer[Hello] {
   override def deserialize(is: InputStream): Hello = deserialize(is, is.read)
 
   protected def deserialize(is: InputStream, version: Int): Hello = deserializers.get(version) match {
-    case Some(deserializers) => deserializers.deserialize(is)
-    case None                => throw SerializationVersionNotSupportedException(version)
+    case Some(deserializer) => deserializer.deserialize(is)
+    case None               => throw SerializationVersionNotSupportedException(version)
   }
 }
 

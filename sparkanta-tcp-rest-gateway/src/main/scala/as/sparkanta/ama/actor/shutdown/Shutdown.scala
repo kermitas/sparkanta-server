@@ -19,7 +19,7 @@ class Shutdown(amaConfig: AmaConfig) extends Actor with ActorLogging {
       // remember always to send back how your initialization goes
       amaConfig.sendInitializationResult()
     } catch {
-      case e: Exception => amaConfig.sendInitializationResult(new Exception("Problem while installing sample actor.", e))
+      case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
     }
   }
 

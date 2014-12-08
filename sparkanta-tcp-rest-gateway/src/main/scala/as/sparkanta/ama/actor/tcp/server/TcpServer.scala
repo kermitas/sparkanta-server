@@ -34,7 +34,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
       IO(Tcp) ! Bind(self, new InetSocketAddress(config.localBindHost, config.localBindPortNumber))
 
     } catch {
-      case e: Exception => amaConfig.sendInitializationResult(new Exception("Problem while installing sample actor.", e))
+      case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
     }
   }
 
