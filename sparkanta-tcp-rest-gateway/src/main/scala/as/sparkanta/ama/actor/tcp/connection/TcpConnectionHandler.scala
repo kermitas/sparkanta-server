@@ -131,7 +131,7 @@ class TcpConnectionHandler(
           }
 
           context.watch(incomingDataListener)
-          incomingDataListener ! new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
+          incomingDataListener ! sd.incomingDataReader.getBuffer //new DataFromDevice(sd.incomingDataReader.getBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
 
           // ---
 

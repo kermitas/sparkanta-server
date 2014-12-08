@@ -106,6 +106,9 @@ class IncomingDataListener(
 
         case hello: Hello => {
           sd.sparkDeviceIdIdentificationTimeout.cancel
+
+          log.debug(s"Device runtimeId $runtimeId successfully identified as spark device id '${hello.sparkDeviceId}'.")
+
           amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
           amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
           self ! ByteString.empty
@@ -120,7 +123,7 @@ class IncomingDataListener(
   }
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(dataFromDevice: ByteString, sd: WaitingForDataStateData) = {
-    log.debug(s"Received ${dataFromDevice.length} bytes from runtimeId $runtimeId, sparkDeviceId ${sd.sparkDeviceId}.")
+    log.debug(s"Received ${dataFromDevice.length} bytes from runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 

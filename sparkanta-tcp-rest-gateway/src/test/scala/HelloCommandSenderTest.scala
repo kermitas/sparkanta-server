@@ -9,15 +9,23 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
 
   scenario("sending hello command") {
 
-    val hello = new Hello("Alice has a cat")
-    val helloAsByteArray = new HelloSerializerVersion1().serialize(hello)
-    val datagram = new MessageHeader65536().prepareMessageToGo(helloAsByteArray)
+    val identificationStringWithSoftwareVersion = {
+      val identificationString = "SPARKANTA"
+      val softwareVersion: Byte = 12
 
-    //val helloAsByteArray = Array[Byte](0.toByte, 8.toByte, 1.toByte, 1.toByte, 1.toByte, 4.toByte, 'A'.toByte, 'B'.toByte, 'C'.toByte, 'D'.toByte)
+      identificationString.getBytes ++ Array[Byte](softwareVersion.toByte)
+    }
+
+    val helloMessageAsByteArray = {
+      val hello = new Hello("Alice has a cat")
+      val helloAsByteArray = new HelloSerializerVersion1().serialize(hello)
+      new MessageHeader65536().prepareMessageToGo(helloAsByteArray)
+    }
 
     val socket = new Socket("localhost", 8080)
 
-    socket.getOutputStream.write(datagram)
+    socket.getOutputStream.write(identificationStringWithSoftwareVersion)
+    socket.getOutputStream.write(helloMessageAsByteArray)
     socket.getOutputStream.flush
 
     StdIn.readLine()
