@@ -4,4 +4,4 @@ object Disconnect {
   lazy final val commandCode: Int = 2
 }
 
-class Disconnect extends MessageToDevice
+class Disconnect(val delayBeforeNextConnectionInSeconds: Int) extends MessageToDevice

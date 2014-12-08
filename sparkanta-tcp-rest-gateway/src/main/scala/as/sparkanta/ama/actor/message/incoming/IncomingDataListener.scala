@@ -135,7 +135,7 @@ class IncomingDataListener(
           log.debug(s"Device runtimeId $runtimeId successfully identified (${hello.getClass.getSimpleName} message) itself as spark device id '${hello.sparkDeviceId}'.")
 
           amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
-          amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello)
+          amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello.sparkDeviceId, softwareVersion, hello)
           self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
           goto(WaitingForData) using new WaitingForDataStateData(hello.sparkDeviceId, System.currentTimeMillis)
         }
@@ -156,7 +156,7 @@ class IncomingDataListener(
     while (messageFromDevice.isDefined) {
       log.debug(s"Received message ${messageFromDevice.get.getClass.getSimpleName} from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
 
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, messageFromDevice.get)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, messageFromDevice.get)
       messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     }
 
@@ -188,7 +188,7 @@ class IncomingDataListener(
     }
 
     stateData match {
-      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
+      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, softwareVersion, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
       case _                             =>
     }
   }
