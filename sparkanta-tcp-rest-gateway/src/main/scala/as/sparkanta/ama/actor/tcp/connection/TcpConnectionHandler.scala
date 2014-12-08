@@ -16,12 +16,12 @@ object TcpConnectionHandler {
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case class SoftwareVersionUnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionUnidentifiedTimeout: Cancellable) extends StateData
+  case class SoftwareVersionUnidentifiedStateData(incomingDataBuffer: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
   case class WaitingForDataStateData(softwareVersion: Int, incomingDataListener: ActorRef, outgoingDataListener: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
-  case object IdentificationTimeout extends InternalMessage
+  case object SoftwareVersionIdentificationTimeout extends InternalMessage
 
   class ConnectionWasLostException(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Connection (runtimeId $runtimeId) between us ($localAddress) and remote ($remoteAddress) was lost.")
   class WatchedActorDied(diedWatchedActor: AnyRef, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died.")
@@ -55,14 +55,14 @@ class TcpConnectionHandler(
   }
 
   {
-    val softwareVersionUnidentifiedTimeout = context.system.scheduler.scheduleOnce(config.softwareVersionIdentificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
-    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), softwareVersionUnidentifiedTimeout))
+    val softwareVersionIdentificationTimeout = context.system.scheduler.scheduleOnce(config.softwareVersionIdentificationTimeoutInSeconds seconds, self, SoftwareVersionIdentificationTimeout)(context.dispatcher)
+    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), softwareVersionIdentificationTimeout))
   }
 
   when(SoftwareVersionUnidentified) {
-    case Event(Tcp.Received(data), sd: SoftwareVersionUnidentifiedStateData)    => successOrStopWithFailure { analyzeIncomingData(data, sd) }
+    case Event(Tcp.Received(data), sd: SoftwareVersionUnidentifiedStateData)                   => successOrStopWithFailure { analyzeIncomingData(data, sd) }
 
-    case Event(IdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.softwareVersionIdentificationTimeoutInSeconds} seconds) reached.") }
+    case Event(SoftwareVersionIdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.softwareVersionIdentificationTimeoutInSeconds} seconds) reached.") }
   }
 
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
@@ -112,7 +112,7 @@ class TcpConnectionHandler(
     sd.incomingDataBuffer.getSoftwareVersion match {
       case Some(softwareVersion) => {
 
-        sd.softwareVersionUnidentifiedTimeout.cancel
+        sd.softwareVersionIdentificationTimeout.cancel
 
         if (isSoftwareVersionSupported(softwareVersion)) {
 

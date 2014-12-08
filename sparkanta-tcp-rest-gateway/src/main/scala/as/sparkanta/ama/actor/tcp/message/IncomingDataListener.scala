@@ -1,6 +1,8 @@
 package as.sparkanta.ama.actor.tcp.message
 
-import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy }
+import scala.language.postfixOps
+import scala.concurrent.duration._
+import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy, Cancellable }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
@@ -19,17 +21,30 @@ object IncomingDataListener {
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case object SparkDeviceIdUnidentifiedStateData extends StateData
+  case class SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout: Cancellable) extends StateData
   case class WaitingForDataStateData(sparkDeviceId: String, sparkDeviceIdIdentificationTimeInMs: Long) extends StateData
+
+  sealed trait Message extends Serializable
+  sealed trait InternalMessage extends Message
+  case object SparkDeviceIdIdentificationTimeout extends InternalMessage
 }
 
 class IncomingDataListener(
   amaConfig:     AmaConfig,
+  config:        IncomingDataListenerConfig,
   remoteAddress: InetSocketAddress,
   localAddress:  InetSocketAddress,
   tcpActor:      ActorRef,
   runtimeId:     Long
 ) extends FSM[IncomingDataListener.State, IncomingDataListener.StateData] with FSMSuccessOrStop[IncomingDataListener.State, IncomingDataListener.StateData] {
+
+  def this(
+    amaConfig:     AmaConfig,
+    remoteAddress: InetSocketAddress,
+    localAddress:  InetSocketAddress,
+    tcpActor:      ActorRef,
+    runtimeId:     Long
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId)
 
   import IncomingDataListener._
 
@@ -42,10 +57,15 @@ class IncomingDataListener(
     }
   }
 
-  startWith(SparkDeviceIdUnidentified, SparkDeviceIdUnidentifiedStateData)
+  {
+    val sparkDeviceIdIdentificationTimeout = context.system.scheduler.scheduleOnce(config.sparkDeviceIdIdentificationTimeoutInSeconds seconds, self, SparkDeviceIdIdentificationTimeout)(context.dispatcher)
+    startWith(SparkDeviceIdUnidentified, new SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout))
+  }
 
   when(SparkDeviceIdUnidentified) {
-    case Event(dataFromDevice: ByteString, SparkDeviceIdUnidentifiedStateData) => successOrStopWithFailure { analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice) }
+    case Event(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData)         => successOrStopWithFailure { analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice, sd) }
+
+    case Event(SparkDeviceIdIdentificationTimeout, sd: SparkDeviceIdUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Spark device id identification timeout (${config.sparkDeviceIdIdentificationTimeoutInSeconds} seconds) reached.") }
   }
 
   when(WaitingForData) {
@@ -74,10 +94,12 @@ class IncomingDataListener(
     amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingDataListenerClassifier(runtimeId))
   }
 
-  protected def analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice: ByteString) = {
+  protected def analyzeIncomingMessageFromUnidentifiedDevice(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData) = {
     log.debug(s"Received ${dataFromDevice.size} bytes from runtimeId $runtimeId.")
 
-    stay using SparkDeviceIdUnidentifiedStateData
+    // TODO: if Hello then cancel timeout and go to next state
+
+    stay using sd
   }
 
   protected def analyzeIncomingMessageFromIdentifiedDevice(dataFromDevice: ByteString, sd: WaitingForDataStateData) = {
