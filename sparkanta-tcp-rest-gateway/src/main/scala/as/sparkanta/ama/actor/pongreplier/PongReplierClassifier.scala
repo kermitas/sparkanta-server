@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp.message
+package as.sparkanta.ama.actor.pongreplier
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier

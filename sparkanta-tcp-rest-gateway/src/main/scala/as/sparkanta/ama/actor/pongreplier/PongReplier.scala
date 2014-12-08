@@ -1,9 +1,8 @@
-package as.sparkanta.ama.actor.tcp.message
+package as.sparkanta.ama.actor.pongreplier
 
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
-import as.sparkanta.device.message.{ Ping, Pong }
-import as.sparkanta.gateway.message.MessageFromDevice
+import as.sparkanta.device.message.Pong
 import as.sparkanta.server.message.MessageToDevice
 import as.akka.broadcaster.Broadcaster
 
