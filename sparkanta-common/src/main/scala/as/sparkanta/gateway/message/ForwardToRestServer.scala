@@ -1,4 +1,4 @@
-package as.sparkanta.internal.message
+package as.sparkanta.gateway.message
 
 /**
  * Marker trait. It defined that this message should be picked up and send to REST server.

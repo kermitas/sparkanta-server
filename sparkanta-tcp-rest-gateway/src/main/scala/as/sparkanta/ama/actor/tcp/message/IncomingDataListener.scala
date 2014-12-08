@@ -11,8 +11,7 @@ import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, MessageLengthHeaderReader, Hello }
 import as.sparkanta.device.message.deserialize.Deserializer
-import as.sparkanta.internal.message.{ DeviceIsDown, MessageFromDevice }
-import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice }
+import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice }
 
 object IncomingDataListener {
   sealed trait State extends Serializable

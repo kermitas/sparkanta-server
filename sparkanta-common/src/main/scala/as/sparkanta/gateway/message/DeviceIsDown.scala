@@ -1,4 +1,4 @@
-package as.sparkanta.internal.message
+package as.sparkanta.gateway.message
 
 class DeviceIsDown(
   val runtimeId:        Long,
