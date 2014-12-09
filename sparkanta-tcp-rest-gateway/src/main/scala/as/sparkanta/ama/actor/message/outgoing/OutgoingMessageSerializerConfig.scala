@@ -5,21 +5,21 @@ import com.typesafe.config.{ Config, ConfigFactory }
 /**
  * Configuration read from JSON (HOCON) file.
  */
-object OutgoingMessageListenerConfig {
+object OutgoingMessageSerializerConfig {
 
-  final val topConfigKey = classOf[OutgoingMessageListenerConfig].getSimpleName
+  final val topConfigKey = classOf[OutgoingMessageSerializerConfig].getSimpleName
 
   final val waitingForAckAfterSendingDisconnectTimeoutInSecondsConfigKey = "waitingForAckAfterSendingDisconnectTimeoutInSeconds"
 
   /**
    * Assumes that Config contains:
    *
-   *   OutgoingMessageListenerConfig {
+   *   OutgoingMessageSerializerConfig {
    *     waitingForAckAfterSendingDisconnectTimeoutInSeconds = ...
    *     ...
    *   }
    */
-  def fromTopKey(c: Config = ConfigFactory.load): OutgoingMessageListenerConfig = apply(c.getConfig(topConfigKey))
+  def fromTopKey(c: Config = ConfigFactory.load): OutgoingMessageSerializerConfig = apply(c.getConfig(topConfigKey))
 
   /**
    * Assumes that Config contains:
@@ -27,13 +27,13 @@ object OutgoingMessageListenerConfig {
    *   waitingForAckAfterSendingDisconnectTimeoutInSeconds = ...
    *   ...
    */
-  def apply(config: Config = ConfigFactory.load): OutgoingMessageListenerConfig = {
+  def apply(config: Config = ConfigFactory.load): OutgoingMessageSerializerConfig = {
     val waitingForAckAfterSendingDisconnectTimeoutInSeconds = config.getInt(waitingForAckAfterSendingDisconnectTimeoutInSecondsConfigKey)
 
-    new OutgoingMessageListenerConfig(waitingForAckAfterSendingDisconnectTimeoutInSeconds)
+    new OutgoingMessageSerializerConfig(waitingForAckAfterSendingDisconnectTimeoutInSeconds)
   }
 }
 
-class OutgoingMessageListenerConfig(
+class OutgoingMessageSerializerConfig(
   val waitingForAckAfterSendingDisconnectTimeoutInSeconds: Int
 )

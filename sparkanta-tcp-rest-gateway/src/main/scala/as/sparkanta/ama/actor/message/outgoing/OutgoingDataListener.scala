@@ -97,9 +97,9 @@ class OutgoingDataListener(
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataListenerClassifier(runtimeId))
 
-    val props = Props(new OutgoingMessageListener(amaConfig, runtimeId, serializer, messageLengthHeader))
-    val outgoingMessageListener = context.actorOf(props, name = classOf[OutgoingMessageListener].getSimpleName + "-" + runtimeId)
-    context.watch(outgoingMessageListener)
+    val props = Props(new OutgoingMessageSerializer(amaConfig, runtimeId, serializer, messageLengthHeader))
+    val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + runtimeId)
+    context.watch(outgoingMessageSerializer)
   }
 
   protected def sendRequestWhileNothingToDo(dataToDevice: DataToDevice, sender: ActorRef) = {

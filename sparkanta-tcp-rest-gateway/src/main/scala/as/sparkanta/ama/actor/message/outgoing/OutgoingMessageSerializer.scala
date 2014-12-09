@@ -11,7 +11,7 @@ import as.sparkanta.gateway.message.{ DataToDeviceSendConfirmation, DataToDevice
 import as.sparkanta.server.message.MessageToDevice
 import akka.util.FSMSuccessOrStop
 
-object OutgoingMessageListener {
+object OutgoingMessageSerializer {
   sealed trait State extends Serializable
   case object WaitingForMessageToSend extends State
   case object DisconnectingDevice extends State
@@ -25,22 +25,22 @@ object OutgoingMessageListener {
   object WaitingForAckAfterSendingDisconnectTimeout extends InternalMessage
 }
 
-class OutgoingMessageListener(
+class OutgoingMessageSerializer(
   val amaConfig:           AmaConfig,
-  val config:              OutgoingMessageListenerConfig,
+  val config:              OutgoingMessageSerializerConfig,
   val runtimeId:           Long,
   val serializer:          Serializer[MessageToDeviceMarker],
   val messageLengthHeader: MessageLengthHeader
-) extends FSM[OutgoingMessageListener.State, OutgoingMessageListener.StateData] with FSMSuccessOrStop[OutgoingMessageListener.State, OutgoingMessageListener.StateData] {
+) extends FSM[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] with FSMSuccessOrStop[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] {
 
   def this(
     amaConfig:           AmaConfig,
     runtimeId:           Long,
     serializer:          Serializer[MessageToDeviceMarker],
     messageLengthHeader: MessageLengthHeader
-  ) = this(amaConfig, OutgoingMessageListenerConfig.fromTopKey(amaConfig.config), runtimeId, serializer, messageLengthHeader)
+  ) = this(amaConfig, OutgoingMessageSerializerConfig.fromTopKey(amaConfig.config), runtimeId, serializer, messageLengthHeader)
 
-  import OutgoingMessageListener._
+  import OutgoingMessageSerializer._
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -82,7 +82,7 @@ class OutgoingMessageListener(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingMessageListenerClassifier(runtimeId))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingMessageSerializerClassifier(runtimeId))
   }
 
   protected def serializeMessageToDevice(messageToDevice: MessageToDeviceMarker) = {
@@ -112,7 +112,7 @@ class OutgoingMessageListener(
     stay using sd
   }
 
-  protected def terminate(reason: FSM.Reason, currentState: OutgoingMessageListener.State, stateData: OutgoingMessageListener.StateData) = reason match {
+  protected def terminate(reason: FSM.Reason, currentState: OutgoingMessageSerializer.State, stateData: OutgoingMessageSerializer.StateData) = reason match {
 
     case FSM.Normal => {
       log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId.")
