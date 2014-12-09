@@ -6,11 +6,16 @@ import as.sparkanta.device.message.{ DeviceHello, Disconnect, Ping, Pong }
 
 class Serializers extends Serializer[MessageToDeviceMarker] {
 
+  protected final val deviceHelloSerializer = new DeviceHelloSerializer
+  protected final val disconnectSerializer = new DisconnectSerializer
+  protected final val pingSerializer = new PingSerializer
+  protected final val pongSerializer = new PongSerializer
+
   override def serialize(messageToDevice: MessageToDeviceMarker, os: OutputStream) = messageToDevice match {
-    case deviceHello: DeviceHello => new DeviceHelloSerializer().serialize(deviceHello, os)
-    case disconnect: Disconnect   => new DisconnectSerializer().serialize(disconnect, os)
-    case ping: Ping               => new PingSerializer().serialize(ping, os)
-    case pong: Pong               => new PongSerializer().serialize(pong, os)
+    case deviceHello: DeviceHello => deviceHelloSerializer.serialize(deviceHello, os)
+    case disconnect: Disconnect   => disconnectSerializer.serialize(disconnect, os)
+    case ping: Ping               => pingSerializer.serialize(ping, os)
+    case pong: Pong               => pongSerializer.serialize(pong, os)
     case unknownMessageToDevice   => throw new Exception(s"Unknown object ${unknownMessageToDevice.getClass.getSimpleName}, don't know how to serialize.")
   }
 }
