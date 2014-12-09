@@ -8,7 +8,7 @@ import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, DeviceHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, DeviceHello, ServerHello }
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
@@ -168,6 +168,7 @@ class IncomingDataListener(
     } else {
       amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
       amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, sd.deviceHello)
+      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new ServerHello)
       self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
       goto(WaitingForData) using new WaitingForDataStateData(sd.deviceHello.sparkDeviceId, System.currentTimeMillis)
     }
