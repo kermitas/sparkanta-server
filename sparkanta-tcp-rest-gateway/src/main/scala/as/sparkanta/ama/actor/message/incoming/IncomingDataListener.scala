@@ -5,7 +5,6 @@ import scala.concurrent.duration._
 import akka.actor.{ ActorRef, FSM, OneForOneStrategy, SupervisorStrategy, Cancellable }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
-import java.net.InetSocketAddress
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, DeviceHello, ServerHello }
@@ -39,8 +38,10 @@ object IncomingDataListener {
 class IncomingDataListener(
   amaConfig:                     AmaConfig,
   config:                        IncomingDataListenerConfig,
-  remoteAddress:                 InetSocketAddress,
-  localAddress:                  InetSocketAddress,
+  remoteIp:                      String,
+  remotePort:                    Int,
+  localIp:                       String,
+  localPort:                     Int,
   tcpActor:                      ActorRef,
   runtimeId:                     Long,
   softwareVersion:               Int,
@@ -50,14 +51,16 @@ class IncomingDataListener(
 
   def this(
     amaConfig:                     AmaConfig,
-    remoteAddress:                 InetSocketAddress,
-    localAddress:                  InetSocketAddress,
+    remoteIp:                      String,
+    remotePort:                    Int,
+    localIp:                       String,
+    localPort:                     Int,
     tcpActor:                      ActorRef,
     runtimeId:                     Long,
     softwareVersion:               Int,
     messageLengthHeader:           MessageLengthHeader,
     messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
-  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
 
   import IncomingDataListener._
 
@@ -166,10 +169,10 @@ class IncomingDataListener(
 
       throw new Exception(logMessage)
     } else {
-      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, sd.deviceHello)
+      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, sd.deviceHello)
       amaConfig.broadcaster ! new MessageToDevice(runtimeId, new ServerHello)
-      self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
+      self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
       goto(WaitingForData) using new WaitingForDataStateData(sd.deviceHello.sparkDeviceId, System.currentTimeMillis)
     }
   }
@@ -183,7 +186,7 @@ class IncomingDataListener(
     while (messageFromDevice.isDefined) {
       log.debug(s"Received message ${messageFromDevice.get.getClass.getSimpleName} from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
 
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, remoteAddress, localAddress, messageFromDevice.get)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, messageFromDevice.get)
       messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     }
 
@@ -215,8 +218,18 @@ class IncomingDataListener(
     }
 
     stateData match {
-      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, softwareVersion, remoteAddress, localAddress, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
-      case _                             =>
+      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(
+        runtimeId,
+        isdi.sparkDeviceId,
+        softwareVersion,
+        remoteIp,
+        remotePort,
+        localIp,
+        localPort,
+        System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs
+      )
+
+      case _ =>
     }
   }
 }

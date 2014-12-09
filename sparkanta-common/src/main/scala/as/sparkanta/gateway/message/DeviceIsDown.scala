@@ -1,12 +1,12 @@
 package as.sparkanta.gateway.message
 
-import java.net.InetSocketAddress
-
 class DeviceIsDown(
   val runtimeId:        Long,
   val sparkDeviceId:    String,
   val softwareVersion:  Int,
-  val remoteAddress:    InetSocketAddress,
-  val localAddress:     InetSocketAddress,
+  val remoteIp:         String,
+  val remotePort:       Int,
+  val localIp:          String,
+  val localPort:        Int,
   val timeInSystemInMs: Long
 ) extends ForwardToRestServer

@@ -3,7 +3,6 @@ package as.sparkanta.ama.actor.tcp.connection
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props, Cancellable }
-import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
@@ -27,27 +26,31 @@ object TcpConnectionHandler {
   sealed trait InternalMessage extends Message
   case object SoftwareVersionIdentificationTimeout extends InternalMessage
 
-  class ConnectionWasLostException(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Connection (runtimeId $runtimeId) between us ($localAddress) and remote ($remoteAddress) was lost.")
-  class WatchedActorDied(diedWatchedActor: AnyRef, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died.")
-  class WatchedTcpActorDied(diedTcpWatchedActor: ActorRef, remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteAddress, localAddress $localAddress) because watched tcp actor $diedTcpWatchedActor died.")
+  class ConnectionWasLostException(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, runtimeId: Long) extends Exception(s"Connection (runtimeId $runtimeId) between us $localIp:$localPort and remote $remoteIp:$remotePort was lost.")
+  class WatchedActorDied(diedWatchedActor: AnyRef, remoteIp: String, remotePort: Int, localIp: String, localPort: Int, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteIp:$remotePort, localAddress $localIp:$localPort) because watched actor $diedWatchedActor died.")
+  class WatchedTcpActorDied(diedTcpWatchedActor: ActorRef, remoteIp: String, remotePort: Int, localIp: String, localPort: Int, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteIp:$remotePort, localAddress $localIp:$localPort) because watched tcp actor $diedTcpWatchedActor died.")
 }
 
 class TcpConnectionHandler(
-  amaConfig:     AmaConfig,
-  config:        TcpConnectionHandlerConfig,
-  remoteAddress: InetSocketAddress,
-  localAddress:  InetSocketAddress,
-  tcpActor:      ActorRef,
-  runtimeId:     Long
+  amaConfig:  AmaConfig,
+  config:     TcpConnectionHandlerConfig,
+  remoteIp:   String,
+  remotePort: Int,
+  localIp:    String,
+  localPort:  Int,
+  tcpActor:   ActorRef,
+  runtimeId:  Long
 ) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] with FSMSuccessOrStop[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
 
   def this(
-    amaConfig:     AmaConfig,
-    remoteAddress: InetSocketAddress,
-    localAddress:  InetSocketAddress,
-    tcpActor:      ActorRef,
-    runtimeId:     Long
-  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId)
+    amaConfig:  AmaConfig,
+    remoteIp:   String,
+    remotePort: Int,
+    localIp:    String,
+    localPort:  Int,
+    tcpActor:   ActorRef,
+    runtimeId:  Long
+  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
 
   import TcpConnectionHandler._
 
@@ -71,7 +74,7 @@ class TcpConnectionHandler(
 
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
-      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress, runtimeId)
+      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
       stay using sd
     }
 
@@ -83,13 +86,13 @@ class TcpConnectionHandler(
   }
 
   whenUnhandled {
-    case Event(Tcp.PeerClosed, stateData) => stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress, runtimeId)))
+    case Event(Tcp.PeerClosed, stateData) => stop(FSM.Failure(new ConnectionWasLostException(remoteIp, remotePort, localIp, localPort, runtimeId)))
 
     case Event(Terminated(diedWatchedActor), stateData) => {
       val exception = if (diedWatchedActor.equals(tcpActor))
-        new WatchedActorDied(diedWatchedActor, remoteAddress, localAddress, runtimeId)
+        new WatchedActorDied(diedWatchedActor, remoteIp, remotePort, localIp, localPort, runtimeId)
       else
-        new WatchedTcpActorDied(tcpActor, remoteAddress, localAddress, runtimeId)
+        new WatchedTcpActorDied(tcpActor, remoteIp, remotePort, localIp, localPort, runtimeId)
 
       stop(FSM.Failure(exception))
     }
@@ -126,7 +129,7 @@ class TcpConnectionHandler(
 
           prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer)
 
-          amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress, runtimeId)
+          amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
 
           goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
 
@@ -148,7 +151,7 @@ class TcpConnectionHandler(
     // ---
 
     val outgoingDataSender: ActorRef = {
-      val props = Props(new OutgoingDataSender(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, new Serializers))
+      val props = Props(new OutgoingDataSender(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, messageLengthHeader, new Serializers))
       context.actorOf(props, name = classOf[OutgoingDataSender].getSimpleName + "-" + runtimeId)
     }
 
@@ -157,12 +160,12 @@ class TcpConnectionHandler(
     // ---
 
     val incomingDataListener: ActorRef = {
-      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, softwareVersion, messageLengthHeader, new Deserializers))
+      val props = Props(new IncomingDataListener(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, softwareVersion, messageLengthHeader, new Deserializers))
       context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + runtimeId)
     }
 
     context.watch(incomingDataListener)
-    incomingDataListener ! new DataFromDevice(incomingDataBuffer, softwareVersion, remoteAddress, localAddress, runtimeId)
+    incomingDataListener ! new DataFromDevice(incomingDataBuffer, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
 
     // ---
   }
@@ -188,23 +191,23 @@ class TcpConnectionHandler(
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        new ConnectionClosed(None, closedByRemoteSide, softwareVersion, remoteAddress, localAddress, runtimeId)
+        new ConnectionClosed(None, closedByRemoteSide, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, softwareVersion, remoteAddress, localAddress, runtimeId)
+        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
-          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, softwareVersion, remoteAddress, localAddress, runtimeId)
+          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
 
           case unknownCause => {
             val e = new Exception(s"Failure stop with unknown cause type (${unknownCause.getClass.getSimpleName}), $unknownCause.")
-            new ConnectionClosed(Some(e), closedByRemoteSide, softwareVersion, remoteAddress, localAddress, runtimeId)
+            new ConnectionClosed(Some(e), closedByRemoteSide, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
           }
         }
       }

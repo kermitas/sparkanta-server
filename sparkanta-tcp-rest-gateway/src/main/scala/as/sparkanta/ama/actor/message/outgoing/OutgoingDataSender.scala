@@ -6,7 +6,6 @@ import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStr
 import akka.io.Tcp
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
-import java.net.InetSocketAddress
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation }
@@ -31,8 +30,10 @@ object OutgoingDataSender {
 class OutgoingDataSender(
   amaConfig:               AmaConfig,
   config:                  OutgoingDataSenderConfig,
-  remoteAddress:           InetSocketAddress,
-  localAddress:            InetSocketAddress,
+  remoteIp:                String,
+  remotePort:              Int,
+  localIp:                 String,
+  localPort:               Int,
   tcpActor:                ActorRef,
   runtimeId:               Long,
   val messageLengthHeader: MessageLengthHeader,
@@ -41,13 +42,15 @@ class OutgoingDataSender(
 
   def this(
     amaConfig:           AmaConfig,
-    remoteAddress:       InetSocketAddress,
-    localAddress:        InetSocketAddress,
+    remoteIp:            String,
+    remotePort:          Int,
+    localIp:             String,
+    localPort:           Int,
     tcpActor:            ActorRef,
     runtimeId:           Long,
     messageLengthHeader: MessageLengthHeader,
     serializer:          Serializer[MessageToDeviceMarker]
-  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, serializer)
+  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, messageLengthHeader, serializer)
 
   import OutgoingDataSender._
 
@@ -79,7 +82,7 @@ class OutgoingDataSender(
   whenUnhandled {
     case Event(Tcp.CommandFailed(_), stateData)         => { stop(FSM.Failure(new Exception("Write request failed."))) }
 
-    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died."))
+    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteIp:$remotePort, localAddress $localIp:$localPort) because watched actor $diedWatchedActor died."))
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")

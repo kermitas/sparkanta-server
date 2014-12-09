@@ -28,7 +28,7 @@ class DevicesDb(amaConfig: AmaConfig) extends Actor with ActorLogging {
   override def receive = {
     case nic: NewIncomingConnection => if (devices.find(r => r.runtimeId == nic.runtimeId).isEmpty) {
 
-      devices = devices :+ new DeviceRecord(nic.runtimeId, nic.remoteAddress, nic.localAddress)
+      devices = devices :+ new DeviceRecord(nic.runtimeId, nic.remoteIp, nic.remotePort, nic.localIp, nic.localPort)
       log.debug(s"Device of runtimeId ${nic.runtimeId} added to db, currently there are ${devices.size} devices in db.")
     }
 

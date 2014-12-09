@@ -55,16 +55,19 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     amaConfig.sendInitializationResult(new Exception(message))
   }
 
-  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit = {
+  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit =
+    newIncomingConnection(remoteAddress.getHostString, remoteAddress.getPort, localAddress.getHostString, localAddress.getPort, tcpActor)
+
+  protected def newIncomingConnection(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef): Unit = {
     val runtimeId = tcpConnectionHandlerActorNamesGenerator.numberThatWillBeUsedToGenerateNextName
-    log.info(s"New incoming connection form $remoteAddress (to $localAddress), assigning runtime id $runtimeId.")
-    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor, runtimeId)
-    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, runtimeId)
+    log.info(s"New incoming connection form $remoteIp:$remotePort (to $localIp:$localPort), assigning runtime id $runtimeId.")
+    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteIp, remotePort, localIp, localPort, runtimeId)
     tcpActor ! Tcp.Register(tcpConnectionHandler)
   }
 
-  protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
-    val props = Props(new TcpConnectionHandler(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId))
+  protected def startTcpConnectionHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
+    val props = Props(new TcpConnectionHandler(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId))
     context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.nextName)
   }
 }
