@@ -154,13 +154,16 @@ class IncomingDataListener(
 
   protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
 
-    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.map(_.equals(sd.hello.sparkDeviceId)).getOrElse(false)).map(_.runtimeId)
+    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.hello.sparkDeviceId)).map(_.runtimeId)
 
     if (runtimeIdWithTheSameSparkDeviceId.size > 0) {
+      val logMessage = s"sparkDeviceId '${sd.hello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0."
+      log.warning(logMessage)
+
       val disconnect = new Disconnect(delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices)
       runtimeIdWithTheSameSparkDeviceId.foreach(rid => amaConfig.broadcaster ! new MessageToDevice(rid, disconnect))
 
-      throw new Exception(s"sparkDeviceId '${sd.hello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0.")
+      throw new Exception(logMessage)
     } else {
       amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
       amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.hello.sparkDeviceId, softwareVersion, sd.hello)
