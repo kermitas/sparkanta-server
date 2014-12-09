@@ -8,7 +8,7 @@ import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, Hello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, DeviceHello }
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
@@ -26,7 +26,7 @@ object IncomingDataListener {
 
   sealed trait StateData extends Serializable
   case class SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout: Cancellable) extends StateData
-  case class WaitingForCurrentDevicesStateData(val hello: Hello) extends StateData
+  case class WaitingForCurrentDevicesStateData(val deviceHello: DeviceHello) extends StateData
   class IdentifiedSparkDeviceId(val sparkDeviceId: String, val sparkDeviceIdIdentificationTimeInMs: Long) extends StateData
   case class WaitingForDataStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
   case class DisconnectingStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
@@ -136,17 +136,17 @@ class IncomingDataListener(
 
       case Some(messageFromDevice: MessageFormDeviceMarker) => messageFromDevice match {
 
-        case hello: Hello => {
+        case deviceHello: DeviceHello => {
           sd.sparkDeviceIdIdentificationTimeout.cancel
 
-          log.debug(s"Device runtimeId $runtimeId successfully identified (${hello.getClass.getSimpleName} message) itself as spark device id '${hello.sparkDeviceId}'.")
+          log.debug(s"Device runtimeId $runtimeId successfully identified (${deviceHello.getClass.getSimpleName} message) itself as spark device id '${deviceHello.sparkDeviceId}'.")
 
           amaConfig.broadcaster ! new GetCurrentDevices
 
-          goto(WaitingForCurrentDevices) using new WaitingForCurrentDevicesStateData(hello)
+          goto(WaitingForCurrentDevices) using new WaitingForCurrentDevicesStateData(deviceHello)
         }
 
-        case unknownFirstMessage => throw new Exception(s"First message from device of runtimeId $runtimeId should be ${classOf[Hello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
+        case unknownFirstMessage => throw new Exception(s"First message from device of runtimeId $runtimeId should be ${classOf[DeviceHello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
       }
 
       case None => stay using sd
@@ -155,10 +155,10 @@ class IncomingDataListener(
 
   protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
 
-    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.hello.sparkDeviceId)).map(_.runtimeId)
+    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.deviceHello.sparkDeviceId)).map(_.runtimeId)
 
     if (runtimeIdWithTheSameSparkDeviceId.size > 0) {
-      val logMessage = s"sparkDeviceId '${sd.hello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0."
+      val logMessage = s"sparkDeviceId '${sd.deviceHello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0."
       log.warning(logMessage)
 
       val disconnect = new Disconnect(delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices)
@@ -166,10 +166,10 @@ class IncomingDataListener(
 
       throw new Exception(logMessage)
     } else {
-      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.hello.sparkDeviceId, softwareVersion, sd.hello)
+      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, sd.deviceHello)
       self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
-      goto(WaitingForData) using new WaitingForDataStateData(sd.hello.sparkDeviceId, System.currentTimeMillis)
+      goto(WaitingForData) using new WaitingForDataStateData(sd.deviceHello.sparkDeviceId, System.currentTimeMillis)
     }
   }
 

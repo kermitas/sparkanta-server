@@ -2,12 +2,12 @@ import org.scalatest.{ FeatureSpec, Matchers }
 
 import java.net.Socket
 import scala.io.StdIn
-import as.sparkanta.device.message.{ Hello, Ping, Message65536LengthHeader }
+import as.sparkanta.device.message.{ DeviceHello, Ping, Message65536LengthHeader }
 import as.sparkanta.device.message.serialize.Serializers
 
-class HelloCommandSenderTest extends FeatureSpec with Matchers {
+class SparkantaClientTest extends FeatureSpec with Matchers {
 
-  scenario("sending hello command") {
+  scenario("sparkanta client") {
 
     val identificationStringWithSoftwareVersion = {
       val identificationString = "SPARKANTA"
@@ -19,8 +19,8 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
     val serializers = new Serializers
     val messageLengthHeader = new Message65536LengthHeader
 
-    val helloMessageAsByteArray = {
-      val message = new Hello("Alice has a cat")
+    val deviceHelloMessageAsByteArray = {
+      val message = new DeviceHello("Alice has a cat")
       val messageAsByteArray = serializers.serialize(message)
       messageLengthHeader.prepareMessageToGo(messageAsByteArray)
     }
@@ -34,7 +34,7 @@ class HelloCommandSenderTest extends FeatureSpec with Matchers {
     val socket = new Socket("localhost", 8080)
 
     socket.getOutputStream.write(identificationStringWithSoftwareVersion)
-    socket.getOutputStream.write(helloMessageAsByteArray)
+    socket.getOutputStream.write(deviceHelloMessageAsByteArray)
     socket.getOutputStream.write(pingMessageAsBytes)
     socket.getOutputStream.flush
 
