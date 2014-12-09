@@ -2,7 +2,7 @@ package as.sparkanta.ama.actor.pongreplier
 
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
-import as.sparkanta.device.message.Pong
+import as.sparkanta.device.message.{ Ping, Pong }
 import as.sparkanta.server.message.MessageToDevice
 import as.akka.broadcaster.Broadcaster
 
@@ -23,7 +23,11 @@ class PongReplier(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case runtimeId: Long => amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Pong)
-    case message         => log.warning(s"Unhandled $message send by ${sender()}")
+    case runtimeId: Long => {
+      log.debug(s"Received ${classOf[Ping].getSimpleName} from $runtimeId, replying with ${classOf[Pong].getSimpleName}.")
+      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Pong)
+    }
+
+    case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 }

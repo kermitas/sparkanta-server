@@ -95,6 +95,7 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: WaitingForDataStateData)                  => goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
+      log.debug(s"Nothing comes from device $runtimeId for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending ${classOf[Ping].getSimpleName}.")
       amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Ping)
       stay using sd
     }
