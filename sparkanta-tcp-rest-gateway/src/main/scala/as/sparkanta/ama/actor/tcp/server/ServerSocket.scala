@@ -10,14 +10,14 @@ import as.sparkanta.gateway.message.NewIncomingConnection
 import as.sparkanta.ama.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
 
-class TcpServer(
+class ServerSocket(
   amaConfig:          AmaConfig,
-  config:             TcpServerConfig,
+  config:             ServerSockerConfig,
   runtimeIdNumerator: AtomicLong
 ) extends Actor with ActorLogging {
 
   def this(amaConfig: AmaConfig, runtimeIdNumerator: AtomicLong) = this(
-    amaConfig, TcpServerConfig.fromTopKey(amaConfig.config),
+    amaConfig, ServerSockerConfig.fromTopKey(amaConfig.config),
     runtimeIdNumerator
   )
 
@@ -33,7 +33,7 @@ class TcpServer(
   override def preStart(): Unit = {
     try {
       // notifying broadcaster to register us with given classifier
-      amaConfig.broadcaster ! new Broadcaster.Register(self, new TcpServerClassifier)
+      amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSockerClassifier)
 
       import context.system
 

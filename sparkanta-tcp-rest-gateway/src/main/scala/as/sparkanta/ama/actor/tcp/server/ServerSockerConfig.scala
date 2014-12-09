@@ -5,9 +5,9 @@ import com.typesafe.config.{ Config, ConfigFactory }
 /**
  * Configuration read from JSON (HOCON) file.
  */
-object TcpServerConfig {
+object ServerSockerConfig {
 
-  final val topConfigKey = classOf[TcpServerConfig].getSimpleName
+  final val topConfigKey = classOf[ServerSockerConfig].getSimpleName
 
   final val localBindHostConfigKey = "localBindHost"
   final val localBindPortNumberConfigKey = "localBindPortNumber"
@@ -15,12 +15,12 @@ object TcpServerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   TcpServerConfig {
+   *   ServerSockerConfig {
    *     localBindHostConfigKey = ...
    *     ...
    *   }
    */
-  def fromTopKey(c: Config = ConfigFactory.load): TcpServerConfig = apply(c.getConfig(topConfigKey))
+  def fromTopKey(c: Config = ConfigFactory.load): ServerSockerConfig = apply(c.getConfig(topConfigKey))
 
   /**
    * Assumes that Config contains:
@@ -28,18 +28,18 @@ object TcpServerConfig {
    *   localBindHostConfigKey = ...
    *   ...
    */
-  def apply(config: Config = ConfigFactory.load): TcpServerConfig = {
+  def apply(config: Config = ConfigFactory.load): ServerSockerConfig = {
     val localBindHost = config.getString(localBindHostConfigKey)
     val localBindPortNumber = config.getInt(localBindPortNumberConfigKey)
 
-    new TcpServerConfig(
+    new ServerSockerConfig(
       localBindHost,
       localBindPortNumber
     )
   }
 }
 
-class TcpServerConfig(
+class ServerSockerConfig(
   val localBindHost:       String,
   val localBindPortNumber: Int
 )
