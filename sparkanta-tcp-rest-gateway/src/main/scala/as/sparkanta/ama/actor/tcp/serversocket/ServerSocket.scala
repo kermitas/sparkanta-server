@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp.server
+package as.sparkanta.ama.actor.tcp.serversocket
 
 import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging }
 import as.akka.broadcaster.Broadcaster
