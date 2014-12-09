@@ -5,20 +5,14 @@ import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.message.ForwardToRestServer
 import as.akka.broadcaster.Broadcaster
 
-class RestForwarder(amaConfig: AmaConfig) extends Actor with ActorLogging {
+class RestForwarder(amaConfig: AmaConfig, localIp: String, localPort: Int, restIp: String, restPort: Int) extends Actor with ActorLogging {
 
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
   override def preStart(): Unit = {
-    try {
-      // notifying broadcaster to register us with given classifier
-      amaConfig.broadcaster ! new Broadcaster.Register(self, new RestForwarderClassifier)
-
-      amaConfig.sendInitializationResult()
-    } catch {
-      case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
-    }
+    // notifying broadcaster to register us with given classifier
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new RestForwarderClassifier(localIp, localPort))
   }
 
   override def receive = {
@@ -28,5 +22,6 @@ class RestForwarder(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   protected def forwardToRestServer(ftrs: ForwardToRestServer): Unit = {
     // TODO: connect, perform REST PUT (with ftrs serialized to JSON), read response, close connection
+    // TODO: on any problem throw exception
   }
 }

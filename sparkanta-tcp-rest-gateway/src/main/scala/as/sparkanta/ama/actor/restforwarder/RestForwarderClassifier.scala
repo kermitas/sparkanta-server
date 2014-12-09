@@ -8,9 +8,9 @@ import as.sparkanta.gateway.message.ForwardToRestServer
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class RestForwarderClassifier extends Classifier {
+class RestForwarderClassifier(localIp: String, localPort: Int) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: ForwardToRestServer => Some(a)
-    case _                      => None
+    case a: ForwardToRestServer if a.localPort == localPort && a.localIp.equals(localIp) => Some(a)
+    case _ => None
   }
 }

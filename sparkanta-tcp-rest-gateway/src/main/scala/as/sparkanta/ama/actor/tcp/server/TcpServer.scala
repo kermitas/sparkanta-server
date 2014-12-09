@@ -7,14 +7,21 @@ import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import java.net.InetSocketAddress
 import akka.util.ActorNameGenerator
-import java.util.concurrent.atomic.AtomicLong
 import as.sparkanta.gateway.message.NewIncomingConnection
+import as.sparkanta.ama.actor.restforwarder.RestForwarder
 
-class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor with ActorLogging {
+class TcpServer(
+  amaConfig:                               AmaConfig,
+  config:                                  TcpServerConfig,
+  tcpConnectionHandlerActorNamesGenerator: ActorNameGenerator,
+  restForwarderActorNamesGenerator:        ActorNameGenerator
+) extends Actor with ActorLogging {
 
-  def this(amaConfig: AmaConfig) = this(amaConfig, TcpServerConfig.fromTopKey(amaConfig.config))
-
-  protected val tcpConnectionHandlerActorNamesGenerator = new ActorNameGenerator(classOf[TcpConnectionHandler].getSimpleName + "-%s")
+  def this(amaConfig: AmaConfig) = this(
+    amaConfig, TcpServerConfig.fromTopKey(amaConfig.config),
+    new ActorNameGenerator(classOf[TcpConnectionHandler].getSimpleName + "-%s"),
+    new ActorNameGenerator(classOf[RestForwarder].getSimpleName + "-%s")
+  )
 
   override val supervisorStrategy = OneForOneStrategy() {
     case _ => SupervisorStrategy.Stop
@@ -41,6 +48,9 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     case _: Tcp.Bound                               => boundSuccess
     case Tcp.CommandFailed(_: Tcp.Bind)             => boundFailed
     case Tcp.Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
+
+    // TODO receive actor's death notification
+
     case message                                    => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -62,12 +72,25 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     val runtimeId = tcpConnectionHandlerActorNamesGenerator.numberThatWillBeUsedToGenerateNextName
     log.info(s"New incoming connection form $remoteIp:$remotePort (to $localIp:$localPort), assigning runtime id $runtimeId.")
     val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
+
+    val fakeRestIp = "" // TODO, passed via constructor
+    val fakeRestPort = -1 // TODO, passed via constructor
+    val restForwarder = startRestForwarder(localIp, localPort, fakeRestIp, fakeRestPort)
+
     amaConfig.broadcaster ! new NewIncomingConnection(remoteIp, remotePort, localIp, localPort, runtimeId)
     tcpActor ! Tcp.Register(tcpConnectionHandler)
+
+    // TODO watch for death of tcpConnectionHandler
+    // TODO watch for death of restForwarder
   }
 
   protected def startTcpConnectionHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
     val props = Props(new TcpConnectionHandler(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId))
     context.actorOf(props, name = tcpConnectionHandlerActorNamesGenerator.nextName)
+  }
+
+  protected def startRestForwarder(localIp: String, localPort: Int, restIp: String, restPort: Int): ActorRef = {
+    val props = Props(new RestForwarder(amaConfig, localIp, localPort, restIp, restPort))
+    context.actorOf(props, name = restForwarderActorNamesGenerator.nextName)
   }
 }
