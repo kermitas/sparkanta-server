@@ -7,7 +7,7 @@ import java.net.InetSocketAddress
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.ama.actor.message.outgoing.OutgoingDataListener
+import as.sparkanta.ama.actor.message.outgoing.OutgoingDataSender
 import as.sparkanta.ama.actor.message.incoming.IncomingDataListener
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
 import as.sparkanta.device.message.Message65536LengthHeader
@@ -147,12 +147,12 @@ class TcpConnectionHandler(
 
     // ---
 
-    val outgoingDataListener: ActorRef = {
-      val props = Props(new OutgoingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, new Serializers))
-      context.actorOf(props, name = classOf[OutgoingDataListener].getSimpleName + "-" + runtimeId)
+    val outgoingDataSender: ActorRef = {
+      val props = Props(new OutgoingDataSender(amaConfig, remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, new Serializers))
+      context.actorOf(props, name = classOf[OutgoingDataSender].getSimpleName + "-" + runtimeId)
     }
 
-    context.watch(outgoingDataListener)
+    context.watch(outgoingDataSender)
 
     // ---
 

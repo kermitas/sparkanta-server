@@ -13,7 +13,7 @@ import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation
 import as.sparkanta.device.message.{ MessageLengthHeader, MessageToDevice => MessageToDeviceMarker }
 import as.sparkanta.device.message.serialize.Serializer
 
-object OutgoingDataListener {
+object OutgoingDataSender {
   sealed trait State extends Serializable
   case object WaitingForDataToSend extends State
   case object WaitingForAck extends State
@@ -28,16 +28,16 @@ object OutgoingDataListener {
   object AckTimeout extends InternalMessage
 }
 
-class OutgoingDataListener(
+class OutgoingDataSender(
   amaConfig:               AmaConfig,
-  config:                  OutgoingDataListenerConfig,
+  config:                  OutgoingDataSenderConfig,
   remoteAddress:           InetSocketAddress,
   localAddress:            InetSocketAddress,
   tcpActor:                ActorRef,
   runtimeId:               Long,
   val messageLengthHeader: MessageLengthHeader,
   val serializer:          Serializer[MessageToDeviceMarker]
-) extends FSM[OutgoingDataListener.State, OutgoingDataListener.StateData] with FSMSuccessOrStop[OutgoingDataListener.State, OutgoingDataListener.StateData] {
+) extends FSM[OutgoingDataSender.State, OutgoingDataSender.StateData] with FSMSuccessOrStop[OutgoingDataSender.State, OutgoingDataSender.StateData] {
 
   def this(
     amaConfig:           AmaConfig,
@@ -47,9 +47,9 @@ class OutgoingDataListener(
     runtimeId:           Long,
     messageLengthHeader: MessageLengthHeader,
     serializer:          Serializer[MessageToDeviceMarker]
-  ) = this(amaConfig, OutgoingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, serializer)
+  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, runtimeId, messageLengthHeader, serializer)
 
-  import OutgoingDataListener._
+  import OutgoingDataSender._
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -95,7 +95,7 @@ class OutgoingDataListener(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataListenerClassifier(runtimeId))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(runtimeId))
 
     val props = Props(new OutgoingMessageSerializer(amaConfig, runtimeId, serializer, messageLengthHeader))
     val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + runtimeId)
@@ -136,7 +136,7 @@ class OutgoingDataListener(
     context.system.scheduler.scheduleOnce(config.waitingForAckTimeoutInSeconds seconds, self, AckTimeout)(context.dispatcher)
   }
 
-  protected def terminate(reason: FSM.Reason, currentState: OutgoingDataListener.State, stateData: OutgoingDataListener.StateData) = reason match {
+  protected def terminate(reason: FSM.Reason, currentState: OutgoingDataSender.State, stateData: OutgoingDataSender.StateData) = reason match {
 
     case FSM.Normal => {
       log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId.")

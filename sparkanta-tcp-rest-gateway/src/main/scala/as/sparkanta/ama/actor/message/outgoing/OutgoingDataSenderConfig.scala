@@ -5,9 +5,9 @@ import com.typesafe.config.{ Config, ConfigFactory }
 /**
  * Configuration read from JSON (HOCON) file.
  */
-object OutgoingDataListenerConfig {
+object OutgoingDataSenderConfig {
 
-  final val topConfigKey = classOf[OutgoingDataListenerConfig].getSimpleName
+  final val topConfigKey = classOf[OutgoingDataSenderConfig].getSimpleName
 
   final val maximumNumberOfBufferedMessagesConfigKey = "maximumNumberOfBufferedMessages"
   final val waitingForAckTimeoutInSecondsConfigKey = "waitingForAckTimeoutInSeconds"
@@ -15,12 +15,12 @@ object OutgoingDataListenerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   OutgoingDataListenerConfig {
+   *   OutgoingDataSender {
    *     maximumNumberOfBufferedMessages = ...
    *     ...
    *   }
    */
-  def fromTopKey(c: Config = ConfigFactory.load): OutgoingDataListenerConfig = apply(c.getConfig(topConfigKey))
+  def fromTopKey(c: Config = ConfigFactory.load): OutgoingDataSenderConfig = apply(c.getConfig(topConfigKey))
 
   /**
    * Assumes that Config contains:
@@ -28,15 +28,15 @@ object OutgoingDataListenerConfig {
    *   maximumNumberOfBufferedMessages = ...
    *   ...
    */
-  def apply(config: Config = ConfigFactory.load): OutgoingDataListenerConfig = {
+  def apply(config: Config = ConfigFactory.load): OutgoingDataSenderConfig = {
     val maximumNumberOfBufferedMessages = config.getInt(maximumNumberOfBufferedMessagesConfigKey)
     val waitingForAckTimeoutInSeconds = config.getInt(waitingForAckTimeoutInSecondsConfigKey)
 
-    new OutgoingDataListenerConfig(maximumNumberOfBufferedMessages, waitingForAckTimeoutInSeconds)
+    new OutgoingDataSenderConfig(maximumNumberOfBufferedMessages, waitingForAckTimeoutInSeconds)
   }
 }
 
-class OutgoingDataListenerConfig(
+class OutgoingDataSenderConfig(
   val maximumNumberOfBufferedMessages: Int,
   val waitingForAckTimeoutInSeconds:   Int
 )
