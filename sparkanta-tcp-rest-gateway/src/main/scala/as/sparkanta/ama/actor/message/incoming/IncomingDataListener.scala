@@ -167,7 +167,7 @@ class IncomingDataListener(
       throw new Exception(logMessage)
     } else {
       amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, sd.deviceHello)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, sd.deviceHello)
       amaConfig.broadcaster ! new MessageToDevice(runtimeId, new ServerHello)
       self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
       goto(WaitingForData) using new WaitingForDataStateData(sd.deviceHello.sparkDeviceId, System.currentTimeMillis)
@@ -183,7 +183,7 @@ class IncomingDataListener(
     while (messageFromDevice.isDefined) {
       log.debug(s"Received message ${messageFromDevice.get.getClass.getSimpleName} from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
 
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, messageFromDevice.get)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, remoteAddress, localAddress, messageFromDevice.get)
       messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     }
 
@@ -215,7 +215,7 @@ class IncomingDataListener(
     }
 
     stateData match {
-      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, softwareVersion, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
+      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(runtimeId, isdi.sparkDeviceId, softwareVersion, remoteAddress, localAddress, System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs)
       case _                             =>
     }
   }
