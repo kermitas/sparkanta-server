@@ -9,7 +9,8 @@ class Deserializers(protected final val deserializers: Seq[Deserializer[MessageF
     Seq(
       new DeviceHelloDeserializer,
       new PingDeserializer,
-      new PongDeserializer
+      new PongDeserializer,
+      new ServerHelloDeserializer
     )
   )
 
