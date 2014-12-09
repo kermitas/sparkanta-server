@@ -21,10 +21,10 @@ class TcpServer(
     runtimeIdNumerator
   )
 
-  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0))
+  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0)) // TODO runtimeIdNumerator NEEDS to be passed from outside world (and should be singleton per jvm)
 
   override val supervisorStrategy = OneForOneStrategy() {
-    case _ => SupervisorStrategy.Stop
+    case _ => SupervisorStrategy.Stop // TODO stop and escalate once it will be non ama actor
   }
 
   /**
