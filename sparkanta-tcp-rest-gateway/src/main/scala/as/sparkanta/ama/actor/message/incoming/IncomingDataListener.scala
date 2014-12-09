@@ -7,24 +7,26 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.net.InetSocketAddress
 import akka.io.Tcp
-import Tcp._
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, Hello }
 import as.sparkanta.device.message.deserialize.Deserializer
-import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice }
+import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
 
 object IncomingDataListener {
 
   lazy final val sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead = s"[no sparkDeviceId was set before ${classOf[Disconnect].getSimpleName}]"
+  lazy final val delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices = 5
 
   sealed trait State extends Serializable
   case object SparkDeviceIdUnidentified extends State
+  case object WaitingForCurrentDevices extends State
   case object WaitingForData extends State
   case object Disconnecting extends State
 
   sealed trait StateData extends Serializable
   case class SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout: Cancellable) extends StateData
+  case class WaitingForCurrentDevicesStateData(val hello: Hello) extends StateData
   class IdentifiedSparkDeviceId(val sparkDeviceId: String, val sparkDeviceIdIdentificationTimeInMs: Long) extends StateData
   case class WaitingForDataStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
   case class DisconnectingStateData(override val sparkDeviceId: String, override val sparkDeviceIdIdentificationTimeInMs: Long) extends IdentifiedSparkDeviceId(sparkDeviceId, sparkDeviceIdIdentificationTimeInMs)
@@ -81,12 +83,16 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)                      => goto(Disconnecting) using new DisconnectingStateData(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, System.currentTimeMillis)
   }
 
+  when(WaitingForCurrentDevices) {
+    case Event(cd: CurrentDevices, sd: WaitingForCurrentDevicesStateData) => successOrStopWithFailure { checkIfSparkDeviceIdIsUnique(cd, sd) }
+
+    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)     => goto(Disconnecting) using new DisconnectingStateData(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, System.currentTimeMillis)
+  }
+
   when(WaitingForData, stateTimeout = config.sendPingOnIncomingDataInactivityIntervalInSeconds seconds) {
     case Event(dataFromDevice: DataFromDevice, sd: WaitingForDataStateData) => successOrStopWithFailure { analyzeIncomingDataFromIdentifiedDevice(dataFromDevice.data, sd) }
 
-    case Event(_: Disconnect, sd: WaitingForDataStateData) => {
-      goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
-    }
+    case Event(_: Disconnect, sd: WaitingForDataStateData)                  => goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
       amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Ping)
@@ -134,16 +140,32 @@ class IncomingDataListener(
 
           log.debug(s"Device runtimeId $runtimeId successfully identified (${hello.getClass.getSimpleName} message) itself as spark device id '${hello.sparkDeviceId}'.")
 
-          amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
-          amaConfig.broadcaster ! new MessageFromDevice(runtimeId, hello.sparkDeviceId, softwareVersion, hello)
-          self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
-          goto(WaitingForData) using new WaitingForDataStateData(hello.sparkDeviceId, System.currentTimeMillis)
+          amaConfig.broadcaster ! new GetCurrentDevices
+
+          goto(WaitingForCurrentDevices) using new WaitingForCurrentDevicesStateData(hello)
         }
 
         case unknownFirstMessage => throw new Exception(s"First message from device of runtimeId $runtimeId should be ${classOf[Hello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
       }
 
       case None => stay using sd
+    }
+  }
+
+  protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
+
+    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.map(_.equals(sd.hello.sparkDeviceId)).getOrElse(false)).map(_.runtimeId)
+
+    if (runtimeIdWithTheSameSparkDeviceId.size > 0) {
+      val disconnect = new Disconnect(delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices)
+      runtimeIdWithTheSameSparkDeviceId.foreach(rid => amaConfig.broadcaster ! new MessageToDevice(rid, disconnect))
+
+      throw new Exception(s"sparkDeviceId '${sd.hello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0.")
+    } else {
+      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.hello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, runtimeId)
+      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.hello.sparkDeviceId, softwareVersion, sd.hello)
+      self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
+      goto(WaitingForData) using new WaitingForDataStateData(sd.hello.sparkDeviceId, System.currentTimeMillis)
     }
   }
 

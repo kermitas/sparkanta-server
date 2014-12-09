@@ -5,7 +5,6 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
-import Tcp._
 import java.net.InetSocketAddress
 import akka.util.ActorNameGenerator
 import java.util.concurrent.atomic.AtomicLong
@@ -31,7 +30,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
 
       import context.system
 
-      IO(Tcp) ! Bind(self, new InetSocketAddress(config.localBindHost, config.localBindPortNumber))
+      IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress(config.localBindHost, config.localBindPortNumber))
 
     } catch {
       case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
@@ -39,10 +38,10 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
   }
 
   override def receive = {
-    case _: Bound                               => boundSuccess
-    case CommandFailed(_: Bind)                 => boundFailed
-    case Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
-    case message                                => log.warning(s"Unhandled $message send by ${sender()}")
+    case _: Tcp.Bound                               => boundSuccess
+    case Tcp.CommandFailed(_: Tcp.Bind)             => boundFailed
+    case Tcp.Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
+    case message                                    => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
   protected def boundSuccess: Unit = {
@@ -61,7 +60,7 @@ class TcpServer(amaConfig: AmaConfig, config: TcpServerConfig) extends Actor wit
     log.info(s"New incoming connection form $remoteAddress (to $localAddress), assigning runtime id $runtimeId.")
     val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteAddress, localAddress, tcpActor, runtimeId)
     amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, localAddress, runtimeId)
-    tcpActor ! Register(tcpConnectionHandler)
+    tcpActor ! Tcp.Register(tcpConnectionHandler)
   }
 
   protected def startTcpConnectionHandlerActor(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
