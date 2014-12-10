@@ -30,7 +30,6 @@ class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-
     case lasr: ListenAtSuccessResult => log.warning(s"Received ${lasr.getClass.getSimpleName}.")
 
     case laer: ListenAtErrorResult   => log.error(laer.exception.get, s"Received ${laer.getClass.getSimpleName}.")

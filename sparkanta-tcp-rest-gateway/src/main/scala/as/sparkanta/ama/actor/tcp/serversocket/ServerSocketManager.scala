@@ -7,7 +7,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable.ListBuffer
-import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult }
+import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult }
 import as.ama.addon.lifecycle.ShutdownSystem
 
 object ServerSocketManager {
@@ -22,7 +22,6 @@ object ServerSocketManager {
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
   case object OpeningServerSocketTimeout extends InternalMessage
-  case class KeepOpenServerSocketTimeout(listenIp: String, listenPort: Int) extends InternalMessage
 
   case class ServerSocketRecord(listenIp: String, listenPort: Int, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
 }
@@ -61,11 +60,6 @@ class ServerSocketManager(
   }
 
   whenUnhandled {
-    case Event(kosst: KeepOpenServerSocketTimeout, stateData) => {
-      removeFromOpenedServerSocketList(kosst.listenIp, kosst.listenPort)
-      stay using stateData
-    }
-
     case Event(Terminated(deadWatchedActor), stateData) => {
       removeFromOpenedServerSocketList(deadWatchedActor)
       stay using stateData
@@ -83,16 +77,6 @@ class ServerSocketManager(
 
   initialize
 
-  protected def removeFromOpenedServerSocketList(serverSocketActor: ActorRef) =
-    openedServerSockets.find(_.serverSocketHandler == serverSocketActor).map(openedServerSockets -= _)
-
-  protected def removeFromOpenedServerSocketList(listenIp: String, listenPort: Int) = {
-    openedServerSockets.find(ssr => ssr.listenPort == listenPort && ssr.listenIp.equals(listenIp)).map { ssr =>
-      openedServerSockets -= ssr
-      context.stop(ssr.serverSocketHandler)
-    }
-  }
-
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
@@ -107,14 +91,16 @@ class ServerSocketManager(
     }
   }
 
+  protected def removeFromOpenedServerSocketList(serverSocketActor: ActorRef) =
+    openedServerSockets.find(_.serverSocketHandler == serverSocketActor).map(openedServerSockets -= _)
+
   protected def listenAt(listenAt: ListenAt, listenAtResultListener: ActorRef) = openedServerSockets.find(oss => oss.listenPort == listenAt.listenPort && oss.listenIp.equals(listenAt.listenIp)) match {
 
     case Some(ssr) => {
       log.debug(s"Server socket ${ssr.listenIp}:${ssr.listenPort} is already open, resetting 'keep open server socket timeout' (${ssr.keepServerSocketOpenTimeoutInSeconds} seconds).")
 
       ssr.keepOpenServerSocketTimeout.cancel()
-      import context.dispatcher
-      ssr.keepOpenServerSocketTimeout = context.system.scheduler.scheduleOnce(ssr.keepServerSocketOpenTimeoutInSeconds seconds, self, new KeepOpenServerSocketTimeout(ssr.listenIp, ssr.listenPort))
+      ssr.keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(ssr.keepServerSocketOpenTimeoutInSeconds, ssr.listenIp, ssr.listenPort)
 
       listenAtResultListener ! new ListenAtSuccessResult(listenAt)
 
@@ -122,6 +108,11 @@ class ServerSocketManager(
     }
 
     case None => goto(OpeningServerSocket) using startServerSocket(listenAt, listenAtResultListener)
+  }
+
+  protected def createOpenedServerSocketTimeout(keepServerSocketOpenTimeoutInSeconds: Int, listenIp: String, listenPort: Int): Cancellable = {
+    val stopListeningAt = new StopListeningAt(listenIp, listenPort)
+    context.system.scheduler.scheduleOnce(keepServerSocketOpenTimeoutInSeconds seconds, amaConfig.broadcaster, stopListeningAt)(context.dispatcher)
   }
 
   protected def startServerSocket(listenAt: ListenAt, listenAtResultListener: ActorRef): OpeningServerSocketStateData = {
@@ -155,8 +146,8 @@ class ServerSocketManager(
       log.debug(s"Successfully bind to ${lar.listenAt.listenIp}:${lar.listenAt.listenPort}, setting 'keep open server socket timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
 
       val lasr = lar.asInstanceOf[ListenAtSuccessResult]
-      import context.dispatcher
-      val keepOpenServerSocketTimeout = context.system.scheduler.scheduleOnce(lar.listenAt.keepServerSocketOpenTimeoutInSeconds seconds, self, new KeepOpenServerSocketTimeout(lar.listenAt.listenIp, lar.listenAt.listenPort))
+
+      val keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(lar.listenAt.keepServerSocketOpenTimeoutInSeconds, lar.listenAt.listenIp, lar.listenAt.listenPort)
       openedServerSockets += new ServerSocketRecord(lar.listenAt.listenIp, lar.listenAt.listenPort, sd.serverSocketHandler, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
       context.watch(sd.serverSocketHandler)
     }

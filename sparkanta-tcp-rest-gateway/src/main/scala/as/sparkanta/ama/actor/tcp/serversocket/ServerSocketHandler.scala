@@ -1,6 +1,7 @@
 package as.sparkanta.ama.actor.tcp.serversocket
 
 import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging, Terminated }
+import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.actor.tcp.socket.SocketHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
@@ -8,7 +9,7 @@ import java.net.InetSocketAddress
 import as.sparkanta.gateway.message.NewIncomingConnection
 import as.sparkanta.ama.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
-import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
+import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 
 class ServerSocketHandler(
   amaConfig:                  AmaConfig,
@@ -27,7 +28,16 @@ class ServerSocketHandler(
     case Tcp.CommandFailed(_: Tcp.Bind)             => boundFailed
     case Tcp.Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
     case Terminated(deadWatchedActor)               => restForwarderIsDead
+    case sla: StopListeningAt                       => context.stop(self)
     case message                                    => log.warning(s"Unhandled $message send by ${sender()}")
+  }
+
+  /**
+   * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
+   */
+  override def preStart(): Unit = {
+    // notifying broadcaster to register us with given classifier
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketHandlerClassifier(listenAt.listenIp, listenAt.listenPort))
   }
 
   protected def bound: Unit = {
