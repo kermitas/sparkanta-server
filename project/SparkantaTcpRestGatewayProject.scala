@@ -20,6 +20,7 @@ object SparkantaTcpRestGatewayProject {
                      AmaSettings() ++
                      AkkaSlf4JSettings() ++
                      LogbackClassicSettings() ++
+                     SpraySettings.client ++
                      mainClassSettings(mainClassFullyQualifiedName) ++
                      PackSettings(mainClassFullyQualifiedName) ++
                      AssemblySettings(mainClassFullyQualifiedName)
