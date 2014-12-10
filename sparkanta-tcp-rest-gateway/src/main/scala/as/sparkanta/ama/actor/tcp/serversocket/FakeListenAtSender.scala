@@ -6,14 +6,14 @@ import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 
-object FakeKeepServerSocketOpen {
+object FakeListenAtSender {
   lazy final val listenAt = new ListenAt("localhost", 8080, 5, 30, "localhost", 8085)
 }
 
 //TODO: until there is no reall rest-server then this actor is faking by publishing on broadcaster ListenAt message
-class FakeKeepServerSocketOpen(amaConfig: AmaConfig) extends Actor with ActorLogging {
+class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
-  import FakeKeepServerSocketOpen._
+  import FakeListenAtSender._
 
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
