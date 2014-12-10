@@ -20,11 +20,17 @@ class RestForwarder(amaConfig: AmaConfig, localIp: String, localPort: Int, restI
     case message                   => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
-  protected def forwardToRestServer(ftrs: ForwardToRestServer): Unit = {
-
-    log.debug(s"Forwarding ${ftrs.getClass.getSimpleName} to REST server at $restIp:$restPort.")
+  protected def forwardToRestServer(ftrs: ForwardToRestServer): Unit = try {
+    log.debug(s"Will try to forward ${ftrs.getClass.getSimpleName} to REST server at $restIp:$restPort.")
 
     // TODO: connect (can connection made by spray be long lived?), perform REST PUT (with ftrs serialized to JSON), read response, close connection
-    // TODO: on any problem throw exception
+    // TODO: if response then ok, if not then throw exception
+
+    log.debug(s"Forwarding ${ftrs.getClass.getSimpleName} to REST server at $restIp:$restPort was successful.")
+  } catch {
+    case e: Exception => {
+      log.error(e, s"Forwarding ${ftrs.getClass.getSimpleName} to REST server at $restIp:$restPort failed.")
+      throw e
+    }
   }
 }
