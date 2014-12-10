@@ -1,4 +1,4 @@
-package as.sparkanta.ama.actor.tcp.falelistenat
+package as.sparkanta.ama.actor.tcp.fakelistenat
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
