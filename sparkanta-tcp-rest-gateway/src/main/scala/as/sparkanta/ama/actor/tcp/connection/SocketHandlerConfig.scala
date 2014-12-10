@@ -5,9 +5,9 @@ import com.typesafe.config.{ Config, ConfigFactory }
 /**
  * Configuration read from JSON (HOCON) file.
  */
-object TcpConnectionHandlerConfig {
+object SocketHandlerConfig {
 
-  final val topConfigKey = classOf[TcpConnectionHandlerConfig].getSimpleName
+  final val topConfigKey = classOf[SocketHandlerConfig].getSimpleName
 
   final val softwareVersionIdentificationTimeoutInSecondsConfigKey = "softwareVersionIdentificationTimeoutInSeconds"
   final val incomingDataInactivityTimeoutInSecondsConfigKey = "incomingDataInactivityTimeoutInSeconds"
@@ -16,12 +16,12 @@ object TcpConnectionHandlerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   TcpConnectionHandlerConfig {
+   *   SocketHandlerConfig {
    *     softwareVersionIdentificationTimeoutInSeconds = ...
    *     ...
    *   }
    */
-  def fromTopKey(c: Config = ConfigFactory.load): TcpConnectionHandlerConfig = apply(c.getConfig(topConfigKey))
+  def fromTopKey(c: Config = ConfigFactory.load): SocketHandlerConfig = apply(c.getConfig(topConfigKey))
 
   /**
    * Assumes that Config contains:
@@ -29,16 +29,16 @@ object TcpConnectionHandlerConfig {
    *   softwareVersionIdentificationTimeoutInSeconds = ...
    *   ...
    */
-  def apply(config: Config = ConfigFactory.load): TcpConnectionHandlerConfig = {
+  def apply(config: Config = ConfigFactory.load): SocketHandlerConfig = {
     val softwareVersionIdentificationTimeoutInSeconds = config.getInt(softwareVersionIdentificationTimeoutInSecondsConfigKey)
     val incomingDataInactivityTimeoutInSeconds = config.getInt(incomingDataInactivityTimeoutInSecondsConfigKey)
     val identificationString = config.getString(identificationStringConfigKey)
 
-    new TcpConnectionHandlerConfig(softwareVersionIdentificationTimeoutInSeconds, incomingDataInactivityTimeoutInSeconds, identificationString)
+    new SocketHandlerConfig(softwareVersionIdentificationTimeoutInSeconds, incomingDataInactivityTimeoutInSeconds, identificationString)
   }
 }
 
-class TcpConnectionHandlerConfig(
+class SocketHandlerConfig(
   val softwareVersionIdentificationTimeoutInSeconds: Int,
   val incomingDataInactivityTimeoutInSeconds:        Int,
   val identificationString:                          String

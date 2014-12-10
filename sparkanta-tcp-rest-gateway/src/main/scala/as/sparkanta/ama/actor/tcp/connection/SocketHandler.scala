@@ -13,7 +13,7 @@ import as.sparkanta.device.message.Message65536LengthHeader
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
 
-object TcpConnectionHandler {
+object SocketHandler {
   sealed trait State extends Serializable
   case object SoftwareVersionUnidentified extends State
   case object WaitingForData extends State
@@ -31,16 +31,16 @@ object TcpConnectionHandler {
   class WatchedTcpActorDied(diedTcpWatchedActor: ActorRef, remoteIp: String, remotePort: Int, localIp: String, localPort: Int, runtimeId: Long) extends Exception(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteIp:$remotePort, localAddress $localIp:$localPort) because watched tcp actor $diedTcpWatchedActor died.")
 }
 
-class TcpConnectionHandler(
+class SocketHandler(
   amaConfig:  AmaConfig,
-  config:     TcpConnectionHandlerConfig,
+  config:     SocketHandlerConfig,
   remoteIp:   String,
   remotePort: Int,
   localIp:    String,
   localPort:  Int,
   tcpActor:   ActorRef,
   runtimeId:  Long
-) extends FSM[TcpConnectionHandler.State, TcpConnectionHandler.StateData] with FSMSuccessOrStop[TcpConnectionHandler.State, TcpConnectionHandler.StateData] {
+) extends FSM[SocketHandler.State, SocketHandler.StateData] with FSMSuccessOrStop[SocketHandler.State, SocketHandler.StateData] {
 
   def this(
     amaConfig:  AmaConfig,
@@ -50,9 +50,9 @@ class TcpConnectionHandler(
     localPort:  Int,
     tcpActor:   ActorRef,
     runtimeId:  Long
-  ) = this(amaConfig, TcpConnectionHandlerConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
+  ) = this(amaConfig, SocketHandlerConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
 
-  import TcpConnectionHandler._
+  import SocketHandler._
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -170,7 +170,7 @@ class TcpConnectionHandler(
     // ---
   }
 
-  protected def terminate(reason: FSM.Reason, currentState: TcpConnectionHandler.State, stateData: TcpConnectionHandler.StateData): Unit = {
+  protected def terminate(reason: FSM.Reason, currentState: SocketHandler.State, stateData: SocketHandler.StateData): Unit = {
 
     val softwareVersion = stateData match {
       case WaitingForDataStateData(softwareVersion) => Some(softwareVersion)

@@ -1,7 +1,7 @@
 package as.sparkanta.ama.actor.tcp.serversocket
 
 import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging, Terminated }
-import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
+import as.sparkanta.ama.actor.tcp.connection.SocketHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import java.net.InetSocketAddress
@@ -65,15 +65,15 @@ class ServerSocket(
 
     log.info(s"New incoming connection form $remoteIp:$remotePort (to $localIp:$localPort), assigning runtime id $runtimeId.")
 
-    val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
+    val socketHandler = startSocketHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
 
     amaConfig.broadcaster ! new NewIncomingConnection(remoteIp, remotePort, localIp, localPort, runtimeId)
-    tcpActor ! Tcp.Register(tcpConnectionHandler)
+    tcpActor ! Tcp.Register(socketHandler)
   }
 
-  protected def startTcpConnectionHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
-    val props = Props(new TcpConnectionHandler(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId))
-    context.actorOf(props, name = classOf[TcpConnectionHandler].getSimpleName + "-" + runtimeId)
+  protected def startSocketHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
+    val props = Props(new SocketHandler(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId))
+    context.actorOf(props, name = classOf[SocketHandler].getSimpleName + "-" + runtimeId)
   }
 
   protected def restForwarderIsDead: Unit = {
