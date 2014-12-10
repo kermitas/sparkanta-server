@@ -1,7 +1,7 @@
 package as.sparkanta.ama.actor.tcp.serversocket
 
 import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging, Terminated }
-import as.sparkanta.ama.actor.tcp.connection.SocketHandler
+import as.sparkanta.ama.actor.tcp.socket.SocketHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import java.net.InetSocketAddress
