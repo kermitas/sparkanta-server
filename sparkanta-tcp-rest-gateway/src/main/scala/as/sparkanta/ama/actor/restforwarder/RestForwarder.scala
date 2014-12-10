@@ -21,7 +21,10 @@ class RestForwarder(amaConfig: AmaConfig, localIp: String, localPort: Int, restI
   }
 
   protected def forwardToRestServer(ftrs: ForwardToRestServer): Unit = {
-    // TODO: connect, perform REST PUT (with ftrs serialized to JSON), read response, close connection
+
+    log.debug(s"Forwarding ${ftrs.getClass.getSimpleName} to REST server at $restIp:$restPort.")
+
+    // TODO: connect (can connection made by spray be long lived?), perform REST PUT (with ftrs serialized to JSON), read response, close connection
     // TODO: on any problem throw exception
   }
 }

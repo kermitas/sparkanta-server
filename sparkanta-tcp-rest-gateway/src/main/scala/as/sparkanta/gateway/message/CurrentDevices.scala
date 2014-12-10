@@ -1,6 +1,6 @@
 package as.sparkanta.gateway.message
 
-class CurrentDevices(val devices: Seq[DeviceRecord])
+class CurrentDevices(val devices: Seq[DeviceRecord]) extends Serializable
 
 case class DeviceRecord(
   runtimeId:       Long,
@@ -11,4 +11,4 @@ case class DeviceRecord(
   connectionTime:  Long           = System.currentTimeMillis,
   softwareVersion: Option[Int]    = None,
   sparkDeviceId:   Option[String] = None
-)
+) extends Serializable

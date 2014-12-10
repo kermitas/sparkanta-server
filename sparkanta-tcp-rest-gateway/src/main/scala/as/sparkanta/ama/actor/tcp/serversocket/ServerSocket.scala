@@ -1,7 +1,6 @@
 package as.sparkanta.ama.actor.tcp.serversocket
 
-import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging }
-import as.akka.broadcaster.Broadcaster
+import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, Actor, ActorRef, ActorLogging, Terminated }
 import as.sparkanta.ama.actor.tcp.connection.TcpConnectionHandler
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
@@ -9,60 +8,52 @@ import java.net.InetSocketAddress
 import as.sparkanta.gateway.message.NewIncomingConnection
 import as.sparkanta.ama.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
+import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 
 class ServerSocket(
-  amaConfig:          AmaConfig,
-  config:             ServerSockerConfig,
-  runtimeIdNumerator: AtomicLong
+  amaConfig:                  AmaConfig,
+  runtimeIdNumerator:         AtomicLong,
+  var listenAt:               ListenAt,
+  var listenAtResultListener: ActorRef
 ) extends Actor with ActorLogging {
 
-  def this(amaConfig: AmaConfig, runtimeIdNumerator: AtomicLong) = this(
-    amaConfig, ServerSockerConfig.fromTopKey(amaConfig.config),
-    runtimeIdNumerator
-  )
-
-  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0)) // TODO runtimeIdNumerator NEEDS to be passed from outside world (and should be singleton per jvm)
-
   override val supervisorStrategy = OneForOneStrategy() {
-    case _ => SupervisorStrategy.Stop // TODO stop and escalate once it will be non ama actor
-  }
-
-  /**
-   * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
-   */
-  override def preStart(): Unit = {
-    try {
-      // notifying broadcaster to register us with given classifier
-      amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSockerClassifier)
-
-      import context.system
-
-      IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress(config.localBindHost, config.localBindPortNumber))
-
-    } catch {
-      case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
-    }
+    case _ => SupervisorStrategy.Stop
   }
 
   override def receive = {
+    case true                                       => bound
     case _: Tcp.Bound                               => boundSuccess
     case Tcp.CommandFailed(_: Tcp.Bind)             => boundFailed
     case Tcp.Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
-
-    // TODO receive actor's death notification
-
+    case Terminated(deadWatchedActor)               => restForwarderIsDead
     case message                                    => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
+  protected def bound: Unit = {
+    import context.system
+    log.debug(s"Trying to bind to ${listenAt.listenIp}:${listenAt.listenPort}.")
+    IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress(listenAt.listenIp, listenAt.listenPort))
+  }
+
   protected def boundSuccess: Unit = {
-    log.info(s"Successfully bound to ${config.localBindHost}:${config.localBindPortNumber}.")
-    amaConfig.sendInitializationResult()
+    log.info(s"Successfully bound to ${listenAt.listenIp}:${listenAt.listenPort}.")
+
+    val restForwarder = startRestForwarder(listenAt.listenIp, listenAt.listenPort, listenAt.forwardToRestIp, listenAt.forwardToRestPort)
+    context.watch(restForwarder)
+
+    listenAtResultListener ! new ListenAtSuccessResult(listenAt)
+
+    listenAt = null
+    listenAtResultListener = null
   }
 
   protected def boundFailed: Unit = {
-    val message = s"Could not bind to ${config.localBindHost}:${config.localBindPortNumber}."
+    val message = s"Could not bind to ${listenAt.listenIp}:${listenAt.listenPort}."
     log.error(message)
-    amaConfig.sendInitializationResult(new Exception(message))
+
+    listenAtResultListener ! new ListenAtErrorResult(listenAt, new Exception(message))
+    context.stop(self)
   }
 
   protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit =
@@ -76,15 +67,8 @@ class ServerSocket(
 
     val tcpConnectionHandler = startTcpConnectionHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
 
-    val fakeRestIp = "" // TODO, passed via constructor
-    val fakeRestPort = -1 // TODO, passed via constructor
-    val restForwarder = startRestForwarder(localIp, localPort, fakeRestIp, fakeRestPort, runtimeId)
-
     amaConfig.broadcaster ! new NewIncomingConnection(remoteIp, remotePort, localIp, localPort, runtimeId)
     tcpActor ! Tcp.Register(tcpConnectionHandler)
-
-    // TODO watch for death of tcpConnectionHandler
-    // TODO watch for death of restForwarder
   }
 
   protected def startTcpConnectionHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
@@ -92,8 +76,13 @@ class ServerSocket(
     context.actorOf(props, name = classOf[TcpConnectionHandler].getSimpleName + "-" + runtimeId)
   }
 
-  protected def startRestForwarder(localIp: String, localPort: Int, restIp: String, restPort: Int, runtimeId: Long): ActorRef = {
+  protected def restForwarderIsDead: Unit = {
+    log.warning(s"Stopping because ${classOf[RestForwarder].getSimpleName} died.")
+    context.stop(self)
+  }
+
+  protected def startRestForwarder(localIp: String, localPort: Int, restIp: String, restPort: Int): ActorRef = {
     val props = Props(new RestForwarder(amaConfig, localIp, localPort, restIp, restPort))
-    context.actorOf(props, name = classOf[RestForwarder].getSimpleName + "-" + runtimeId)
+    context.actorOf(props, name = classOf[RestForwarder].getSimpleName)
   }
 }

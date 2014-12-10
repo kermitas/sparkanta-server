@@ -12,7 +12,7 @@ import akka.pattern.ask
 import scala.util.{ Success, Failure }
 
 object DisconnectAllDevices {
-  lazy final val queryingAllDevicesTimeoutInSeconds = 2
+  lazy final val queryingAllDevicesTimeoutInSeconds = 3
 }
 
 class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging {
