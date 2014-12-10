@@ -10,7 +10,7 @@ import as.sparkanta.ama.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
 import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 
-class ServerSocket(
+class ServerSocketHandler(
   amaConfig:                  AmaConfig,
   runtimeIdNumerator:         AtomicLong,
   var listenAt:               ListenAt,

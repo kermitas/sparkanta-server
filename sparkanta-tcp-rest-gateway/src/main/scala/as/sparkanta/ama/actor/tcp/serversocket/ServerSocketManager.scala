@@ -17,14 +17,14 @@ object ServerSocketManager {
 
   sealed trait StateData extends Serializable
   case object WaitingForOpeningServerSocketRequestStateData extends StateData
-  case class OpeningServerSocketStateData(listenAt: ListenAt, listenAtResultListener: ActorRef, openingServerSocketTimeout: Cancellable, serverSocketActor: ActorRef) extends StateData
+  case class OpeningServerSocketStateData(listenAt: ListenAt, listenAtResultListener: ActorRef, openingServerSocketTimeout: Cancellable, serverSocketHandler: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
   case object OpeningServerSocketTimeout extends InternalMessage
   case class KeepOpenServerSocketTimeout(listenIp: String, listenPort: Int) extends InternalMessage
 
-  case class ServerSocketRecord(listenIp: String, listenPort: Int, serverSocketActor: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
+  case class ServerSocketRecord(listenIp: String, listenPort: Int, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
 }
 
 class ServerSocketManager(
@@ -84,12 +84,12 @@ class ServerSocketManager(
   initialize
 
   protected def removeFromOpenedServerSocketList(serverSocketActor: ActorRef) =
-    openedServerSockets.find(_.serverSocketActor == serverSocketActor).map(openedServerSockets -= _)
+    openedServerSockets.find(_.serverSocketHandler == serverSocketActor).map(openedServerSockets -= _)
 
   protected def removeFromOpenedServerSocketList(listenIp: String, listenPort: Int) = {
     openedServerSockets.find(ssr => ssr.listenPort == listenPort && ssr.listenIp.equals(listenIp)).map { ssr =>
       openedServerSockets -= ssr
-      context.stop(ssr.serverSocketActor)
+      context.stop(ssr.serverSocketHandler)
     }
   }
 
@@ -131,14 +131,14 @@ class ServerSocketManager(
     import context.dispatcher
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
-    val serverSocket = {
-      val props = Props(new ServerSocket(amaConfig, runtimeIdNumerator, listenAt, self))
-      context.actorOf(props, name = classOf[ServerSocket].getSimpleName + "-" + serverSocketNumerator.getAndIncrement)
+    val serverSocketHandler = {
+      val props = Props(new ServerSocketHandler(amaConfig, runtimeIdNumerator, listenAt, self))
+      context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + serverSocketNumerator.getAndIncrement)
     }
 
-    serverSocket ! true
+    serverSocketHandler ! true
 
-    new OpeningServerSocketStateData(listenAt, listenAtResultListener, openingServerSocketTimeout, serverSocket)
+    new OpeningServerSocketStateData(listenAt, listenAtResultListener, openingServerSocketTimeout, serverSocketHandler)
   }
 
   protected def addTaskToDo(listenAt: ListenAt, listenAtResultListener: ActorRef, sd: OpeningServerSocketStateData) = {
@@ -157,8 +157,8 @@ class ServerSocketManager(
       val lasr = lar.asInstanceOf[ListenAtSuccessResult]
       import context.dispatcher
       val keepOpenServerSocketTimeout = context.system.scheduler.scheduleOnce(lar.listenAt.keepServerSocketOpenTimeoutInSeconds seconds, self, new KeepOpenServerSocketTimeout(lar.listenAt.listenIp, lar.listenAt.listenPort))
-      openedServerSockets += new ServerSocketRecord(lar.listenAt.listenIp, lar.listenAt.listenPort, sd.serverSocketActor, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
-      context.watch(sd.serverSocketActor)
+      openedServerSockets += new ServerSocketRecord(lar.listenAt.listenIp, lar.listenAt.listenPort, sd.serverSocketHandler, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
+      context.watch(sd.serverSocketHandler)
     }
 
     sd.listenAtResultListener ! lar
@@ -177,7 +177,7 @@ class ServerSocketManager(
 
   protected def openingServerSocketTimeout(sd: OpeningServerSocketStateData) = {
     sd.listenAtResultListener ! new ListenAtErrorResult(sd.listenAt, new Exception(s"Timeout (${sd.listenAt.openingServerSocketTimeoutInSeconds} seconds) while opening server socket."))
-    context.stop(sd.serverSocketActor)
+    context.stop(sd.serverSocketHandler)
     pickupNextTaskOrGotoFirstState
   }
 
