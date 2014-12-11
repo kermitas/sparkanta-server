@@ -111,7 +111,7 @@ class ServerSocketManager(
   }
 
   protected def createOpenedServerSocketTimeout(keepServerSocketOpenTimeoutInSeconds: Int, listenAddress: IdentifiedInetSocketAddress): Cancellable = {
-    val stopListeningAt = new StopListeningAt(listenAddress)
+    val stopListeningAt = new StopListeningAt(listenAddress.id)
     context.system.scheduler.scheduleOnce(keepServerSocketOpenTimeoutInSeconds seconds, amaConfig.broadcaster, stopListeningAt)(context.dispatcher)
   }
 

@@ -13,10 +13,10 @@ import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessR
 import scala.net.IdentifiedInetSocketAddress
 
 class ServerSocketHandler(
-  amaConfig:                AmaConfig,
-  remoteAddressIdNumerator: AtomicLong,
-  listenAt:                 ListenAt,
-  listenAtResultListener:   ActorRef
+  amaConfig:                  AmaConfig,
+  remoteAddressIdNumerator:   AtomicLong,
+  listenAt:                   ListenAt,
+  var listenAtResultListener: ActorRef
 ) extends Actor with ActorLogging {
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -29,7 +29,7 @@ class ServerSocketHandler(
     case Tcp.CommandFailed(_: Tcp.Bind)  => boundFailed
     case Tcp.Connected(remoteAddress, _) => newIncomingConnection(remoteAddress, sender())
     case Terminated(deadWatchedActor)    => restForwarderIsDead
-    case sla: StopListeningAt            => context.stop(self)
+    case sla: StopListeningAt            => stopListeningAt(sla)
     case message                         => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -54,6 +54,8 @@ class ServerSocketHandler(
     context.watch(restForwarder)
 
     listenAtResultListener ! new ListenAtSuccessResult(listenAt)
+
+    listenAtResultListener = null
   }
 
   protected def boundFailed: Unit = {
@@ -90,5 +92,10 @@ class ServerSocketHandler(
   protected def startRestForwarder: ActorRef = {
     val props = Props(new RestForwarder(amaConfig, listenAt.listenAddress, listenAt.forwardToRestAddress))
     context.actorOf(props, name = classOf[RestForwarder].getSimpleName + "-" + listenAt.listenAddress.id)
+  }
+
+  protected def stopListeningAt(sla: StopListeningAt): Unit = {
+    log.debug(s"Received $sla, stop listening at ${listenAt.listenAddress}.")
+    context.stop(self)
   }
 }
