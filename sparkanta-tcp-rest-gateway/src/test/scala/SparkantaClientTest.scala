@@ -35,6 +35,10 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
 
     socket.getOutputStream.write(identificationStringWithSoftwareVersion)
     socket.getOutputStream.write(deviceHelloMessageAsByteArray)
+
+    //socket.getOutputStream.flush
+    //Thread.sleep(5 * 1000)
+
     socket.getOutputStream.write(pingMessageAsBytes)
     socket.getOutputStream.flush
 

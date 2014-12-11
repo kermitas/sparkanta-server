@@ -11,7 +11,7 @@ import as.sparkanta.gateway.message.MessageFromDevice
  */
 class PongReplierClassifier extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: MessageFromDevice if a.messageFromDevice.isInstanceOf[Ping] => Some(a.runtimeId)
+    case a: MessageFromDevice if a.messageFromDevice.isInstanceOf[Ping] => Some(a.remoteAddress.id)
     case _ => None
   }
 }

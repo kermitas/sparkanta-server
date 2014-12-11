@@ -8,6 +8,8 @@ import as.akka.broadcaster.Broadcaster
 
 class PongReplier(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
+  protected final val pong = new Pong
+
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
@@ -23,9 +25,9 @@ class PongReplier(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case runtimeId: Long => {
-      log.debug(s"Received ${classOf[Ping].getSimpleName} from $runtimeId, replying with ${classOf[Pong].getSimpleName}.")
-      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Pong)
+    case remoteAddressId: Long => {
+      log.debug(s"Received ${classOf[Ping].getSimpleName} from $remoteAddressId, replying with $pong.")
+      amaConfig.broadcaster ! new MessageToDevice(remoteAddressId, pong)
     }
 
     case message => log.warning(s"Unhandled $message send by ${sender()}")

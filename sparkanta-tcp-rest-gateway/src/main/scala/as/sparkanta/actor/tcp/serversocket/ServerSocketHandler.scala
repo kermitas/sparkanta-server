@@ -10,12 +10,13 @@ import as.sparkanta.gateway.message.NewIncomingConnection
 import as.sparkanta.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
 import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
+import scala.net.IdentifiedInetSocketAddress
 
 class ServerSocketHandler(
-  amaConfig:                  AmaConfig,
-  runtimeIdNumerator:         AtomicLong,
-  var listenAt:               ListenAt,
-  var listenAtResultListener: ActorRef
+  amaConfig:                AmaConfig,
+  remoteAddressIdNumerator: AtomicLong,
+  listenAt:                 ListenAt,
+  listenAtResultListener:   ActorRef
 ) extends Actor with ActorLogging {
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -23,13 +24,13 @@ class ServerSocketHandler(
   }
 
   override def receive = {
-    case true                                       => bound
-    case _: Tcp.Bound                               => boundSuccess
-    case Tcp.CommandFailed(_: Tcp.Bind)             => boundFailed
-    case Tcp.Connected(remoteAddress, localAddress) => newIncomingConnection(remoteAddress, localAddress, sender())
-    case Terminated(deadWatchedActor)               => restForwarderIsDead
-    case sla: StopListeningAt                       => context.stop(self)
-    case message                                    => log.warning(s"Unhandled $message send by ${sender()}")
+    case true                            => bound
+    case _: Tcp.Bound                    => boundSuccess
+    case Tcp.CommandFailed(_: Tcp.Bind)  => boundFailed
+    case Tcp.Connected(remoteAddress, _) => newIncomingConnection(remoteAddress, sender())
+    case Terminated(deadWatchedActor)    => restForwarderIsDead
+    case sla: StopListeningAt            => context.stop(self)
+    case message                         => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
   /**
@@ -37,53 +38,48 @@ class ServerSocketHandler(
    */
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketHandlerClassifier(listenAt.listenIp, listenAt.listenPort))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketHandlerClassifier(listenAt.listenAddress.id))
   }
 
   protected def bound: Unit = {
     import context.system
-    log.debug(s"Trying to bind to ${listenAt.listenIp}:${listenAt.listenPort}.")
-    IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress(listenAt.listenIp, listenAt.listenPort))
+    log.debug(s"Trying to bind to ${listenAt.listenAddress}.")
+    IO(Tcp) ! Tcp.Bind(self, listenAt.listenAddress)
   }
 
   protected def boundSuccess: Unit = {
-    log.info(s"Successfully bound to ${listenAt.listenIp}:${listenAt.listenPort}.")
+    log.info(s"Successfully bound to ${listenAt.listenAddress}.")
 
-    val restForwarder = startRestForwarder(listenAt.listenIp, listenAt.listenPort, listenAt.forwardToRestIp, listenAt.forwardToRestPort)
+    val restForwarder = startRestForwarder
     context.watch(restForwarder)
 
     listenAtResultListener ! new ListenAtSuccessResult(listenAt)
-
-    listenAt = null
-    listenAtResultListener = null
   }
 
   protected def boundFailed: Unit = {
-    val message = s"Could not bind to ${listenAt.listenIp}:${listenAt.listenPort}."
+    val message = s"Could not bind to ${listenAt.listenAddress}."
     log.error(message)
 
     listenAtResultListener ! new ListenAtErrorResult(listenAt, new Exception(message))
     context.stop(self)
   }
 
-  protected def newIncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, tcpActor: ActorRef): Unit =
-    newIncomingConnection(remoteAddress.getHostString, remoteAddress.getPort, localAddress.getHostString, localAddress.getPort, tcpActor)
+  protected def newIncomingConnection(remoteAddr: InetSocketAddress, tcpActor: ActorRef): Unit =
+    newIncomingConnection(new IdentifiedInetSocketAddress(remoteAddressIdNumerator.getAndIncrement, remoteAddr.getHostString, remoteAddr.getPort), tcpActor)
 
-  protected def newIncomingConnection(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef): Unit = {
+  protected def newIncomingConnection(remoteAddress: IdentifiedInetSocketAddress, tcpActor: ActorRef): Unit = {
 
-    val runtimeId = runtimeIdNumerator.getAndIncrement
+    log.info(s"New incoming connection form $remoteAddress (to ${listenAt.listenAddress}).")
 
-    log.info(s"New incoming connection form $remoteIp:$remotePort (to $localIp:$localPort), assigning runtime id $runtimeId.")
+    val socketHandler = startSocketHandlerActor(remoteAddress, tcpActor)
 
-    val socketHandler = startSocketHandlerActor(remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId)
-
-    amaConfig.broadcaster ! new NewIncomingConnection(remoteIp, remotePort, localIp, localPort, runtimeId)
+    amaConfig.broadcaster ! new NewIncomingConnection(remoteAddress, listenAt.listenAddress)
     tcpActor ! Tcp.Register(socketHandler)
   }
 
-  protected def startSocketHandlerActor(remoteIp: String, remotePort: Int, localIp: String, localPort: Int, tcpActor: ActorRef, runtimeId: Long): ActorRef = {
-    val props = Props(new SocketHandler(amaConfig, remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId))
-    context.actorOf(props, name = classOf[SocketHandler].getSimpleName + "-" + runtimeId)
+  protected def startSocketHandlerActor(remoteAddress: IdentifiedInetSocketAddress, tcpActor: ActorRef): ActorRef = {
+    val props = Props(new SocketHandler(amaConfig, remoteAddress, listenAt.listenAddress, tcpActor))
+    context.actorOf(props, name = classOf[SocketHandler].getSimpleName + "-" + remoteAddress.id)
   }
 
   protected def restForwarderIsDead: Unit = {
@@ -91,8 +87,8 @@ class ServerSocketHandler(
     context.stop(self)
   }
 
-  protected def startRestForwarder(localIp: String, localPort: Int, restIp: String, restPort: Int): ActorRef = {
-    val props = Props(new RestForwarder(amaConfig, localIp, localPort, restIp, restPort))
-    context.actorOf(props, name = classOf[RestForwarder].getSimpleName)
+  protected def startRestForwarder: ActorRef = {
+    val props = Props(new RestForwarder(amaConfig, listenAt.listenAddress, listenAt.forwardToRestAddress))
+    context.actorOf(props, name = classOf[RestForwarder].getSimpleName + "-" + listenAt.listenAddress.id)
   }
 }

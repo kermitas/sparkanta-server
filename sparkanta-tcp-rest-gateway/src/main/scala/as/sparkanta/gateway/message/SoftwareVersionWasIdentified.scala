@@ -2,11 +2,14 @@ package as.sparkanta.gateway.message
 
 import akka.actor.ActorRef
 
+import scala.net.IdentifiedInetSocketAddress
+
 class SoftwareVersionWasIdentified(
   val softwareVersion: Int,
-  val remoteIp:        String,
-  val remotePort:      Int,
-  val localIp:         String,
-  val localPort:       Int,
-  val runtimeId:       Long
-) extends Serializable
+  val remoteAddress:   IdentifiedInetSocketAddress,
+  val localAddress:    IdentifiedInetSocketAddress
+) extends Serializable {
+
+  override def toString = s"${getClass.getSimpleName}(softwareVersion=$softwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+
+}

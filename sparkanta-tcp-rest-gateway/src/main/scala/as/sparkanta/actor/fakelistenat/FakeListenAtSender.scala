@@ -5,6 +5,7 @@ import scala.concurrent.duration._
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
+import scala.net.IdentifiedInetSocketAddress
 
 /**
  * This actor is publishing on broadcaster [[ListenAt]] message.
@@ -15,13 +16,14 @@ class FakeListenAtSender(amaConfig: AmaConfig, config: FakeListenAtSenderConfig)
 
   def this(amaConfig: AmaConfig) = this(amaConfig, FakeListenAtSenderConfig.fromTopKey(amaConfig.config))
 
+  protected val listenAddress = new IdentifiedInetSocketAddress(config.listenId, config.listenIp, config.listenPort)
+  protected val forwardToRestAddress = new IdentifiedInetSocketAddress(config.forwardToRestId, config.forwardToRestIp, config.forwardToRestPort)
+
   protected val listenAt = new ListenAt(
-    config.listenIp,
-    config.listenPort,
+    listenAddress,
     config.openingServerSocketTimeoutInSeconds,
     config.keepServerSocketOpenTimeoutInSeconds,
-    config.forwardToRestIp,
-    config.forwardToRestPort
+    forwardToRestAddress
   )
 
   /**
@@ -41,7 +43,7 @@ class FakeListenAtSender(amaConfig: AmaConfig, config: FakeListenAtSenderConfig)
   override def receive = {
 
     case true => {
-      log.debug(s"Publishing ${classOf[ListenAt].getSimpleName} to listen at ${config.listenIp}:${config.listenPort} and forward to REST ${config.forwardToRestIp}:${config.forwardToRestPort}.")
+      log.debug(s"Publishing ${classOf[ListenAt].getSimpleName} to listen at $listenAddress and forward to REST $forwardToRestAddress.")
       amaConfig.broadcaster ! listenAt
     }
 

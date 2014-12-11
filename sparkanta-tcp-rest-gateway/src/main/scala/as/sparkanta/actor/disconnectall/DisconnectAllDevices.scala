@@ -46,7 +46,7 @@ class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging
     import context.dispatcher
 
     ask(amaConfig.broadcaster, new GetCurrentDevices)(queryingAllDevicesTimeoutInSeconds seconds).mapTo[CurrentDevices].map(_.devices).onComplete {
-      case Success(devices) => devices.foreach(r => amaConfig.broadcaster ! new MessageToDevice(r.runtimeId, disconnect))
+      case Success(devices) => devices.foreach(r => amaConfig.broadcaster ! new MessageToDevice(r.remoteAddress.id, disconnect))
       case Failure(t)       => log.error(t, "Could not query all devices that are currently in system.") // TODO: how to behave on timeout while querying all devices ?
     }
   }

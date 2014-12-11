@@ -1,14 +1,16 @@
 package as.sparkanta.gateway.message
 
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker }
+import scala.net.IdentifiedInetSocketAddress
 
 class MessageFromDevice(
-  val runtimeId:         Long,
   val sparkDeviceId:     String,
   val softwareVersion:   Int,
-  val remoteIp:          String,
-  val remotePort:        Int,
-  val localIp:           String,
-  val localPort:         Int,
+  val remoteAddress:     IdentifiedInetSocketAddress,
+  val localAddress:      IdentifiedInetSocketAddress,
   val messageFromDevice: MessageFormDeviceMarker
-) extends ForwardToRestServer
+) extends ForwardToRestServer {
+
+  override def toString = s"${getClass.getSimpleName}(messageFromDevice=$messageFromDevice,sparkDeviceId=$sparkDeviceId,softwareVersion=$softwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+
+}

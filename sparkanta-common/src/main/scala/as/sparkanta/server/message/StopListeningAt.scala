@@ -1,6 +1,11 @@
 package as.sparkanta.server.message
 
+import scala.net.IdentifiedInetSocketAddress
+
 class StopListeningAt(
-  val listenIp:   String,
-  val listenPort: Int
-) extends Serializable
+  val listenAddress: IdentifiedInetSocketAddress
+) extends Serializable {
+
+  override def toString = s"${getClass.getSimpleName}(listenAddress=$listenAddress)"
+
+}

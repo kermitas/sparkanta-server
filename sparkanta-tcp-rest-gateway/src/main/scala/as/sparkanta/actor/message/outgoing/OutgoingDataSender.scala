@@ -12,6 +12,8 @@ import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation
 import as.sparkanta.device.message.{ MessageLengthHeader, MessageToDevice => MessageToDeviceMarker }
 import as.sparkanta.device.message.serialize.Serializer
 
+import scala.net.IdentifiedInetSocketAddress
+
 object OutgoingDataSender {
   sealed trait State extends Serializable
   case object WaitingForDataToSend extends State
@@ -30,27 +32,21 @@ object OutgoingDataSender {
 class OutgoingDataSender(
   amaConfig:               AmaConfig,
   config:                  OutgoingDataSenderConfig,
-  remoteIp:                String,
-  remotePort:              Int,
-  localIp:                 String,
-  localPort:               Int,
+  remoteAddress:           IdentifiedInetSocketAddress,
+  localAddress:            IdentifiedInetSocketAddress,
   tcpActor:                ActorRef,
-  runtimeId:               Long,
   val messageLengthHeader: MessageLengthHeader,
   val serializer:          Serializer[MessageToDeviceMarker]
 ) extends FSM[OutgoingDataSender.State, OutgoingDataSender.StateData] with FSMSuccessOrStop[OutgoingDataSender.State, OutgoingDataSender.StateData] {
 
   def this(
     amaConfig:           AmaConfig,
-    remoteIp:            String,
-    remotePort:          Int,
-    localIp:             String,
-    localPort:           Int,
+    remoteAddress:       IdentifiedInetSocketAddress,
+    localAddress:        IdentifiedInetSocketAddress,
     tcpActor:            ActorRef,
-    runtimeId:           Long,
     messageLengthHeader: MessageLengthHeader,
     serializer:          Serializer[MessageToDeviceMarker]
-  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, messageLengthHeader, serializer)
+  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, messageLengthHeader, serializer)
 
   import OutgoingDataSender._
 
@@ -82,7 +78,7 @@ class OutgoingDataSender(
   whenUnhandled {
     case Event(Tcp.CommandFailed(_), stateData)         => { stop(FSM.Failure(new Exception("Write request failed."))) }
 
-    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (runtimeId $runtimeId, remoteAddress $remoteIp:$remotePort, localAddress $localIp:$localPort) because watched actor $diedWatchedActor died."))
+    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died."))
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -98,10 +94,10 @@ class OutgoingDataSender(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(runtimeId))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(remoteAddress.id))
 
-    val props = Props(new OutgoingMessageSerializer(amaConfig, runtimeId, serializer, messageLengthHeader))
-    val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + runtimeId)
+    val props = Props(new OutgoingMessageSerializer(amaConfig, remoteAddress.id, serializer, messageLengthHeader))
+    val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + remoteAddress.id)
     context.watch(outgoingMessageSerializer)
   }
 
@@ -142,15 +138,15 @@ class OutgoingDataSender(
   protected def terminate(reason: FSM.Reason, currentState: OutgoingDataSender.State, stateData: OutgoingDataSender.StateData) = reason match {
 
     case FSM.Normal => {
-      log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.debug(s"Stopping (normal), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
     }
 
     case FSM.Shutdown => {
-      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
     }
 
     case FSM.Failure(cause) => {
-      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
     }
   }
 }

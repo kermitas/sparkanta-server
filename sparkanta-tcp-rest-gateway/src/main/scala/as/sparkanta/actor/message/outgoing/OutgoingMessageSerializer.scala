@@ -28,17 +28,17 @@ object OutgoingMessageSerializer {
 class OutgoingMessageSerializer(
   val amaConfig:           AmaConfig,
   val config:              OutgoingMessageSerializerConfig,
-  val runtimeId:           Long,
+  val remoteAddressId:     Long,
   val serializer:          Serializer[MessageToDeviceMarker],
   val messageLengthHeader: MessageLengthHeader
 ) extends FSM[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] with FSMSuccessOrStop[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] {
 
   def this(
     amaConfig:           AmaConfig,
-    runtimeId:           Long,
+    remoteAddressId:     Long,
     serializer:          Serializer[MessageToDeviceMarker],
     messageLengthHeader: MessageLengthHeader
-  ) = this(amaConfig, OutgoingMessageSerializerConfig.fromTopKey(amaConfig.config), runtimeId, serializer, messageLengthHeader)
+  ) = this(amaConfig, OutgoingMessageSerializerConfig.fromTopKey(amaConfig.config), remoteAddressId, serializer, messageLengthHeader)
 
   import OutgoingMessageSerializer._
 
@@ -53,12 +53,14 @@ class OutgoingMessageSerializer(
 
   when(WaitingForMessageToSend) {
     case Event(mtd: MessageToDevice, WaitingForMessageToSendStateData) => successOrStopWithFailure { serializeMessageToDevice(mtd.messageToDevice) }
+
+    case Event(_: DataToDeviceSendConfirmation, stateData)             => stay using stateData
   }
 
   when(DisconnectingDevice) {
     case Event(dtdsc: DataToDeviceSendConfirmation, sd: DisconnectingDeviceStateData)        => successOrStopWithFailure { receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(dtdsc, sd) }
 
-    case Event(WaitingForAckAfterSendingDisconnectTimeout, sd: DisconnectingDeviceStateData) => stop(FSM.Failure(new Exception(s"Timeout (${config.waitingForAckAfterSendingDisconnectTimeoutInSeconds} seconds) while waiting for confirmation after sending ${classOf[Disconnect].getSimpleName} message.")))
+    case Event(WaitingForAckAfterSendingDisconnectTimeout, sd: DisconnectingDeviceStateData) => stop(FSM.Failure(new Exception(s"Timeout (${config.waitingForAckAfterSendingDisconnectTimeoutInSeconds} seconds) while waiting for ${classOf[DataToDeviceSendConfirmation].getSimpleName} after sending ${classOf[Disconnect].getSimpleName} message.")))
   }
 
   onTransition {
@@ -66,8 +68,6 @@ class OutgoingMessageSerializer(
   }
 
   whenUnhandled {
-    case Event(_: DataToDeviceSendConfirmation, stateData) => stay using stateData
-
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
       stay using stateData
@@ -82,7 +82,7 @@ class OutgoingMessageSerializer(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingMessageSerializerClassifier(runtimeId))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingMessageSerializerClassifier(remoteAddressId))
   }
 
   protected def serializeMessageToDevice(messageToDevice: MessageToDeviceMarker) = {
@@ -92,7 +92,7 @@ class OutgoingMessageSerializer(
       messageLengthHeader.prepareMessageToGo(messageToDeviceAsBytes)
     }
 
-    val dataToDevice = new DataToDevice(runtimeId, messageToDevicePrefixedWithLengthHeader)
+    val dataToDevice = new DataToDevice(remoteAddressId, messageToDevicePrefixedWithLengthHeader)
     amaConfig.broadcaster ! dataToDevice
 
     messageToDevice match {
@@ -106,7 +106,7 @@ class OutgoingMessageSerializer(
   }
 
   protected def receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(dtdsc: DataToDeviceSendConfirmation, sd: DisconnectingDeviceStateData) = if (dtdsc.successfullySendDataToDevice == sd.disconnectDataToDevice) {
-    log.debug(s"Stopping because received send confirmation of ${classOf[Disconnect].getSimpleName} message.")
+    log.debug(s"Stopping because received send confirmation of successful sending of ${classOf[Disconnect].getSimpleName} message.")
     stop(FSM.Normal)
   } else {
     stay using sd
@@ -115,15 +115,15 @@ class OutgoingMessageSerializer(
   protected def terminate(reason: FSM.Reason, currentState: OutgoingMessageSerializer.State, stateData: OutgoingMessageSerializer.StateData) = reason match {
 
     case FSM.Normal => {
-      log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.debug(s"Stopping (normal), state $currentState, data $stateData, remoteAddressId $remoteAddressId.")
     }
 
     case FSM.Shutdown => {
-      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, remoteAddressId $remoteAddressId.")
     }
 
     case FSM.Failure(cause) => {
-      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, runtimeId $runtimeId.")
+      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, remoteAddressId $remoteAddressId.")
     }
   }
 }

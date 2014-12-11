@@ -12,6 +12,8 @@ import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
 
+import scala.net.IdentifiedInetSocketAddress
+
 object IncomingDataListener {
 
   lazy final val sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead = s"[no sparkDeviceId was set before ${classOf[Disconnect].getSimpleName}]"
@@ -38,12 +40,9 @@ object IncomingDataListener {
 class IncomingDataListener(
   amaConfig:                     AmaConfig,
   config:                        IncomingDataListenerConfig,
-  remoteIp:                      String,
-  remotePort:                    Int,
-  localIp:                       String,
-  localPort:                     Int,
+  remoteAddress:                 IdentifiedInetSocketAddress,
+  localAddress:                  IdentifiedInetSocketAddress,
   tcpActor:                      ActorRef,
-  runtimeId:                     Long,
   softwareVersion:               Int,
   messageLengthHeader:           MessageLengthHeader,
   messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
@@ -51,20 +50,19 @@ class IncomingDataListener(
 
   def this(
     amaConfig:                     AmaConfig,
-    remoteIp:                      String,
-    remotePort:                    Int,
-    localIp:                       String,
-    localPort:                     Int,
+    remoteAddress:                 IdentifiedInetSocketAddress,
+    localAddress:                  IdentifiedInetSocketAddress,
     tcpActor:                      ActorRef,
-    runtimeId:                     Long,
     softwareVersion:               Int,
     messageLengthHeader:           MessageLengthHeader,
     messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
-  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteIp, remotePort, localIp, localPort, tcpActor, runtimeId, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
 
   import IncomingDataListener._
 
-  protected val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeader, messageFromDeviceDeserializer)
+  protected final val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeader, messageFromDeviceDeserializer)
+
+  protected final val ping = new Ping
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -98,8 +96,8 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: WaitingForDataStateData)                  => goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceId, sd.sparkDeviceIdIdentificationTimeInMs)
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
-      log.debug(s"Nothing comes from device $runtimeId for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending ${classOf[Ping].getSimpleName}.")
-      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new Ping)
+      log.debug(s"Nothing comes from device of remoteAddressId ${remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
+      amaConfig.broadcaster ! new MessageToDevice(remoteAddress.id, ping)
       stay using sd
     }
   }
@@ -127,11 +125,11 @@ class IncomingDataListener(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingDataListenerClassifier(runtimeId))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new IncomingDataListenerClassifier(remoteAddress.id))
   }
 
   protected def analyzeIncomingDataFromUnidentifiedDevice(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData) = {
-    log.debug(s"Received ${dataFromDevice.size} bytes from device of runtimeId $runtimeId.")
+    log.debug(s"Received ${dataFromDevice.size} bytes from device of remoteAddressId ${remoteAddress.id}.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
@@ -142,14 +140,14 @@ class IncomingDataListener(
         case deviceHello: DeviceHello => {
           sd.sparkDeviceIdIdentificationTimeout.cancel
 
-          log.debug(s"Device runtimeId $runtimeId successfully identified (${deviceHello.getClass.getSimpleName} message) itself as spark device id '${deviceHello.sparkDeviceId}'.")
+          log.debug(s"Device of remoteAddressAd ${remoteAddress.id} successfully identified (message $deviceHello) itself as spark device id '${deviceHello.sparkDeviceId}'.")
 
           amaConfig.broadcaster ! new GetCurrentDevices
 
           goto(WaitingForCurrentDevices) using new WaitingForCurrentDevicesStateData(deviceHello)
         }
 
-        case unknownFirstMessage => throw new Exception(s"First message from device of runtimeId $runtimeId should be ${classOf[DeviceHello].getSimpleName}, not ${unknownFirstMessage.getClass.getSimpleName}.")
+        case unknownFirstMessage => throw new Exception(s"First message from device of remoteAddressId ${remoteAddress.id} should be ${classOf[DeviceHello].getSimpleName}, not $unknownFirstMessage, disconnecting.")
       }
 
       case None => stay using sd
@@ -158,35 +156,35 @@ class IncomingDataListener(
 
   protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
 
-    val runtimeIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.deviceHello.sparkDeviceId)).map(_.runtimeId)
+    val remoteAddressIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.deviceHello.sparkDeviceId)).map(_.remoteAddress.id)
 
-    if (runtimeIdWithTheSameSparkDeviceId.size > 0) {
-      val logMessage = s"sparkDeviceId '${sd.deviceHello.sparkDeviceId}' is already associated with ${runtimeIdWithTheSameSparkDeviceId.size} devices (${runtimeIdWithTheSameSparkDeviceId.mkString(", ")}) and should be with 0."
+    if (remoteAddressIdWithTheSameSparkDeviceId.size > 0) {
+      val logMessage = s"sparkDeviceId '${sd.deviceHello.sparkDeviceId}' is already associated with ${remoteAddressIdWithTheSameSparkDeviceId.size} device(s) (remote address id(s) = ${remoteAddressIdWithTheSameSparkDeviceId.mkString(", ")}) but should be unique."
       log.warning(logMessage)
 
       val disconnect = new Disconnect(delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices)
-      runtimeIdWithTheSameSparkDeviceId.foreach(rid => amaConfig.broadcaster ! new MessageToDevice(rid, disconnect))
+      remoteAddressIdWithTheSameSparkDeviceId.foreach(rid => amaConfig.broadcaster ! new MessageToDevice(rid, disconnect))
 
       throw new Exception(logMessage)
     } else {
-      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId)
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.deviceHello.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, sd.deviceHello)
-      amaConfig.broadcaster ! new MessageToDevice(runtimeId, new ServerHello)
-      self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteIp, remotePort, localIp, localPort, runtimeId) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
+      amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress)
+      amaConfig.broadcaster ! new MessageFromDevice(sd.deviceHello.sparkDeviceId, softwareVersion, remoteAddress, localAddress, sd.deviceHello)
+      amaConfig.broadcaster ! new MessageToDevice(remoteAddress.id, new ServerHello)
+      self ! new DataFromDevice(ByteString.empty, softwareVersion, remoteAddress, localAddress) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
       goto(WaitingForData) using new WaitingForDataStateData(sd.deviceHello.sparkDeviceId, System.currentTimeMillis)
     }
   }
 
   protected def analyzeIncomingDataFromIdentifiedDevice(dataFromDevice: ByteString, sd: WaitingForDataStateData) = {
-    log.debug(s"Received ${dataFromDevice.length} bytes from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
+    log.debug(s"Received ${dataFromDevice.length} bytes from device of remoteAddressId ${remoteAddress.id}, sparkDeviceId '${sd.sparkDeviceId}'.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
     var messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     while (messageFromDevice.isDefined) {
-      log.debug(s"Received message ${messageFromDevice.get.getClass.getSimpleName} from device of runtimeId $runtimeId, sparkDeviceId '${sd.sparkDeviceId}'.")
+      log.debug(s"Received message ${messageFromDevice.get} from device of remoteAddressId ${remoteAddress.id}, sparkDeviceId '${sd.sparkDeviceId}'.")
 
-      amaConfig.broadcaster ! new MessageFromDevice(runtimeId, sd.sparkDeviceId, softwareVersion, remoteIp, remotePort, localIp, localPort, messageFromDevice.get)
+      amaConfig.broadcaster ! new MessageFromDevice(sd.sparkDeviceId, softwareVersion, remoteAddress, localAddress, messageFromDevice.get)
       messageFromDevice = bufferedMessageFromDeviceReader.getMessageFormDevice
     }
 
@@ -205,27 +203,24 @@ class IncomingDataListener(
     reason match {
 
       case FSM.Normal => {
-        log.debug(s"Stopping (normal), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
+        log.debug(s"Stopping (normal), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}$sparkDeviceIdMessage")
       }
 
       case FSM.Shutdown => {
-        log.debug(s"Stopping (shutdown), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
+        log.debug(s"Stopping (shutdown), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}$sparkDeviceIdMessage")
       }
 
       case FSM.Failure(cause) => {
-        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, runtimeId $runtimeId$sparkDeviceIdMessage")
+        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}$sparkDeviceIdMessage")
       }
     }
 
     stateData match {
       case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(
-        runtimeId,
         isdi.sparkDeviceId,
         softwareVersion,
-        remoteIp,
-        remotePort,
-        localIp,
-        localPort,
+        remoteAddress,
+        localAddress,
         System.currentTimeMillis - isdi.sparkDeviceIdIdentificationTimeInMs
       )
 

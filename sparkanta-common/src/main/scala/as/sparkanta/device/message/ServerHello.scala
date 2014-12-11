@@ -4,4 +4,8 @@ object ServerHello {
   lazy final val commandCode: Int = 5
 }
 
-class ServerHello extends MessageFormDevice with MessageToDevice
+class ServerHello extends MessageFormDevice with MessageToDevice {
+
+  override def toString = getClass.getSimpleName
+
+}

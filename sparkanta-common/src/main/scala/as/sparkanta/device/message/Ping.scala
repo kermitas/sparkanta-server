@@ -4,4 +4,8 @@ object Ping {
   lazy final val commandCode: Int = 3
 }
 
-class Ping extends MessageToDevice with MessageFormDevice
+class Ping extends MessageToDevice with MessageFormDevice {
+
+  override def toString = getClass.getSimpleName
+
+}

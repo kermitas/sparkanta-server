@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable.ListBuffer
 import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult }
 import as.ama.addon.lifecycle.ShutdownSystem
+import scala.net.IdentifiedInetSocketAddress
 
 object ServerSocketManager {
   sealed trait State extends Serializable
@@ -23,16 +24,15 @@ object ServerSocketManager {
   sealed trait InternalMessage extends Message
   case object OpeningServerSocketTimeout extends InternalMessage
 
-  case class ServerSocketRecord(listenIp: String, listenPort: Int, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
+  case class ServerSocketRecord(listenAddress: IdentifiedInetSocketAddress, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
 }
 
 class ServerSocketManager(
-  amaConfig:             AmaConfig,
-  serverSocketNumerator: AtomicLong,
-  runtimeIdNumerator:    AtomicLong
+  amaConfig:                AmaConfig,
+  remoteAddressIdNumerator: AtomicLong
 ) extends FSM[ServerSocketManager.State, ServerSocketManager.StateData] {
 
-  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0), new AtomicLong(0))
+  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0))
 
   import ServerSocketManager._
 
@@ -94,13 +94,13 @@ class ServerSocketManager(
   protected def removeFromOpenedServerSocketList(serverSocketActor: ActorRef) =
     openedServerSockets.find(_.serverSocketHandler == serverSocketActor).map(openedServerSockets -= _)
 
-  protected def listenAt(listenAt: ListenAt, listenAtResultListener: ActorRef) = openedServerSockets.find(oss => oss.listenPort == listenAt.listenPort && oss.listenIp.equals(listenAt.listenIp)) match {
+  protected def listenAt(listenAt: ListenAt, listenAtResultListener: ActorRef) = openedServerSockets.find(ssr => ssr.listenAddress.id == listenAt.listenAddress.id) match {
 
     case Some(ssr) => {
-      log.debug(s"Server socket ${ssr.listenIp}:${ssr.listenPort} is already open, resetting 'keep open server socket timeout' (${ssr.keepServerSocketOpenTimeoutInSeconds} seconds).")
+      log.debug(s"Server socket ${ssr.listenAddress} is already open, resetting 'keep open server socket timeout' (${ssr.keepServerSocketOpenTimeoutInSeconds} seconds).")
 
       ssr.keepOpenServerSocketTimeout.cancel()
-      ssr.keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(ssr.keepServerSocketOpenTimeoutInSeconds, ssr.listenIp, ssr.listenPort)
+      ssr.keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(ssr.keepServerSocketOpenTimeoutInSeconds, ssr.listenAddress)
 
       listenAtResultListener ! new ListenAtSuccessResult(listenAt)
 
@@ -110,21 +110,21 @@ class ServerSocketManager(
     case None => goto(OpeningServerSocket) using startServerSocket(listenAt, listenAtResultListener)
   }
 
-  protected def createOpenedServerSocketTimeout(keepServerSocketOpenTimeoutInSeconds: Int, listenIp: String, listenPort: Int): Cancellable = {
-    val stopListeningAt = new StopListeningAt(listenIp, listenPort)
+  protected def createOpenedServerSocketTimeout(keepServerSocketOpenTimeoutInSeconds: Int, listenAddress: IdentifiedInetSocketAddress): Cancellable = {
+    val stopListeningAt = new StopListeningAt(listenAddress)
     context.system.scheduler.scheduleOnce(keepServerSocketOpenTimeoutInSeconds seconds, amaConfig.broadcaster, stopListeningAt)(context.dispatcher)
   }
 
   protected def startServerSocket(listenAt: ListenAt, listenAtResultListener: ActorRef): OpeningServerSocketStateData = {
 
-    log.debug(s"Trying to open server socket at ${listenAt.listenIp}:${listenAt.listenPort} with timeout of ${listenAt.openingServerSocketTimeoutInSeconds} seconds.")
+    log.debug(s"Trying to open server socket at ${listenAt.listenAddress} (with ${listenAt.openingServerSocketTimeoutInSeconds} seconds timeout).")
 
     import context.dispatcher
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
     val serverSocketHandler = {
-      val props = Props(new ServerSocketHandler(amaConfig, runtimeIdNumerator, listenAt, self))
-      context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + serverSocketNumerator.getAndIncrement)
+      val props = Props(new ServerSocketHandler(amaConfig, remoteAddressIdNumerator, listenAt, self))
+      context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + listenAt.listenAddress.id)
     }
 
     serverSocketHandler ! true
@@ -143,12 +143,12 @@ class ServerSocketManager(
 
     if (lar.isInstanceOf[ListenAtSuccessResult]) {
 
-      log.debug(s"Successfully bind to ${lar.listenAt.listenIp}:${lar.listenAt.listenPort}, setting 'keep open server socket timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
+      log.debug(s"Successfully bind to ${lar.listenAt.listenAddress}, setting 'keep open server socket timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
 
       val lasr = lar.asInstanceOf[ListenAtSuccessResult]
 
-      val keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(lar.listenAt.keepServerSocketOpenTimeoutInSeconds, lar.listenAt.listenIp, lar.listenAt.listenPort)
-      openedServerSockets += new ServerSocketRecord(lar.listenAt.listenIp, lar.listenAt.listenPort, sd.serverSocketHandler, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
+      val keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(lar.listenAt.keepServerSocketOpenTimeoutInSeconds, lar.listenAt.listenAddress)
+      openedServerSockets += new ServerSocketRecord(lar.listenAt.listenAddress, sd.serverSocketHandler, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
       context.watch(sd.serverSocketHandler)
     }
 
