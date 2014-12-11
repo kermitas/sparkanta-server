@@ -4,7 +4,7 @@ object Pong {
   lazy final val commandCode: Int = 4
 }
 
-class Pong extends MessageToDevice with MessageFormDevice {
+class Pong extends MessageToDevice with MessageFormDevice with DoNotForwardToRestServer {
 
   override def toString = getClass.getSimpleName
 
