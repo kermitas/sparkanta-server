@@ -6,7 +6,8 @@ import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.serialize.Serializer
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, Disconnect, MessageLengthHeader }
+import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, Disconnect }
+import as.sparkanta.device.message.length.MessageLengthHeader
 import as.sparkanta.gateway.message.{ DataToDeviceSendConfirmation, DataToDevice }
 import as.sparkanta.server.message.MessageToDevice
 import akka.util.FSMSuccessOrStop

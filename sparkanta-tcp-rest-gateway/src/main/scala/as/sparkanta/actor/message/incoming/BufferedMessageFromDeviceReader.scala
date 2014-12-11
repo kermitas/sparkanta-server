@@ -1,7 +1,8 @@
 package as.sparkanta.actor.message.incoming
 
 import akka.util.{ ByteString, CompactByteString }
-import as.sparkanta.device.message.{ MessageFormDevice, MessageLengthHeader }
+import as.sparkanta.device.message.MessageFormDevice
+import as.sparkanta.device.message.length.MessageLengthHeader
 import as.sparkanta.device.message.deserialize.Deserializer
 
 class BufferedMessageFromDeviceReader(messageHeader: MessageLengthHeader, deserializer: Deserializer[MessageFormDevice]) {

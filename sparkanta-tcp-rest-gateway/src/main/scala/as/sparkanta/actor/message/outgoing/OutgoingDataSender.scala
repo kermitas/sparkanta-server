@@ -9,7 +9,8 @@ import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation }
-import as.sparkanta.device.message.{ MessageLengthHeader, MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.length.MessageLengthHeader
 import as.sparkanta.device.message.serialize.Serializer
 
 import scala.net.IdentifiedInetSocketAddress

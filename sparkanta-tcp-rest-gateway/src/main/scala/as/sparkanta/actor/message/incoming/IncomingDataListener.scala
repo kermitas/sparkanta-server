@@ -7,7 +7,8 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, MessageLengthHeader, DeviceHello, ServerHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, DeviceHello, ServerHello }
+import as.sparkanta.device.message.length.MessageLengthHeader
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice

@@ -2,7 +2,8 @@ import org.scalatest.{ FeatureSpec, Matchers }
 
 import java.net.Socket
 import scala.io.StdIn
-import as.sparkanta.device.message.{ DeviceHello, Ping, Message65536LengthHeader }
+import as.sparkanta.device.message.{ DeviceHello, Ping }
+import as.sparkanta.device.message.length.Message65536LengthHeader
 import as.sparkanta.device.message.serialize.Serializers
 
 class SparkantaClientTest extends FeatureSpec with Matchers {

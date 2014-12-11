@@ -1,4 +1,4 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.length
 
 trait MessageLengthHeader {
 
