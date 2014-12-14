@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation }
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
-import as.sparkanta.device.message.length.MessageLengthHeader
+import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.serialize.Serializer
 
 import scala.net.IdentifiedInetSocketAddress
@@ -31,23 +31,23 @@ object OutgoingDataSender {
 }
 
 class OutgoingDataSender(
-  amaConfig:               AmaConfig,
-  config:                  OutgoingDataSenderConfig,
-  remoteAddress:           IdentifiedInetSocketAddress,
-  localAddress:            IdentifiedInetSocketAddress,
-  tcpActor:                ActorRef,
-  val messageLengthHeader: MessageLengthHeader,
-  val serializer:          Serializer[MessageToDeviceMarker]
+  amaConfig:                      AmaConfig,
+  config:                         OutgoingDataSenderConfig,
+  remoteAddress:                  IdentifiedInetSocketAddress,
+  localAddress:                   IdentifiedInetSocketAddress,
+  tcpActor:                       ActorRef,
+  val messageLengthHeaderCreator: MessageLengthHeaderCreator,
+  val serializer:                 Serializer[MessageToDeviceMarker]
 ) extends FSM[OutgoingDataSender.State, OutgoingDataSender.StateData] with FSMSuccessOrStop[OutgoingDataSender.State, OutgoingDataSender.StateData] {
 
   def this(
-    amaConfig:           AmaConfig,
-    remoteAddress:       IdentifiedInetSocketAddress,
-    localAddress:        IdentifiedInetSocketAddress,
-    tcpActor:            ActorRef,
-    messageLengthHeader: MessageLengthHeader,
-    serializer:          Serializer[MessageToDeviceMarker]
-  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, messageLengthHeader, serializer)
+    amaConfig:                  AmaConfig,
+    remoteAddress:              IdentifiedInetSocketAddress,
+    localAddress:               IdentifiedInetSocketAddress,
+    tcpActor:                   ActorRef,
+    messageLengthHeaderCreator: MessageLengthHeaderCreator,
+    serializer:                 Serializer[MessageToDeviceMarker]
+  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, messageLengthHeaderCreator, serializer)
 
   import OutgoingDataSender._
 
@@ -97,7 +97,7 @@ class OutgoingDataSender(
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(remoteAddress.id))
 
-    val props = Props(new OutgoingMessageSerializer(amaConfig, remoteAddress.id, serializer, messageLengthHeader))
+    val props = Props(new OutgoingMessageSerializer(amaConfig, remoteAddress.id, serializer, messageLengthHeaderCreator))
     val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + remoteAddress.id)
     context.watch(outgoingMessageSerializer)
   }

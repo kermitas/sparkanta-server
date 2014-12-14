@@ -9,7 +9,7 @@ import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.actor.message.outgoing.OutgoingDataSender
 import as.sparkanta.actor.message.incoming.IncomingDataListener
 import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
-import as.sparkanta.device.message.length.Message65536LengthHeader
+import as.sparkanta.device.message.length.Message65536LengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
 import scala.net.IdentifiedInetSocketAddress
@@ -141,12 +141,12 @@ class SocketHandler(
 
     val softwareVersion = 1
 
-    val messageLengthHeader = new Message65536LengthHeader
+    val messageLengthHeaderCreator = new Message65536LengthHeaderCreator
 
     // ---
 
     val outgoingDataSender: ActorRef = {
-      val props = Props(new OutgoingDataSender(amaConfig, remoteAddress, localAddress, tcpActor, messageLengthHeader, new Serializers))
+      val props = Props(new OutgoingDataSender(amaConfig, remoteAddress, localAddress, tcpActor, messageLengthHeaderCreator, new Serializers))
       context.actorOf(props, name = classOf[OutgoingDataSender].getSimpleName + "-" + remoteAddress.id)
     }
 
@@ -155,7 +155,7 @@ class SocketHandler(
     // ---
 
     val incomingDataListener: ActorRef = {
-      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeader, new Deserializers))
+      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeaderCreator, new Deserializers))
       context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + remoteAddress.id)
     }
 

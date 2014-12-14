@@ -8,7 +8,7 @@ import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, DeviceHello, ServerHello }
-import as.sparkanta.device.message.length.MessageLengthHeader
+import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
@@ -45,7 +45,7 @@ class IncomingDataListener(
   localAddress:                  IdentifiedInetSocketAddress,
   tcpActor:                      ActorRef,
   softwareVersion:               Int,
-  messageLengthHeader:           MessageLengthHeader,
+  messageLengthHeaderCreator:    MessageLengthHeaderCreator,
   messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
 ) extends FSM[IncomingDataListener.State, IncomingDataListener.StateData] with FSMSuccessOrStop[IncomingDataListener.State, IncomingDataListener.StateData] {
 
@@ -55,13 +55,13 @@ class IncomingDataListener(
     localAddress:                  IdentifiedInetSocketAddress,
     tcpActor:                      ActorRef,
     softwareVersion:               Int,
-    messageLengthHeader:           MessageLengthHeader,
+    messageLengthHeaderCreator:    MessageLengthHeaderCreator,
     messageFromDeviceDeserializer: Deserializer[MessageFormDeviceMarker]
-  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeader, messageFromDeviceDeserializer)
+  ) = this(amaConfig, IncomingDataListenerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeaderCreator, messageFromDeviceDeserializer)
 
   import IncomingDataListener._
 
-  protected final val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeader, messageFromDeviceDeserializer)
+  protected final val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeaderCreator, messageFromDeviceDeserializer)
 
   protected final val ping = new Ping
 

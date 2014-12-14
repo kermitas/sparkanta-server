@@ -7,7 +7,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.serialize.Serializer
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, Disconnect }
-import as.sparkanta.device.message.length.MessageLengthHeader
+import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.gateway.message.{ DataToDeviceSendConfirmation, DataToDevice }
 import as.sparkanta.server.message.MessageToDevice
 import akka.util.FSMSuccessOrStop
@@ -27,19 +27,19 @@ object OutgoingMessageSerializer {
 }
 
 class OutgoingMessageSerializer(
-  val amaConfig:           AmaConfig,
-  val config:              OutgoingMessageSerializerConfig,
-  val remoteAddressId:     Long,
-  val serializer:          Serializer[MessageToDeviceMarker],
-  val messageLengthHeader: MessageLengthHeader
+  val amaConfig:                  AmaConfig,
+  val config:                     OutgoingMessageSerializerConfig,
+  val remoteAddressId:            Long,
+  val serializer:                 Serializer[MessageToDeviceMarker],
+  val messageLengthHeaderCreator: MessageLengthHeaderCreator
 ) extends FSM[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] with FSMSuccessOrStop[OutgoingMessageSerializer.State, OutgoingMessageSerializer.StateData] {
 
   def this(
-    amaConfig:           AmaConfig,
-    remoteAddressId:     Long,
-    serializer:          Serializer[MessageToDeviceMarker],
-    messageLengthHeader: MessageLengthHeader
-  ) = this(amaConfig, OutgoingMessageSerializerConfig.fromTopKey(amaConfig.config), remoteAddressId, serializer, messageLengthHeader)
+    amaConfig:                  AmaConfig,
+    remoteAddressId:            Long,
+    serializer:                 Serializer[MessageToDeviceMarker],
+    messageLengthHeaderCreator: MessageLengthHeaderCreator
+  ) = this(amaConfig, OutgoingMessageSerializerConfig.fromTopKey(amaConfig.config), remoteAddressId, serializer, messageLengthHeaderCreator)
 
   import OutgoingMessageSerializer._
 
@@ -88,12 +88,12 @@ class OutgoingMessageSerializer(
 
   protected def serializeMessageToDevice(messageToDevice: MessageToDeviceMarker) = {
 
-    val messageToDevicePrefixedWithLengthHeader = {
-      val messageToDeviceAsBytes = serializer.serialize(messageToDevice)
-      messageLengthHeader.prepareMessageToGo(messageToDeviceAsBytes)
+    val dataToDevice = {
+      val messageToDeviceAsByteArray = serializer.serialize(messageToDevice)
+      val messageLengthHeader = messageLengthHeaderCreator.prepareMessageLengthHeader(messageToDeviceAsByteArray.length)
+      new DataToDevice(remoteAddressId, messageLengthHeader, messageToDeviceAsByteArray)
     }
 
-    val dataToDevice = new DataToDevice(remoteAddressId, messageToDevicePrefixedWithLengthHeader)
     amaConfig.broadcaster ! dataToDevice
 
     messageToDevice match {
