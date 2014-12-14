@@ -2,7 +2,7 @@ package as.sparkanta.actor.devicesdb
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.gateway.message.{ NewIncomingConnection, ConnectionClosed, SoftwareVersionWasIdentified, SparkDeviceIdWasIdentified }
+import as.sparkanta.gateway.message.{ NewIncomingConnection, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified, SparkDeviceIdWasIdentified }
 import as.sparkanta.gateway.message.GetCurrentDevices
 
 /**
@@ -11,11 +11,11 @@ import as.sparkanta.gateway.message.GetCurrentDevices
  */
 class DevicesDbClassifier extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: NewIncomingConnection        => Some(a)
-    case a: SoftwareVersionWasIdentified => Some(a)
-    case a: SparkDeviceIdWasIdentified   => Some(a)
-    case a: ConnectionClosed             => Some(a)
-    case a: GetCurrentDevices            => Some(a)
-    case _                               => None
+    case a: NewIncomingConnection => Some(a)
+    case a: SoftwareAndHardwareVersionWasIdentified => Some(a)
+    case a: SparkDeviceIdWasIdentified => Some(a)
+    case a: ConnectionClosed => Some(a)
+    case a: GetCurrentDevices => Some(a)
+    case _ => None
   }
 }

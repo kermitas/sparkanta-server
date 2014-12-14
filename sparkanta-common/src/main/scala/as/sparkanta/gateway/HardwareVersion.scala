@@ -11,20 +11,24 @@ object HardwareVersion {
 
 abstract class HardwareVersion(val hardwareVersion: Int) extends Serializable
 
-object Virtual extends Virtual
-
-class Virtual extends HardwareVersion(0) {
-  override def toString = this.getClass.getSimpleName
+object Virtual extends HardwareVersion(0) {
+  override def toString = {
+    val s = this.getClass.getSimpleName
+    s.substring(0, s.length - 1)
+  }
 }
 
-object SparkCore extends SparkCore
-
-class SparkCore extends HardwareVersion(1) {
-  override def toString = this.getClass.getSimpleName
+object SparkCore extends HardwareVersion(1) {
+  override def toString = {
+    val s = this.getClass.getSimpleName
+    s.substring(0, s.length - 1)
+  }
 }
 
-object SparkPhoton extends SparkPhoton
-
-class SparkPhoton extends HardwareVersion(2) {
-  override def toString = this.getClass.getSimpleName
+object SparkPhoton extends HardwareVersion(2) {
+  override def toString = {
+    val s = this.getClass.getSimpleName
+    s.substring(0, s.length - 1)
+  }
 }
+

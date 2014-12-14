@@ -12,7 +12,7 @@ import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
 import as.sparkanta.server.message.MessageToDevice
-
+import as.sparkanta.gateway.SparkDeviceIdIdentifiedDeviceInfo
 import scala.net.IdentifiedInetSocketAddress
 
 object IncomingDataListener {
@@ -167,7 +167,7 @@ class IncomingDataListener(
   }
 
   protected def disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData): Unit = {
-    val remoteAddressIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.sparkDeviceId.isDefined).filter(_.sparkDeviceId.get.equals(sd.deviceHello.sparkDeviceId)).map(_.remoteAddress.id)
+    val remoteAddressIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.isInstanceOf[SparkDeviceIdIdentifiedDeviceInfo]).map(_.asInstanceOf[SparkDeviceIdIdentifiedDeviceInfo]).filter(_.sparkDeviceId.equals(sd.deviceHello.sparkDeviceId)).map(_.remoteAddress.id)
     disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(remoteAddressIdWithTheSameSparkDeviceId, sd.deviceHello.sparkDeviceId)
   }
 

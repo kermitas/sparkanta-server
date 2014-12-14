@@ -12,6 +12,7 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
 
     val identificationStringAsByteArray = "SPARKANTA".getBytes
     val softwareVersionAsByteArray = Array[Byte](1.toByte)
+    val hardwareVersionAsByteArray = Array[Byte](0.toByte)
 
     val serializers = new Serializers
     val messageLengthHeaderCreator = new Message256LengthHeaderCreator
@@ -49,6 +50,7 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
 
     os.write(identificationStringAsByteArray)
     os.write(softwareVersionAsByteArray)
+    os.write(hardwareVersionAsByteArray)
 
     deviceHelloMessageAsByteArray.foreach(os.write)
     pingMessageAsByteArray.foreach(os.write)

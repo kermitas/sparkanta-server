@@ -6,7 +6,8 @@ class SparkDeviceIdIdentifiedDeviceInfo(
   remoteAddress:     IdentifiedInetSocketAddress,
   localAddress:      IdentifiedInetSocketAddress,
   startTime:         Long,
+  stopTime:          Option[Long],
   softwareVersion:   Int,
-  hardwareVersion:   HardwareVersion             = Virtual, // TODO remove once implemented
+  hardwareVersion:   HardwareVersion,
   val sparkDeviceId: String
-) extends SoftwareAndHardwareIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, softwareVersion, hardwareVersion)
+) extends SoftwareAndHardwareIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, stopTime, softwareVersion, hardwareVersion)

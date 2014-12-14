@@ -6,6 +6,7 @@ class SoftwareAndHardwareIdentifiedDeviceInfo(
   remoteAddress:       IdentifiedInetSocketAddress,
   localAddress:        IdentifiedInetSocketAddress,
   startTime:           Long,
+  stopTime:            Option[Long],
   val softwareVersion: Int,
-  val hardwareVersion: HardwareVersion             = Virtual // TODO remove once implemented
-) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime)
+  val hardwareVersion: HardwareVersion             = Virtual
+) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime, stopTime)

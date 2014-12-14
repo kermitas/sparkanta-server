@@ -1,5 +1,7 @@
 package as.sparkanta.actor.tcp.socket
 
+import as.sparkanta.gateway.HardwareVersion
+
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props, Cancellable }
@@ -8,7 +10,7 @@ import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.actor.message.outgoing.OutgoingDataSender
 import as.sparkanta.actor.message.incoming.IncomingDataListener
-import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareVersionWasIdentified }
+import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
 import as.sparkanta.device.message.length.Message256LengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
@@ -20,7 +22,7 @@ object SocketHandler {
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case class SoftwareVersionUnidentifiedStateData(incomingDataReader: BufferedIdentificationStringWithSoftwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
+  case class SoftwareVersionUnidentifiedStateData(incomingDataReader: BufferedIdentificationStringWithSoftwareAndHardwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
   case class WaitingForDataStateData(softwareVersion: Int) extends StateData
 
   sealed trait Message extends Serializable
@@ -58,7 +60,7 @@ class SocketHandler(
 
   {
     val softwareVersionIdentificationTimeout = context.system.scheduler.scheduleOnce(config.softwareVersionIdentificationTimeoutInSeconds seconds, self, SoftwareVersionIdentificationTimeout)(context.dispatcher)
-    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareVersionReader(config.identificationString), softwareVersionIdentificationTimeout))
+    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(config.identificationString), softwareVersionIdentificationTimeout))
   }
 
   when(SoftwareVersionUnidentified) {
@@ -111,12 +113,14 @@ class SocketHandler(
   protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
     sd.incomingDataReader.bufferIncomingData(data)
 
-    sd.incomingDataReader.getSoftwareVersion match {
-      case Some(softwareVersion) => {
+    sd.incomingDataReader.getSoftwareAndHardwareVersion match {
+      case Some((softwareVersion, hardwareVersion)) => {
 
         sd.softwareVersionIdentificationTimeout.cancel
 
-        log.debug(s"Device of runtimeId $remoteAddress successfully send identification string '${config.identificationString}' and software version $softwareVersion.")
+        val hwVersion = HardwareVersion(hardwareVersion)
+
+        log.debug(s"Device of runtimeId $remoteAddress successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
 
         if (softwareVersion == 1) {
 
@@ -124,7 +128,7 @@ class SocketHandler(
 
           prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer)
 
-          amaConfig.broadcaster ! new SoftwareVersionWasIdentified(softwareVersion, remoteAddress, localAddress)
+          amaConfig.broadcaster ! new SoftwareAndHardwareVersionWasIdentified(softwareVersion, hwVersion, remoteAddress, localAddress)
 
           goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
 

@@ -9,12 +9,7 @@ class NetworkDeviceInfo(
   var stopTime:      Option[Long]                = None
 ) extends Serializable {
 
-  protected var precalculatedTimeInSystem: Option[Long] = None
+  def deviceIsDown: Unit = stopTime = Some(System.currentTimeMillis)
 
-  def deviceIsDown: Unit = {
-    stopTime = Some(System.currentTimeMillis)
-    precalculatedTimeInSystem = Some(stopTime.get - startTime)
-  }
-
-  def timeInSystem: Long = precalculatedTimeInSystem.getOrElse(System.currentTimeMillis - startTime)
+  def timeInSystem: Long = stopTime.map(_ - startTime).getOrElse(System.currentTimeMillis - startTime)
 }

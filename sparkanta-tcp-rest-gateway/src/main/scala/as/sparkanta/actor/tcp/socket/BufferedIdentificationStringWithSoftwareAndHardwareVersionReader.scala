@@ -2,7 +2,7 @@ package as.sparkanta.actor.tcp.socket
 
 import akka.util.{ ByteString, CompactByteString }
 
-class BufferedIdentificationStringWithSoftwareVersionReader(identificationString: Array[Byte]) {
+class BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(identificationString: Array[Byte]) {
 
   def this(identificationString: String) = this(identificationString.getBytes)
 
@@ -12,10 +12,10 @@ class BufferedIdentificationStringWithSoftwareVersionReader(identificationString
 
   def getBuffer: ByteString = buffer
 
-  def getSoftwareVersion: Option[Int] = if (buffer.size >= identificationString.length + 1) {
+  def getSoftwareAndHardwareVersion: Option[(Int, Int)] = if (buffer.size >= identificationString.length + 2) {
     val is = readIdentificationString
     if (is.corresponds(identificationString) { _ == _ }) {
-      Some(readSoftwareVersion)
+      Some(readSoftwareAndHardwareVersion)
     } else {
       throw new Exception(s"Received identification string '${new String(is)}' does not match '${new String(identificationString)}'.")
     }
@@ -29,9 +29,9 @@ class BufferedIdentificationStringWithSoftwareVersionReader(identificationString
     identificationStringAndRest._1.toArray
   }
 
-  protected def readSoftwareVersion: Int = {
-    val softwareVersionAndRest = buffer.splitAt(1)
+  protected def readSoftwareAndHardwareVersion: (Int, Int) = {
+    val softwareVersionAndRest = buffer.splitAt(2)
     buffer = softwareVersionAndRest._2
-    softwareVersionAndRest._1(0)
+    (softwareVersionAndRest._1(0), softwareVersionAndRest._1(1))
   }
 }
