@@ -32,14 +32,24 @@ object IncomingDataListenerConfig {
   def apply(config: Config = ConfigFactory.load): IncomingDataListenerConfig = {
     val sparkDeviceIdIdentificationTimeoutInSeconds = config.getInt(sparkDeviceIdIdentificationTimeoutInSecondsConfigKey)
     val sendPingOnIncomingDataInactivityIntervalInSeconds = config.getInt(sendPingOnIncomingDataInactivityIntervalInSecondsConfigKey)
-    val stressTestTimeoutInSeconds = config.getLong(stressTestTimeoutInSecondsConfigKey)
+    val stressTestTimeoutInSeconds = optionallyReadLongGreaterThanZero(stressTestTimeoutInSecondsConfigKey, config)
 
     new IncomingDataListenerConfig(sparkDeviceIdIdentificationTimeoutInSeconds, sendPingOnIncomingDataInactivityIntervalInSeconds, stressTestTimeoutInSeconds)
+  }
+
+  protected def optionallyReadLongGreaterThanZero(path: String, config: Config): Option[Long] = if (config.hasPath(stressTestTimeoutInSecondsConfigKey)) {
+    val stressTestTimeoutInSeconds = config.getLong(stressTestTimeoutInSecondsConfigKey)
+    if (stressTestTimeoutInSeconds > 0)
+      Some(stressTestTimeoutInSeconds)
+    else
+      None
+  } else {
+    None
   }
 }
 
 class IncomingDataListenerConfig(
   val sparkDeviceIdIdentificationTimeoutInSeconds:       Int,
   val sendPingOnIncomingDataInactivityIntervalInSeconds: Int,
-  val stressTestTimeoutInSeconds:                        Long
+  val stressTestTimeoutInSeconds:                        Option[Long]
 )

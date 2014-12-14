@@ -62,6 +62,7 @@ class IncomingDataListener(
   protected final val bufferedMessageFromDeviceReader = new BufferedMessageFromDeviceReader(messageLengthHeaderCreator, messageFromDeviceDeserializer)
 
   protected final val ping = new Ping
+  protected final val pingMessageToDevice = new MessageToDevice(deviceInfo.remoteAddress.id, new Ping)
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -102,7 +103,7 @@ class IncomingDataListener(
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
       log.debug(s"Nothing comes from device of remoteAddressId ${deviceInfo.remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
-      amaConfig.broadcaster ! new MessageToDevice(deviceInfo.remoteAddress.id, ping)
+      amaConfig.broadcaster ! pingMessageToDevice
       stay using sd
     }
   }
@@ -164,24 +165,25 @@ class IncomingDataListener(
     startPingPongStressTest(sd)
   }
 
-  protected def startPingPongStressTest(sd: WaitingForCurrentDevicesStateData) = if (config.stressTestTimeoutInSeconds > 0) {
-    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.remoteAddress.id, ping)
-    context.system.scheduler.scheduleOnce(config.stressTestTimeoutInSeconds seconds, self, StressTestTimeout)(context.dispatcher)
+  protected def startPingPongStressTest(sd: WaitingForCurrentDevicesStateData) = config.stressTestTimeoutInSeconds match {
+    case Some(stressTestTimeoutInSeconds) => {
+      amaConfig.broadcaster ! pingMessageToDevice
+      context.system.scheduler.scheduleOnce(config.stressTestTimeoutInSeconds.get seconds, self, StressTestTimeout)(context.dispatcher)
 
-    goto(PingPongStressTest) using new PingPongStressTestStateData(sd.deviceHello)
-  } else {
-    gotoWaitingForData(sd.deviceHello, None)
+      goto(PingPongStressTest) using new PingPongStressTestStateData(sd.deviceHello)
+    }
+    case None => gotoWaitingForData(sd.deviceHello, None)
   }
 
   protected def receivedMessageFromDeviceDuringStressTest(mfd: MessageFromDevice, sd: PingPongStressTestStateData) = if (mfd.messageFromDevice.isInstanceOf[Pong]) {
-    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.remoteAddress.id, ping)
+    amaConfig.broadcaster ! pingMessageToDevice
     stay using sd.copy(pingPongCount = sd.pingPongCount + 1)
   } else {
-    throw new Exception(s"During ping-pong stress test only ${classOf[Pong].getSimpleName} messages can come from device.")
+    throw new Exception(s"During ping-pong stress test only ${classOf[Pong].getSimpleName} messages can come from device (but received ${mfd.messageFromDevice.getClass.getSimpleName}.")
   }
 
   protected def stopPingPongStressTest(sd: PingPongStressTestStateData) = {
-    val pingPongCountPerSecond = sd.pingPongCount / config.stressTestTimeoutInSeconds
+    val pingPongCountPerSecond = sd.pingPongCount / config.stressTestTimeoutInSeconds.get
     gotoWaitingForData(sd.deviceHello, Some(pingPongCountPerSecond))
   }
 
