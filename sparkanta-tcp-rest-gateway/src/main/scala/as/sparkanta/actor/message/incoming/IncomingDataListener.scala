@@ -7,7 +7,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Disconnect, DeviceHello, ServerHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker, Ping, Pong, Disconnect, DeviceHello, ServerHello }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
@@ -22,12 +22,14 @@ object IncomingDataListener {
   sealed trait State extends Serializable
   case object SparkDeviceIdUnidentified extends State
   case object WaitingForCurrentDevices extends State
+  case object PingPongStressTest extends State
   case object WaitingForData extends State
   case object Disconnecting extends State
 
   sealed trait StateData extends Serializable
   case class SparkDeviceIdUnidentifiedStateData(sparkDeviceIdIdentificationTimeout: Cancellable) extends StateData
   case class WaitingForCurrentDevicesStateData(deviceHello: DeviceHello) extends StateData
+  case class PingPongStressTestStateData(deviceHello: DeviceHello, pingPongCount: Long = 0) extends StateData
   class IdentifiedSparkDeviceId(val sparkDeviceIdIdentifiedDeviceInfo: SparkDeviceIdIdentifiedDeviceInfo) extends StateData
   case class WaitingForDataStateData(override val sparkDeviceIdIdentifiedDeviceInfo: SparkDeviceIdIdentifiedDeviceInfo) extends IdentifiedSparkDeviceId(sparkDeviceIdIdentifiedDeviceInfo)
   case class DisconnectingStateData(override val sparkDeviceIdIdentifiedDeviceInfo: SparkDeviceIdIdentifiedDeviceInfo) extends IdentifiedSparkDeviceId(sparkDeviceIdIdentifiedDeviceInfo)
@@ -35,6 +37,7 @@ object IncomingDataListener {
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
   case object SparkDeviceIdIdentificationTimeout extends InternalMessage
+  case object StressTestTimeout extends InternalMessage
 }
 
 class IncomingDataListener(
@@ -77,13 +80,19 @@ class IncomingDataListener(
 
     case Event(SparkDeviceIdIdentificationTimeout, sd: SparkDeviceIdUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Spark device id identification timeout (${config.sparkDeviceIdIdentificationTimeoutInSeconds} seconds) reached.") }
 
-    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)                      => goto(Disconnecting) using new DisconnectingStateData(deviceInfo.identifySparkDeviceId(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead))
+    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)                      => goto(Disconnecting) using new DisconnectingStateData(deviceInfo.identifySparkDeviceId(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, None))
   }
 
   when(WaitingForCurrentDevices) {
     case Event(cd: CurrentDevices, sd: WaitingForCurrentDevicesStateData) => successOrStopWithFailure { checkIfSparkDeviceIdIsUnique(cd, sd) }
 
-    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)     => goto(Disconnecting) using new DisconnectingStateData(deviceInfo.identifySparkDeviceId(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead))
+    case Event(_: Disconnect, sd: SparkDeviceIdUnidentifiedStateData)     => goto(Disconnecting) using new DisconnectingStateData(deviceInfo.identifySparkDeviceId(sparkDeviceIdWhenDisconnectComesBeforeSparkDeviceIdWasRead, None))
+  }
+
+  when(PingPongStressTest) {
+    case Event(mfd: MessageFromDevice, sd: PingPongStressTestStateData) => successOrStopWithFailure { receivedMessageFromDeviceDuringStressTest(mfd, sd) }
+
+    case Event(StressTestTimeout, sd: PingPongStressTestStateData)      => successOrStopWithFailure { stopPingPongStressTest(sd) }
   }
 
   when(WaitingForData, stateTimeout = config.sendPingOnIncomingDataInactivityIntervalInSeconds seconds) {
@@ -151,16 +160,38 @@ class IncomingDataListener(
   }
 
   protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
-
     disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(currentDevices, sd)
+    startPingPongStressTest(sd)
+  }
 
-    val sparkDeviceIdIdentifiedDeviceInfo = deviceInfo.identifySparkDeviceId(sd.deviceHello.sparkDeviceId)
+  protected def startPingPongStressTest(sd: WaitingForCurrentDevicesStateData) = if (config.stressTestTimeoutInSeconds > 0) {
+    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.remoteAddress.id, ping)
+    context.system.scheduler.scheduleOnce(config.stressTestTimeoutInSeconds seconds, self, StressTestTimeout)(context.dispatcher)
+
+    goto(PingPongStressTest) using new PingPongStressTestStateData(sd.deviceHello)
+  } else {
+    gotoWaitingForData(sd.deviceHello, None)
+  }
+
+  protected def receivedMessageFromDeviceDuringStressTest(mfd: MessageFromDevice, sd: PingPongStressTestStateData) = if (mfd.messageFromDevice.isInstanceOf[Pong]) {
+    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.remoteAddress.id, ping)
+    stay using sd.copy(pingPongCount = sd.pingPongCount + 1)
+  } else {
+    throw new Exception(s"During ping-pong stress test only ${classOf[Pong].getSimpleName} messages can come from device.")
+  }
+
+  protected def stopPingPongStressTest(sd: PingPongStressTestStateData) = {
+    val pingPongCountPerSecond = sd.pingPongCount / config.stressTestTimeoutInSeconds
+    gotoWaitingForData(sd.deviceHello, Some(pingPongCountPerSecond))
+  }
+
+  protected def gotoWaitingForData(deviceHello: DeviceHello, pingPongCountPerSecond: Option[Long]) = {
+    val sparkDeviceIdIdentifiedDeviceInfo = deviceInfo.identifySparkDeviceId(deviceHello.sparkDeviceId, pingPongCountPerSecond)
     deviceInfo = sparkDeviceIdIdentifiedDeviceInfo
 
-    amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sparkDeviceIdIdentifiedDeviceInfo)
-    amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, sd.deviceHello)
+    amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sparkDeviceIdIdentifiedDeviceInfo, pingPongCountPerSecond)
+    amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, deviceHello)
     amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new ServerHello)
-    self ! new DataFromDevice(ByteString.empty, sparkDeviceIdIdentifiedDeviceInfo) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
 
     goto(WaitingForData) using new WaitingForDataStateData(sparkDeviceIdIdentifiedDeviceInfo)
   }

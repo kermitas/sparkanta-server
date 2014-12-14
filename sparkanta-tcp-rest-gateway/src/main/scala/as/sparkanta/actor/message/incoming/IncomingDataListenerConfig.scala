@@ -11,6 +11,7 @@ object IncomingDataListenerConfig {
 
   final val sparkDeviceIdIdentificationTimeoutInSecondsConfigKey = "sparkDeviceIdIdentificationTimeoutInSeconds"
   final val sendPingOnIncomingDataInactivityIntervalInSecondsConfigKey = "sendPingOnIncomingDataInactivityIntervalInSeconds"
+  final val stressTestTimeoutInSecondsConfigKey = "stressTestTimeoutInSeconds"
 
   /**
    * Assumes that Config contains:
@@ -31,12 +32,14 @@ object IncomingDataListenerConfig {
   def apply(config: Config = ConfigFactory.load): IncomingDataListenerConfig = {
     val sparkDeviceIdIdentificationTimeoutInSeconds = config.getInt(sparkDeviceIdIdentificationTimeoutInSecondsConfigKey)
     val sendPingOnIncomingDataInactivityIntervalInSeconds = config.getInt(sendPingOnIncomingDataInactivityIntervalInSecondsConfigKey)
+    val stressTestTimeoutInSeconds = config.getLong(stressTestTimeoutInSecondsConfigKey)
 
-    new IncomingDataListenerConfig(sparkDeviceIdIdentificationTimeoutInSeconds, sendPingOnIncomingDataInactivityIntervalInSeconds)
+    new IncomingDataListenerConfig(sparkDeviceIdIdentificationTimeoutInSeconds, sendPingOnIncomingDataInactivityIntervalInSeconds, stressTestTimeoutInSeconds)
   }
 }
 
 class IncomingDataListenerConfig(
   val sparkDeviceIdIdentificationTimeoutInSeconds:       Int,
-  val sendPingOnIncomingDataInactivityIntervalInSeconds: Int
+  val sendPingOnIncomingDataInactivityIntervalInSeconds: Int,
+  val stressTestTimeoutInSeconds:                        Long
 )
