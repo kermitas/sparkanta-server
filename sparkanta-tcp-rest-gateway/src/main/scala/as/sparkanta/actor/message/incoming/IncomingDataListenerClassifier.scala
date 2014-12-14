@@ -12,7 +12,7 @@ import as.sparkanta.server.message.MessageToDevice
  */
 class IncomingDataListenerClassifier(remoteAddressId: Long) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: DataFromDevice if a.remoteAddress.id == remoteAddressId => Some(a)
+    case a: DataFromDevice if a.deviceInfo.remoteAddress.id == remoteAddressId => Some(a)
     case a: MessageToDevice if a.remoteAddressId == remoteAddressId && a.messageToDevice.isInstanceOf[Disconnect] => Some(a.messageToDevice.asInstanceOf[Disconnect])
     case _ => None
   }

@@ -1,5 +1,7 @@
 package as.sparkanta.actor.message.outgoing
 
+import as.sparkanta.gateway.SoftwareAndHardwareIdentifiedDeviceInfo
+
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy, Props, Terminated }
@@ -12,8 +14,6 @@ import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.serialize.Serializer
-
-import scala.net.IdentifiedInetSocketAddress
 
 object OutgoingDataSender {
   sealed trait State extends Serializable
@@ -31,23 +31,21 @@ object OutgoingDataSender {
 }
 
 class OutgoingDataSender(
-  amaConfig:                      AmaConfig,
-  config:                         OutgoingDataSenderConfig,
-  remoteAddress:                  IdentifiedInetSocketAddress,
-  localAddress:                   IdentifiedInetSocketAddress,
-  tcpActor:                       ActorRef,
-  val messageLengthHeaderCreator: MessageLengthHeaderCreator,
-  val serializer:                 Serializer[MessageToDeviceMarker]
+  amaConfig:                  AmaConfig,
+  config:                     OutgoingDataSenderConfig,
+  deviceInfo:                 SoftwareAndHardwareIdentifiedDeviceInfo,
+  tcpActor:                   ActorRef,
+  messageLengthHeaderCreator: MessageLengthHeaderCreator,
+  serializer:                 Serializer[MessageToDeviceMarker]
 ) extends FSM[OutgoingDataSender.State, OutgoingDataSender.StateData] with FSMSuccessOrStop[OutgoingDataSender.State, OutgoingDataSender.StateData] {
 
   def this(
-    amaConfig:                  AmaConfig,
-    remoteAddress:              IdentifiedInetSocketAddress,
-    localAddress:               IdentifiedInetSocketAddress,
-    tcpActor:                   ActorRef,
-    messageLengthHeaderCreator: MessageLengthHeaderCreator,
-    serializer:                 Serializer[MessageToDeviceMarker]
-  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor, messageLengthHeaderCreator, serializer)
+    amaConfig:                               AmaConfig,
+    softwareAndHardwareIdentifiedDeviceInfo: SoftwareAndHardwareIdentifiedDeviceInfo,
+    tcpActor:                                ActorRef,
+    deviceInfo:                              MessageLengthHeaderCreator,
+    serializer:                              Serializer[MessageToDeviceMarker]
+  ) = this(amaConfig, OutgoingDataSenderConfig.fromTopKey(amaConfig.config), softwareAndHardwareIdentifiedDeviceInfo, tcpActor, deviceInfo, serializer)
 
   import OutgoingDataSender._
 
@@ -79,7 +77,7 @@ class OutgoingDataSender(
   whenUnhandled {
     case Event(Tcp.CommandFailed(_), stateData)         => { stop(FSM.Failure(new Exception("Write request failed."))) }
 
-    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died."))
+    case Event(Terminated(diedWatchedActor), stateData) => stop(FSM.Failure(s"Stopping (deviceInfo $deviceInfo) because watched actor $diedWatchedActor died."))
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -95,10 +93,10 @@ class OutgoingDataSender(
 
   override def preStart(): Unit = {
     // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(remoteAddress.id))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingDataSenderClassifier(deviceInfo.remoteAddress.id))
 
-    val props = Props(new OutgoingMessageSerializer(amaConfig, remoteAddress.id, serializer, messageLengthHeaderCreator))
-    val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + remoteAddress.id)
+    val props = Props(new OutgoingMessageSerializer(amaConfig, deviceInfo.remoteAddress.id, serializer, messageLengthHeaderCreator))
+    val outgoingMessageSerializer = context.actorOf(props, name = classOf[OutgoingMessageSerializer].getSimpleName + "-" + deviceInfo.remoteAddress.id)
     context.watch(outgoingMessageSerializer)
   }
 
@@ -139,15 +137,15 @@ class OutgoingDataSender(
   protected def terminate(reason: FSM.Reason, currentState: OutgoingDataSender.State, stateData: OutgoingDataSender.StateData) = reason match {
 
     case FSM.Normal => {
-      log.debug(s"Stopping (normal), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
+      log.debug(s"Stopping (normal), state $currentState, data $stateData, deviceInfo $deviceInfo.")
     }
 
     case FSM.Shutdown => {
-      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
+      log.debug(s"Stopping (shutdown), state $currentState, data $stateData, deviceInfo $deviceInfo.")
     }
 
     case FSM.Failure(cause) => {
-      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, remoteAddressId ${remoteAddress.id}.")
+      log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData, deviceInfo $deviceInfo.")
     }
   }
 }

@@ -53,7 +53,12 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
     os.write(hardwareVersionAsByteArray)
 
     deviceHelloMessageAsByteArray.foreach(os.write)
+    os.flush
+
+    Thread.sleep(500)
+
     pingMessageAsByteArray.foreach(os.write)
+    os.flush
 
     StdIn.readLine()
   }

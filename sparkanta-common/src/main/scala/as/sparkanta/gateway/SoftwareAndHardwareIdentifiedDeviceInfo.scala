@@ -6,11 +6,12 @@ class SoftwareAndHardwareIdentifiedDeviceInfo(
   remoteAddress:       IdentifiedInetSocketAddress,
   localAddress:        IdentifiedInetSocketAddress,
   startTime:           Long,
-  stopTime:            Option[Long],
   val softwareVersion: Int,
   val hardwareVersion: HardwareVersion
-) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime, stopTime) {
+) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime) {
 
   def identifySparkDeviceId(sparkDeviceId: String) =
-    new SparkDeviceIdIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, stopTime, softwareVersion, hardwareVersion, sparkDeviceId)
+    new SparkDeviceIdIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, softwareVersion, hardwareVersion, sparkDeviceId)
+
+  override def toString = s"${getClass.getSimpleName}(remoteAddress=$remoteAddress,localAddress=$localAddress,startTime=$startTime,softwareVersion=$softwareVersion,hardwareVersion=$hardwareVersion)"
 }

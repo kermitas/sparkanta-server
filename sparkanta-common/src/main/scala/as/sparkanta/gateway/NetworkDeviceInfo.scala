@@ -5,14 +5,13 @@ import scala.net.IdentifiedInetSocketAddress
 class NetworkDeviceInfo(
   val remoteAddress: IdentifiedInetSocketAddress,
   val localAddress:  IdentifiedInetSocketAddress,
-  val startTime:     Long                        = System.currentTimeMillis,
-  var stopTime:      Option[Long]                = None
+  val startTime:     Long                        = System.currentTimeMillis
 ) extends Serializable {
 
-  def deviceIsDown: Unit = stopTime = Some(System.currentTimeMillis)
-
-  def timeInSystem: Long = stopTime.map(_ - startTime).getOrElse(System.currentTimeMillis - startTime)
+  def timeInSystem: Long = System.currentTimeMillis - startTime
 
   def identifySoftwareAndHardwareVersion(softwareVersion: Int, hardwareVersion: HardwareVersion) =
-    new SoftwareAndHardwareIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, stopTime, softwareVersion, hardwareVersion)
+    new SoftwareAndHardwareIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, softwareVersion, hardwareVersion)
+
+  override def toString = s"${getClass.getSimpleName}(remoteAddress=$remoteAddress,localAddress=$localAddress,startTime=$startTime)"
 }

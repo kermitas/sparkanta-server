@@ -33,19 +33,19 @@ class DevicesDb(amaConfig: AmaConfig) extends Actor with ActorLogging {
       log.debug(s"Device of remoteAddressId ${nic.remoteAddress.id} added to db, currently there are ${devices.size} devices in db.")
     }
 
-    case svwi: SoftwareAndHardwareVersionWasIdentified => devices.find(r => r.remoteAddress.id == svwi.remoteAddress.id).map { d =>
+    case svwi: SoftwareAndHardwareVersionWasIdentified => devices.find(r => r.remoteAddress.id == svwi.deviceInfo.remoteAddress.id).map { d =>
       devices = devices.filterNot(_ == d)
-      devices :+ d.identifySoftwareAndHardwareVersion(svwi.softwareVersion, svwi.hardwareVersion)
+      devices :+ svwi.deviceInfo
     }
 
-    case sdiwi: SparkDeviceIdWasIdentified => devices.find(r => r.remoteAddress.id == sdiwi.remoteAddress.id).map(_.asInstanceOf[SoftwareAndHardwareIdentifiedDeviceInfo]).map { d =>
+    case sdiwi: SparkDeviceIdWasIdentified => devices.find(r => r.remoteAddress.id == sdiwi.deviceInfo.remoteAddress.id).map(_.asInstanceOf[SoftwareAndHardwareIdentifiedDeviceInfo]).map { d =>
       devices = devices.filterNot(_ == d)
-      devices :+ d.identifySparkDeviceId(sdiwi.sparkDeviceId)
+      devices :+ sdiwi.deviceInfo
     }
 
     case cc: ConnectionClosed => {
-      devices = devices.filterNot(_.remoteAddress.id == cc.remoteAddress.id)
-      log.debug(s"Device of remoteAddressId ${cc.remoteAddress.id} was removed from db, currently there are ${devices.size} devices in db.")
+      devices = devices.filterNot(_.remoteAddress.id == cc.deviceInfo.remoteAddress.id)
+      log.debug(s"Device of remoteAddressId ${cc.deviceInfo.remoteAddress.id} was removed from db, currently there are ${devices.size} devices in db.")
     }
 
     case gad: GetCurrentDevices => sender() ! new CurrentDevices(devices)

@@ -1,15 +1,11 @@
 package as.sparkanta.gateway.message
 
-import akka.actor.ActorRef
-import scala.net.IdentifiedInetSocketAddress
+import as.sparkanta.gateway.SparkDeviceIdIdentifiedDeviceInfo
 
 class SparkDeviceIdWasIdentified(
-  val sparkDeviceId:   String,
-  val softwareVersion: Int,
-  val remoteAddress:   IdentifiedInetSocketAddress,
-  val localAddress:    IdentifiedInetSocketAddress
+  val deviceInfo: SparkDeviceIdIdentifiedDeviceInfo
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(sparkDeviceId=$sparkDeviceId,softwareVersion=$softwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+  override def toString = s"${getClass.getSimpleName}(deviceInfo=$deviceInfo)"
 
 }

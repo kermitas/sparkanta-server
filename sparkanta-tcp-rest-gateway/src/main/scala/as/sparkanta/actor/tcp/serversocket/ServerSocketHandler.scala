@@ -11,6 +11,7 @@ import as.sparkanta.actor.restforwarder.RestForwarder
 import java.util.concurrent.atomic.AtomicLong
 import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 import scala.net.IdentifiedInetSocketAddress
+import as.sparkanta.gateway.NetworkDeviceInfo
 
 class ServerSocketHandler(
   amaConfig:                  AmaConfig,
@@ -80,7 +81,7 @@ class ServerSocketHandler(
   }
 
   protected def startSocketHandlerActor(remoteAddress: IdentifiedInetSocketAddress, tcpActor: ActorRef): ActorRef = {
-    val props = Props(new SocketHandler(amaConfig, remoteAddress, listenAt.listenAddress, tcpActor))
+    val props = Props(new SocketHandler(amaConfig, new NetworkDeviceInfo(remoteAddress, listenAt.listenAddress), tcpActor))
     context.actorOf(props, name = classOf[SocketHandler].getSimpleName + "-" + remoteAddress.id)
   }
 

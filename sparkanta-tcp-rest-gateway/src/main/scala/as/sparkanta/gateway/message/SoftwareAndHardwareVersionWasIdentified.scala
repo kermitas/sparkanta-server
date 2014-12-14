@@ -1,15 +1,11 @@
 package as.sparkanta.gateway.message
 
-import scala.net.IdentifiedInetSocketAddress
-import as.sparkanta.gateway.HardwareVersion
+import as.sparkanta.gateway.NetworkDeviceInfo
 
 class SoftwareAndHardwareVersionWasIdentified(
-  val softwareVersion: Int,
-  val hardwareVersion: HardwareVersion,
-  val remoteAddress:   IdentifiedInetSocketAddress,
-  val localAddress:    IdentifiedInetSocketAddress
+  val deviceInfo: NetworkDeviceInfo
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(softwareVersion=$softwareVersion,hardwareVersion=$hardwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+  override def toString = s"${getClass.getSimpleName}(deviceInfo=$deviceInfo)"
 
 }

@@ -1,17 +1,13 @@
 package as.sparkanta.gateway.message
 
-import akka.actor.ActorRef
 import akka.util.ByteString
-
-import scala.net.IdentifiedInetSocketAddress
+import as.sparkanta.gateway.NetworkDeviceInfo
 
 class DataFromDevice(
-  val data:            ByteString,
-  val softwareVersion: Int,
-  val remoteAddress:   IdentifiedInetSocketAddress,
-  val localAddress:    IdentifiedInetSocketAddress
+  val data:       ByteString,
+  val deviceInfo: NetworkDeviceInfo
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(data=${data.size} bytes,softwareVersion=$softwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+  override def toString = s"${getClass.getSimpleName}(data=${data.size} bytes,deviceInfo=$deviceInfo)"
 
 }

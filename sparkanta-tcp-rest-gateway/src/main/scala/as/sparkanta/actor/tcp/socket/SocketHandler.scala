@@ -1,20 +1,20 @@
 package as.sparkanta.actor.tcp.socket
 
-import as.sparkanta.gateway.HardwareVersion
-
 import scala.language.postfixOps
 import scala.concurrent.duration._
+import as.sparkanta.gateway.{ SoftwareAndHardwareIdentifiedDeviceInfo, HardwareVersion, NetworkDeviceInfo }
 import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props, Cancellable }
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.actor.message.outgoing.OutgoingDataSender
 import as.sparkanta.actor.message.incoming.IncomingDataListener
-import as.sparkanta.gateway.message.{ DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
+import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
 import as.sparkanta.device.message.length.Message256LengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
 import scala.net.IdentifiedInetSocketAddress
+import as.akka.broadcaster.Broadcaster
 
 object SocketHandler {
   sealed trait State extends Serializable
@@ -35,19 +35,17 @@ object SocketHandler {
 }
 
 class SocketHandler(
-  amaConfig:     AmaConfig,
-  config:        SocketHandlerConfig,
-  remoteAddress: IdentifiedInetSocketAddress,
-  localAddress:  IdentifiedInetSocketAddress,
-  tcpActor:      ActorRef
+  amaConfig:      AmaConfig,
+  config:         SocketHandlerConfig,
+  var deviceInfo: NetworkDeviceInfo,
+  tcpActor:       ActorRef
 ) extends FSM[SocketHandler.State, SocketHandler.StateData] with FSMSuccessOrStop[SocketHandler.State, SocketHandler.StateData] {
 
   def this(
-    amaConfig:     AmaConfig,
-    remoteAddress: IdentifiedInetSocketAddress,
-    localAddress:  IdentifiedInetSocketAddress,
-    tcpActor:      ActorRef
-  ) = this(amaConfig, SocketHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, tcpActor)
+    amaConfig:  AmaConfig,
+    deviceInfo: NetworkDeviceInfo,
+    tcpActor:   ActorRef
+  ) = this(amaConfig, SocketHandlerConfig.fromTopKey(amaConfig.config), deviceInfo, tcpActor)
 
   import SocketHandler._
 
@@ -71,7 +69,7 @@ class SocketHandler(
 
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
-      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, sd.softwareVersion, remoteAddress, localAddress)
+      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, deviceInfo)
       stay using sd
     }
 
@@ -83,15 +81,20 @@ class SocketHandler(
   }
 
   whenUnhandled {
-    case Event(Tcp.PeerClosed, stateData) => stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress)))
+    case Event(Tcp.PeerClosed, stateData) => stop(FSM.Failure(new ConnectionWasLostException(deviceInfo.remoteAddress, deviceInfo.localAddress)))
 
     case Event(Terminated(diedWatchedActor), stateData) => {
       val exception = if (diedWatchedActor.equals(tcpActor))
-        new WatchedActorDied(diedWatchedActor, remoteAddress, localAddress)
+        new WatchedActorDied(diedWatchedActor, deviceInfo.remoteAddress, deviceInfo.localAddress)
       else
-        new WatchedTcpActorDied(tcpActor, remoteAddress, localAddress)
+        new WatchedTcpActorDied(tcpActor, deviceInfo.remoteAddress, deviceInfo.localAddress)
 
       stop(FSM.Failure(exception))
+    }
+
+    case Event(sdwi: SparkDeviceIdWasIdentified, stateData) => {
+      deviceInfo = sdwi.deviceInfo
+      stay using stateData
     }
 
     case Event(unknownMessage, stateData) => {
@@ -107,6 +110,9 @@ class SocketHandler(
   initialize
 
   override def preStart(): Unit = {
+    // notifying broadcaster to register us with given classifier
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new SocketHandlerClassifier(deviceInfo.remoteAddress.id))
+
     context.watch(tcpActor)
   }
 
@@ -120,15 +126,18 @@ class SocketHandler(
 
         val hwVersion = HardwareVersion(hardwareVersion)
 
-        log.debug(s"Device of runtimeId $remoteAddress successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
+        log.debug(s"Device of runtimeId ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
 
         if (softwareVersion == 1) {
 
           // according to softwareVersion we should here create all needed infrastructure for communication with device of this software version
 
-          prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer)
+          val softwareAndHardwareIdentifiedDeviceInfo = deviceInfo.identifySoftwareAndHardwareVersion(softwareVersion, hwVersion)
+          deviceInfo = softwareAndHardwareIdentifiedDeviceInfo
 
-          amaConfig.broadcaster ! new SoftwareAndHardwareVersionWasIdentified(softwareVersion, hwVersion, remoteAddress, localAddress)
+          prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer, softwareAndHardwareIdentifiedDeviceInfo)
+
+          amaConfig.broadcaster ! new SoftwareAndHardwareVersionWasIdentified(deviceInfo)
 
           goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
 
@@ -141,7 +150,7 @@ class SocketHandler(
     }
   }
 
-  protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString): Unit = {
+  protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString, softwareAndHardwareIdentifiedDeviceInfo: SoftwareAndHardwareIdentifiedDeviceInfo): Unit = {
 
     val softwareVersion = 1
 
@@ -150,8 +159,8 @@ class SocketHandler(
     // ---
 
     val outgoingDataSender: ActorRef = {
-      val props = Props(new OutgoingDataSender(amaConfig, remoteAddress, localAddress, tcpActor, messageLengthHeaderCreator, new Serializers))
-      context.actorOf(props, name = classOf[OutgoingDataSender].getSimpleName + "-" + remoteAddress.id)
+      val props = Props(new OutgoingDataSender(amaConfig, softwareAndHardwareIdentifiedDeviceInfo, tcpActor, messageLengthHeaderCreator, new Serializers))
+      context.actorOf(props, name = classOf[OutgoingDataSender].getSimpleName + "-" + deviceInfo.remoteAddress.id)
     }
 
     context.watch(outgoingDataSender)
@@ -159,12 +168,12 @@ class SocketHandler(
     // ---
 
     val incomingDataListener: ActorRef = {
-      val props = Props(new IncomingDataListener(amaConfig, remoteAddress, localAddress, tcpActor, softwareVersion, messageLengthHeaderCreator, new Deserializers))
-      context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + remoteAddress.id)
+      val props = Props(new IncomingDataListener(amaConfig, softwareAndHardwareIdentifiedDeviceInfo, tcpActor, messageLengthHeaderCreator, new Deserializers))
+      context.actorOf(props, name = classOf[IncomingDataListener].getSimpleName + "-" + deviceInfo.remoteAddress.id)
     }
 
     context.watch(incomingDataListener)
-    incomingDataListener ! new DataFromDevice(incomingDataBuffer, softwareVersion, remoteAddress, localAddress)
+    incomingDataListener ! new DataFromDevice(incomingDataBuffer, deviceInfo)
 
     // ---
   }
@@ -190,23 +199,23 @@ class SocketHandler(
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        new ConnectionClosed(None, closedByRemoteSide, softwareVersion, remoteAddress, localAddress)
+        new ConnectionClosed(None, closedByRemoteSide, deviceInfo)
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, softwareVersion, remoteAddress, localAddress)
+        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, deviceInfo)
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
-          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, softwareVersion, remoteAddress, localAddress)
+          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, deviceInfo)
 
           case unknownCause => {
             val e = new Exception(s"Failure stop with unknown cause type (${unknownCause.getClass.getSimpleName}), $unknownCause.")
-            new ConnectionClosed(Some(e), closedByRemoteSide, softwareVersion, remoteAddress, localAddress)
+            new ConnectionClosed(Some(e), closedByRemoteSide, deviceInfo)
           }
         }
       }

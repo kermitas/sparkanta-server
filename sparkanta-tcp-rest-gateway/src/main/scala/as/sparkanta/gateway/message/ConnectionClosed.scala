@@ -1,15 +1,13 @@
 package as.sparkanta.gateway.message
 
-import scala.net.IdentifiedInetSocketAddress
+import as.sparkanta.gateway.NetworkDeviceInfo
 
 class ConnectionClosed(
   val throwable:          Option[Throwable],
   val closedByRemoteSide: Boolean,
-  val softwareVersion:    Option[Int],
-  val remoteAddress:      IdentifiedInetSocketAddress,
-  val localAddress:       IdentifiedInetSocketAddress
+  val deviceInfo:         NetworkDeviceInfo
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(throwable=$throwable,closedByRemoteSide=$closedByRemoteSide,softwareVersion=$softwareVersion,remoteAddress=$remoteAddress,localAddress=$localAddress)"
+  override def toString = s"${getClass.getSimpleName}(throwable=$throwable,closedByRemoteSide=$closedByRemoteSide,deviceInfo=$deviceInfo)"
 
 }

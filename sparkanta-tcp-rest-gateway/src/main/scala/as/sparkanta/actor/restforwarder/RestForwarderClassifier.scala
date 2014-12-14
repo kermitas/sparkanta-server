@@ -13,7 +13,7 @@ import scala.net.IdentifiedInetSocketAddress
 class RestForwarderClassifier(localAddress: IdentifiedInetSocketAddress) extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
 
-    case ftrs: ForwardToRestServer if ftrs.localAddress.id == localAddress.id => ftrs match {
+    case ftrs: ForwardToRestServer if ftrs.deviceInfo.localAddress.id == localAddress.id => ftrs match {
       case mfd: MessageFromDevice => if (mfd.messageFromDevice.isInstanceOf[DoNotForwardToRestServer]) None else Some(mfd)
       case _                      => Some(ftrs)
     }
