@@ -3,7 +3,7 @@ import org.scalatest.{ FeatureSpec, Matchers }
 import java.net.Socket
 import scala.io.StdIn
 import as.sparkanta.device.message.{ DeviceHello, Ping }
-import as.sparkanta.device.message.length.Message65536LengthHeaderCreator
+import as.sparkanta.device.message.length.Message256LengthHeaderCreator
 import as.sparkanta.device.message.serialize.Serializers
 
 class SparkantaClientTest extends FeatureSpec with Matchers {
@@ -14,7 +14,7 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
     val softwareVersionAsByteArray = Array[Byte](1.toByte)
 
     val serializers = new Serializers
-    val messageLengthHeaderCreator = new Message65536LengthHeaderCreator
+    val messageLengthHeaderCreator = new Message256LengthHeaderCreator
 
     val deviceHelloMessageAsByteArray = {
       val messageAsByteArray = {
@@ -38,10 +38,14 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
       Seq(messageLengthHeader, messageAsByteArray)
     }
 
+    println("Connecting...")
+
     val os = {
       val socket = new Socket("localhost", 8080)
       socket.getOutputStream
     }
+
+    println("Sending data...")
 
     os.write(identificationStringAsByteArray)
     os.write(softwareVersionAsByteArray)
