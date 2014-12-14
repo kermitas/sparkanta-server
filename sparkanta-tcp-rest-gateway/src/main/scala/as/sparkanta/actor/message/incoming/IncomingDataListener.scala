@@ -94,6 +94,8 @@ class IncomingDataListener(
     case Event(mfd: MessageFromDevice, sd: PingPongStressTestStateData) => successOrStopWithFailure { receivedMessageFromDeviceDuringStressTest(mfd, sd) }
 
     case Event(StressTestTimeout, sd: PingPongStressTestStateData)      => successOrStopWithFailure { stopPingPongStressTest(sd) }
+
+    case Event(_: Disconnect, sd: PingPongStressTestStateData)          => goto(Disconnecting) using new DisconnectingStateData(deviceInfo.identifySparkDeviceId(sd.deviceHello.sparkDeviceId, None))
   }
 
   when(WaitingForData, stateTimeout = config.sendPingOnIncomingDataInactivityIntervalInSeconds seconds) {
