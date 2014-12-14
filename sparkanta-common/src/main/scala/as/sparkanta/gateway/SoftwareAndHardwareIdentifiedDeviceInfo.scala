@@ -8,5 +8,9 @@ class SoftwareAndHardwareIdentifiedDeviceInfo(
   startTime:           Long,
   stopTime:            Option[Long],
   val softwareVersion: Int,
-  val hardwareVersion: HardwareVersion             = Virtual
-) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime, stopTime)
+  val hardwareVersion: HardwareVersion
+) extends NetworkDeviceInfo(remoteAddress, localAddress, startTime, stopTime) {
+
+  def identifySparkDeviceId(sparkDeviceId: String) =
+    new SparkDeviceIdIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, stopTime, softwareVersion, hardwareVersion, sparkDeviceId)
+}

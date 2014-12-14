@@ -35,12 +35,12 @@ class DevicesDb(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     case svwi: SoftwareAndHardwareVersionWasIdentified => devices.find(r => r.remoteAddress.id == svwi.remoteAddress.id).map { d =>
       devices = devices.filterNot(_ == d)
-      devices :+ new SoftwareAndHardwareIdentifiedDeviceInfo(d.remoteAddress, d.localAddress, d.startTime, d.stopTime, svwi.softwareVersion, svwi.hardwareVersion)
+      devices :+ d.identifySoftwareAndHardwareVersion(svwi.softwareVersion, svwi.hardwareVersion)
     }
 
     case sdiwi: SparkDeviceIdWasIdentified => devices.find(r => r.remoteAddress.id == sdiwi.remoteAddress.id).map(_.asInstanceOf[SoftwareAndHardwareIdentifiedDeviceInfo]).map { d =>
       devices = devices.filterNot(_ == d)
-      devices :+ new SparkDeviceIdIdentifiedDeviceInfo(d.remoteAddress, d.localAddress, d.startTime, d.stopTime, d.softwareVersion, d.hardwareVersion, sdiwi.sparkDeviceId)
+      devices :+ d.identifySparkDeviceId(sdiwi.sparkDeviceId)
     }
 
     case cc: ConnectionClosed => {

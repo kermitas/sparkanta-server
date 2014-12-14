@@ -12,4 +12,7 @@ class NetworkDeviceInfo(
   def deviceIsDown: Unit = stopTime = Some(System.currentTimeMillis)
 
   def timeInSystem: Long = stopTime.map(_ - startTime).getOrElse(System.currentTimeMillis - startTime)
+
+  def identifySoftwareAndHardwareVersion(softwareVersion: Int, hardwareVersion: HardwareVersion) =
+    new SoftwareAndHardwareIdentifiedDeviceInfo(remoteAddress, localAddress, startTime, stopTime, softwareVersion, hardwareVersion)
 }
