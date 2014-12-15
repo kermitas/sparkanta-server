@@ -171,7 +171,7 @@ class IncomingDataListener(
   }
 
   protected def checkIfSparkDeviceIdIsUnique(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData) = {
-    disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(currentDevices, sd)
+    disconnectAllOtherDevicesOfTheSameSparkDeviceIdIfAny(currentDevices, sd)
     startPingPongStressTest(sd)
   }
 
@@ -215,23 +215,19 @@ class IncomingDataListener(
     val sparkDeviceIdIdentifiedDeviceInfo = deviceInfo.identifySparkDeviceId(deviceHello.sparkDeviceId, pingPongCountPerSecond)
     deviceInfo = sparkDeviceIdIdentifiedDeviceInfo
 
-    log.info("===================== pingPongCountPerSecond=" + pingPongCountPerSecond)
-
     amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sparkDeviceIdIdentifiedDeviceInfo, pingPongCountPerSecond)
     amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, deviceHello)
     amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new GatewayHello)
 
-    //self ! new DataFromDevice(ByteString.empty, deviceInfo) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
-
     goto(WaitingForData) using new WaitingForDataStateData(sparkDeviceIdIdentifiedDeviceInfo)
   }
 
-  protected def disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData): Unit = {
+  protected def disconnectAllOtherDevicesOfTheSameSparkDeviceIdIfAny(currentDevices: CurrentDevices, sd: WaitingForCurrentDevicesStateData): Unit = {
     val remoteAddressIdWithTheSameSparkDeviceId = currentDevices.devices.filter(_.isInstanceOf[SparkDeviceIdIdentifiedDeviceInfo]).map(_.asInstanceOf[SparkDeviceIdIdentifiedDeviceInfo]).filter(_.sparkDeviceId.equals(sd.deviceHello.sparkDeviceId)).map(_.remoteAddress.id)
-    disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(remoteAddressIdWithTheSameSparkDeviceId, sd.deviceHello.sparkDeviceId)
+    disconnectAllOtherDevicesOfTheSameSparkDeviceIdIfAny(remoteAddressIdWithTheSameSparkDeviceId, sd.deviceHello.sparkDeviceId)
   }
 
-  protected def disconnectAllOtherDevicesOfTheSameSaprkDeviceIdIfAny(remoteAddressIdWithTheSameSparkDeviceId: Seq[Long], sparkDeviceId: String): Unit = if (remoteAddressIdWithTheSameSparkDeviceId.size > 0) {
+  protected def disconnectAllOtherDevicesOfTheSameSparkDeviceIdIfAny(remoteAddressIdWithTheSameSparkDeviceId: Seq[Long], sparkDeviceId: String): Unit = if (remoteAddressIdWithTheSameSparkDeviceId.size > 0) {
     val disconnect = new Disconnect(delayBeforeNextConnectionAttemptInSecondsThatWillBeSendInDisconnectToAllNonUniqueDevices)
     log.warning(s"sparkDeviceId '${sparkDeviceId}' is already associated with ${remoteAddressIdWithTheSameSparkDeviceId.size} device(s) (remote address id(s) = ${remoteAddressIdWithTheSameSparkDeviceId.mkString(",")}) but should be unique, sending $disconnect to all of them and allow this (new) one (remote address id ${deviceInfo.remoteAddress.id}) to continue.")
     remoteAddressIdWithTheSameSparkDeviceId.foreach(rid => amaConfig.broadcaster ! new MessageToDevice(rid, disconnect))
