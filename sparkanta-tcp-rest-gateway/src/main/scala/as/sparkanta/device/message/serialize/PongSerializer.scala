@@ -14,7 +14,7 @@ class PongSerializerVersion1 extends Serializer[Pong] {
   import PingSerializerVersion1._
 
   override def serialize(pong: Pong, os: OutputStream): Unit = {
-    os.write(Pong.commandCode)
+    os.write(Pong.messageCode)
     os.write(serializationVersion)
   }
 }

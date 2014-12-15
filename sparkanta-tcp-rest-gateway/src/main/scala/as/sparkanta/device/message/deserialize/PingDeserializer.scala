@@ -12,7 +12,7 @@ class PingDeserializer extends Deserializer[Ping] {
     1 -> currentDeserializer
   )
 
-  override def commandCode: Int = Ping.commandCode
+  override def messageCode: Int = Ping.messageCode
 
   override def deserialize(is: InputStream): Ping = deserialize(is, is.read)
 
@@ -23,7 +23,7 @@ class PingDeserializer extends Deserializer[Ping] {
 }
 
 class PingDeserializerVersion1 extends Deserializer[Ping] {
-  override def commandCode: Int = ???
+  override def messageCode: Int = ???
 
   override def deserialize(is: InputStream): Ping = new Ping
 }

@@ -11,15 +11,15 @@ class Deserializers(protected final val deserializers: Seq[Deserializer[MessageF
       new DisconnectDeserializer,
       new PingDeserializer,
       new PongDeserializer,
-      new ServerHelloDeserializer
+      new GatewayHelloDeserializer
     )
   )
 
-  override def commandCode: Int = ???
+  override def messageCode: Int = ???
 
   override def deserialize(is: InputStream): MessageFormDevice = deserialize(is, is.read)
 
-  protected def deserialize(is: InputStream, commandCode: Int): MessageFormDevice =
-    deserializers.find(_.commandCode == commandCode).map(_.deserialize(is)).getOrElse(throw new Exception(s"Unknown command $commandCode code, can not deserialize."))
+  protected def deserialize(is: InputStream, messageCode: Int): MessageFormDevice =
+    deserializers.find(_.messageCode == messageCode).map(_.deserialize(is)).getOrElse(throw new Exception(s"Unknown message $messageCode code, can not deserialize."))
 
 }

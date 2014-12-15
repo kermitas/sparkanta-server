@@ -12,7 +12,7 @@ class PongDeserializer extends Deserializer[Pong] {
     1 -> currentDeserializer
   )
 
-  override def commandCode: Int = Pong.commandCode
+  override def messageCode: Int = Pong.messageCode
 
   override def deserialize(is: InputStream): Pong = deserialize(is, is.read)
 
@@ -23,7 +23,7 @@ class PongDeserializer extends Deserializer[Pong] {
 }
 
 class PongDeserializerVersion1 extends Deserializer[Pong] {
-  override def commandCode: Int = ???
+  override def messageCode: Int = ???
 
   override def deserialize(is: InputStream): Pong = new Pong
 }

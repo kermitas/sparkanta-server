@@ -1,7 +1,7 @@
 package as.sparkanta.device.message
 
 object Pong {
-  lazy final val commandCode: Int = 4
+  lazy final val messageCode: Int = 4
 }
 
 class Pong extends MessageToDevice with MessageFormDevice with DoNotForwardToRestServer {

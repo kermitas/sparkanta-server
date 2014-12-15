@@ -12,7 +12,7 @@ class DeviceHelloDeserializer extends Deserializer[DeviceHello] {
     1 -> currentDeserializer
   )
 
-  override def commandCode: Int = DeviceHello.commandCode
+  override def messageCode: Int = DeviceHello.messageCode
 
   override def deserialize(is: InputStream): DeviceHello = deserialize(is, is.read)
 
@@ -23,7 +23,7 @@ class DeviceHelloDeserializer extends Deserializer[DeviceHello] {
 }
 
 class DeviceHelloDeserializerVersion1 extends Deserializer[DeviceHello] {
-  override def commandCode: Int = ???
+  override def messageCode: Int = ???
 
   override def deserialize(is: InputStream): DeviceHello = {
     val sparkDeviceIdLength = is.read

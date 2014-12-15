@@ -8,7 +8,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, Ping, Pong, Disconnect, DeviceHello, ServerHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, Ping, Pong, Disconnect, DeviceHello, GatewayHello }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
@@ -219,7 +219,7 @@ class IncomingDataListener(
 
     amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sparkDeviceIdIdentifiedDeviceInfo, pingPongCountPerSecond)
     amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, deviceHello)
-    amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new ServerHello)
+    amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new GatewayHello)
 
     //self ! new DataFromDevice(ByteString.empty, deviceInfo) // empty message will make next state to execute and see if there is complete message in buffer (or there is no)
 

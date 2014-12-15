@@ -12,7 +12,7 @@ class DisconnectDeserializer extends Deserializer[Disconnect] {
     1 -> currentDeserializer
   )
 
-  override def commandCode: Int = Disconnect.commandCode
+  override def messageCode: Int = Disconnect.messageCode
 
   override def deserialize(is: InputStream): Disconnect = deserialize(is, is.read)
 
@@ -23,7 +23,7 @@ class DisconnectDeserializer extends Deserializer[Disconnect] {
 }
 
 class DisconnectDeserializerVersion1 extends Deserializer[Disconnect] {
-  override def commandCode: Int = ???
+  override def messageCode: Int = ???
 
   override def deserialize(is: InputStream): Disconnect = {
     val delayBeforeNextConnectionAttemptInSeconds = is.read
