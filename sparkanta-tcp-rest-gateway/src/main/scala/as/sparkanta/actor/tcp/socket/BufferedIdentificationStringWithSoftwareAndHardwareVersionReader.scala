@@ -6,7 +6,7 @@ class BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(identific
 
   def this(identificationString: String) = this(identificationString.getBytes)
 
-  protected var buffer: ByteString = CompactByteString.empty
+  /*protected*/ var buffer: ByteString = CompactByteString.empty
 
   def bufferIncomingData(data: ByteString): Unit = buffer = buffer ++ data
 

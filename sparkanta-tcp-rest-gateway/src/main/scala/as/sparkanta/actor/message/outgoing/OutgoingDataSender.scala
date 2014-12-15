@@ -71,7 +71,7 @@ class OutgoingDataSender(
   }
 
   onTransition {
-    case fromState -> toState => log.info(s"State change from $fromState to $toState")
+    case fromState -> toState => log.debug(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {

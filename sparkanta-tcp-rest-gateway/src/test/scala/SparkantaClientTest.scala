@@ -42,7 +42,7 @@ class SparkantaClientTest extends FeatureSpec with Matchers {
     println("Connecting...")
 
     val os = {
-      val socket = new Socket("localhost", 8080)
+      val socket = new Socket("192.168.2.25", 8080)
       socket.getOutputStream
     }
 

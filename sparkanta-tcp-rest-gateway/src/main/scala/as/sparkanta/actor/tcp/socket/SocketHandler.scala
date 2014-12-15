@@ -23,7 +23,7 @@ object SocketHandler {
 
   sealed trait StateData extends Serializable
   case class SoftwareVersionUnidentifiedStateData(incomingDataReader: BufferedIdentificationStringWithSoftwareAndHardwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
-  case class WaitingForDataStateData(softwareVersion: Int) extends StateData
+  case class WaitingForDataStateData(incomingDataListener: ActorRef) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -69,7 +69,11 @@ class SocketHandler(
 
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
-      amaConfig.broadcaster ! new DataFromDevice(dataFromDevice, deviceInfo)
+
+      val dataFromDeviceMessage = new DataFromDevice(dataFromDevice, deviceInfo)
+
+      sd.incomingDataListener ! dataFromDeviceMessage
+      amaConfig.broadcaster ! dataFromDeviceMessage
       stay using sd
     }
 
@@ -119,6 +123,8 @@ class SocketHandler(
   protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
     sd.incomingDataReader.bufferIncomingData(data)
 
+    log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${sd.incomingDataReader.buffer.size} (${sd.incomingDataReader.buffer.map("" + _).mkString(",")}).")
+
     sd.incomingDataReader.getSoftwareAndHardwareVersion match {
       case Some((softwareVersion, hardwareVersion)) => {
 
@@ -135,11 +141,11 @@ class SocketHandler(
           val softwareAndHardwareIdentifiedDeviceInfo = deviceInfo.identifySoftwareAndHardwareVersion(softwareVersion, hwVersion)
           deviceInfo = softwareAndHardwareIdentifiedDeviceInfo
 
-          prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer, softwareAndHardwareIdentifiedDeviceInfo)
+          val incomingDataListener = prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(sd.incomingDataReader.getBuffer, softwareAndHardwareIdentifiedDeviceInfo)
 
           amaConfig.broadcaster ! new SoftwareAndHardwareVersionWasIdentified(deviceInfo)
 
-          goto(WaitingForData) using new WaitingForDataStateData(softwareVersion)
+          goto(WaitingForData) using new WaitingForDataStateData(incomingDataListener)
 
         } else {
           throw new Exception(s"Software version $softwareVersion is not supported.")
@@ -150,7 +156,7 @@ class SocketHandler(
     }
   }
 
-  protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString, softwareAndHardwareIdentifiedDeviceInfo: SoftwareAndHardwareIdentifiedDeviceInfo): Unit = {
+  protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString, softwareAndHardwareIdentifiedDeviceInfo: SoftwareAndHardwareIdentifiedDeviceInfo): ActorRef = {
 
     val softwareVersion = 1
 
@@ -173,9 +179,15 @@ class SocketHandler(
     }
 
     context.watch(incomingDataListener)
-    incomingDataListener ! new DataFromDevice(incomingDataBuffer, deviceInfo)
+
+    if (incomingDataBuffer.size > 0) {
+      log.debug(s"Forwarding ${incomingDataBuffer.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id} to incoming data listener, (${incomingDataBuffer.map("" + _).mkString(",")}).")
+      incomingDataListener ! new DataFromDevice(incomingDataBuffer, deviceInfo)
+    }
 
     // ---
+
+    incomingDataListener
   }
 
   protected def terminate(reason: FSM.Reason, currentState: SocketHandler.State, stateData: SocketHandler.StateData): Unit = {

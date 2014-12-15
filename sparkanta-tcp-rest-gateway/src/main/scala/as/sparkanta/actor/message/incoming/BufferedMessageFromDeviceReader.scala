@@ -7,7 +7,7 @@ import as.sparkanta.device.message.deserialize.Deserializer
 
 class BufferedMessageFromDeviceReader(messageHeader: MessageLengthHeaderCreator, deserializer: Deserializer[MessageFormDevice]) {
 
-  protected var buffer: ByteString = CompactByteString.empty
+  /*protected*/ var buffer: ByteString = CompactByteString.empty
   protected var incomingMessageLength: Option[Int] = None
 
   def bufferIncomingData(data: ByteString): Unit = buffer = buffer ++ data
