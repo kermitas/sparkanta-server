@@ -126,7 +126,7 @@ class SocketHandler(
 
         val hwVersion = HardwareVersion(hardwareVersion)
 
-        log.debug(s"Device of runtimeId ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
+        log.debug(s"Device ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
 
         if (softwareVersion == 1) {
 
