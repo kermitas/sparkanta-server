@@ -10,7 +10,7 @@ import akka.util.{ FSMSuccessOrStop, ByteString }
 import as.sparkanta.actor.message.outgoing.OutgoingDataSender
 import as.sparkanta.actor.message.incoming.IncomingDataListener
 import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
-import as.sparkanta.device.message.length.Message256LengthHeaderCreator
+import as.sparkanta.device.message.length.Message255LengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializers
 import as.sparkanta.device.message.serialize.Serializers
 import scala.net.IdentifiedInetSocketAddress
@@ -160,7 +160,7 @@ class SocketHandler(
 
     val softwareVersion = 1
 
-    val messageLengthHeaderCreator = new Message256LengthHeaderCreator
+    val messageLengthHeaderCreator = new Message255LengthHeaderCreator
 
     // ---
 

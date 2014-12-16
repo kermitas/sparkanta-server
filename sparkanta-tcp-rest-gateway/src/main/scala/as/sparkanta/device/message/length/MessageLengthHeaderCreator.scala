@@ -1,11 +1,11 @@
 package as.sparkanta.device.message.length
 
 /**
- * @param messageHeaderLength in bytes, for example 1 (that means messages of length from 0 to 256)
+ * @param messageHeaderLength in bytes, for example 1 (that means messages of length from 0 to 255)
  */
 abstract class MessageLengthHeaderCreator( final val messageHeaderLength: Int) {
 
-  final val maxMessageLength: Int = Math.pow(256, messageHeaderLength).toInt
+  final val maxMessageLength: Int = Math.pow(256, messageHeaderLength).toInt - 1
 
   def readMessageLength(bytes: Array[Byte]): Int = if (bytes.length >= messageHeaderLength) {
     safeReadMessageLength(bytes)

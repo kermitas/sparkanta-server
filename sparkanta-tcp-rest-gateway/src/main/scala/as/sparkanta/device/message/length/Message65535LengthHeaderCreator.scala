@@ -2,7 +2,7 @@ package as.sparkanta.device.message.length
 
 import java.io.{ ByteArrayOutputStream, ByteArrayInputStream, DataOutputStream, DataInputStream }
 
-class Message65536LengthHeaderCreator extends MessageLengthHeaderCreator(2) {
+class Message65535LengthHeaderCreator extends MessageLengthHeaderCreator(2) {
 
   protected override def safeReadMessageLength(bytes: Array[Byte]): Int = new DataInputStream(new ByteArrayInputStream(bytes)).readShort
 
