@@ -1,7 +1,8 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.{ OutputStream, DataOutputStream }
-import as.sparkanta.device.message.{ PinConfiguration, AnalogPinWorkMode, AnalogOutput, AnalogInput, AnalogPullUpInput, AnalogPullDownInput, AnalogInputPinReadNotification, EachAnalogProbeValue, DigitalPinWorkMode, DigitalOutput, DigitalInput, DigitalPullUpInput, DigitalPullDownInput, DigitalInputPinReadNotification, EachDigitalProbeValue }
+import as.sparkanta.device.message.PinConfiguration
+import as.sparkanta.device.config.{ AnalogPinWorkMode, AnalogOutput, AnalogInput, AnalogPullUpInput, AnalogPullDownInput, AnalogInputPinReadNotification, EachAnalogProbeValue, DigitalPinWorkMode, DigitalOutput, DigitalInput, DigitalPullUpInput, DigitalPullDownInput, DigitalInputPinReadNotification, EachDigitalProbeValue }
 
 class PinConfigurationSerializer extends PinConfigurationSerializerVersion1
 
@@ -19,15 +20,6 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
 
     val daos = new DataOutputStream(os)
 
-    serializeAnalogPinWorkMode(pinConfiguration.a0.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a1.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a2.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a3.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a4.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a5.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a6.workMode, daos)
-    serializeAnalogPinWorkMode(pinConfiguration.a7.workMode, daos)
-
     serializeDigitalPinWorkMode(pinConfiguration.d0.workMode, daos)
     serializeDigitalPinWorkMode(pinConfiguration.d1.workMode, daos)
     serializeDigitalPinWorkMode(pinConfiguration.d2.workMode, daos)
@@ -36,6 +28,15 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
     serializeDigitalPinWorkMode(pinConfiguration.d5.workMode, daos)
     serializeDigitalPinWorkMode(pinConfiguration.d6.workMode, daos)
     serializeDigitalPinWorkMode(pinConfiguration.d7.workMode, daos)
+
+    serializeAnalogPinWorkMode(pinConfiguration.a0.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a1.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a2.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a3.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a4.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a5.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a6.workMode, daos)
+    serializeAnalogPinWorkMode(pinConfiguration.a7.workMode, daos)
   }
 
   protected def serializeAnalogPinWorkMode(apwm: AnalogPinWorkMode, daos: DataOutputStream): Unit = {

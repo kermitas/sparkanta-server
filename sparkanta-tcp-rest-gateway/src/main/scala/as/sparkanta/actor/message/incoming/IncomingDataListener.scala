@@ -8,7 +8,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, Ping, Pong, Disconnect, DeviceHello, GatewayHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, Ping, Pong, Disconnect, DeviceHello, GatewayHello, ServerHello }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
@@ -218,6 +218,35 @@ class IncomingDataListener(
     amaConfig.broadcaster ! new SparkDeviceIdWasIdentified(sparkDeviceIdIdentifiedDeviceInfo, pingPongCountPerSecond)
     amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, deviceHello)
     amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new GatewayHello)
+
+    // TODO to remove
+    {
+      amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new ServerHello)
+
+      import as.sparkanta.device.message.PinConfiguration
+      import as.sparkanta.device.config._
+
+      val pinConfiguration = new PinConfiguration(
+        new DigitalPinConfig(D0, new DigitalInput(1000.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D1, new DigitalInput(1001.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D2, new DigitalInput(1002.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D3, new DigitalInput(1003.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D4, new DigitalInput(1004.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D5, new DigitalInput(1005.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D6, new DigitalInput(1006.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D7, new DigitalInput(1007.toChar, EachDigitalProbeValue)),
+        new AnalogPinConfig(A0, new AnalogInput(1010.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A1, new AnalogInput(1011.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A2, new AnalogInput(1012.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A3, new AnalogInput(1013.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A4, new AnalogInput(1014.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A5, new AnalogInput(1015.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A6, new AnalogInput(1016.toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A7, new AnalogInput(1017.toChar, EachAnalogProbeValue))
+      )
+
+      amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
+    }
 
     goto(WaitingForData) using new WaitingForDataStateData(sparkDeviceIdIdentifiedDeviceInfo)
   }
