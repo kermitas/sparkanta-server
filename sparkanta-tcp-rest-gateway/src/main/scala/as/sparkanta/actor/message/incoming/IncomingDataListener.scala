@@ -8,7 +8,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, Ping, Pong, Disconnect, DeviceHello, GatewayHello, ServerHello }
+import as.sparkanta.device.message.{ MessageFormDevice => MessageFromDeviceMarker, _ }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.deserialize.Deserializer
 import as.sparkanta.gateway.message.{ DeviceIsDown, MessageFromDevice, SparkDeviceIdWasIdentified, DataFromDevice, GetCurrentDevices, CurrentDevices }
@@ -219,13 +219,14 @@ class IncomingDataListener(
     amaConfig.broadcaster ! new MessageFromDevice(sparkDeviceIdIdentifiedDeviceInfo, deviceHello)
     amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new GatewayHello)
 
-    // TODO to remove
+    // TODO to remove ============================================
     {
       amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, new ServerHello)
 
       import as.sparkanta.device.message.PinConfiguration
       import as.sparkanta.device.config._
 
+      /*
       val pinConfiguration = new PinConfiguration(
         new DigitalPinConfig(D0, new DigitalInput(1000.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D1, new DigitalInput(1001.toChar, EachDigitalProbeValue)),
@@ -234,7 +235,8 @@ class IncomingDataListener(
         new DigitalPinConfig(D4, new DigitalInput(1004.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D5, new DigitalInput(1005.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D6, new DigitalInput(1006.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D7, new DigitalInput(1007.toChar, EachDigitalProbeValue)),
+        //new DigitalPinConfig(D7, new DigitalInput(1007.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D7, new DigitalOutput(Low)),
         new AnalogPinConfig(A0, new AnalogInput(1010.toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A1, new AnalogInput(1011.toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A2, new AnalogInput(1012.toChar, EachAnalogProbeValue)),
@@ -243,10 +245,53 @@ class IncomingDataListener(
         new AnalogPinConfig(A5, new AnalogInput(1015.toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A6, new AnalogInput(1016.toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A7, new AnalogInput(1017.toChar, EachAnalogProbeValue))
+      )*/
+
+      /*
+      val pinConfiguration = new PinConfiguration(
+        new DigitalPinConfig(D0, new DigitalOutput(Low)),
+        new DigitalPinConfig(D1, new DigitalOutput(Low)),
+        new DigitalPinConfig(D2, new DigitalOutput(Low)),
+        new DigitalPinConfig(D3, new DigitalOutput(Low)),
+        new DigitalPinConfig(D4, new DigitalOutput(Low)),
+        new DigitalPinConfig(D5, new DigitalOutput(Low)),
+        new DigitalPinConfig(D6, new DigitalOutput(Low)),
+        new DigitalPinConfig(D7, new DigitalOutput(Low)),
+        new AnalogPinConfig(A0, new AnalogOutput(0)),
+        new AnalogPinConfig(A1, new AnalogOutput(0)),
+        new AnalogPinConfig(A2, new AnalogOutput(0)),
+        new AnalogPinConfig(A3, new AnalogOutput(0)),
+        new AnalogPinConfig(A4, new AnalogOutput(0)),
+        new AnalogPinConfig(A5, new AnalogOutput(0)),
+        new AnalogPinConfig(A6, new AnalogOutput(0)),
+        new AnalogPinConfig(A7, new AnalogOutput(0))
+      )*/
+
+      val pinConfiguration = new PinConfiguration(
+        new DigitalPinConfig(D0, new DigitalOutput(Low)),
+        new DigitalPinConfig(D1, new DigitalOutput(Low)),
+        new DigitalPinConfig(D2, new DigitalOutput(Low)),
+        new DigitalPinConfig(D3, new DigitalInput(1003.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D4, new DigitalInput(1004.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D5, new DigitalInput(1005.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D6, new DigitalInput(1006.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D7, new DigitalOutput(Low)),
+        new AnalogPinConfig(A0, new AnalogOutput(0)),
+        new AnalogPinConfig(A1, new AnalogOutput(0)),
+        new AnalogPinConfig(A2, new AnalogOutput(0)),
+        new AnalogPinConfig(A3, new AnalogOutput(0)),
+        new AnalogPinConfig(A4, new AnalogOutput(0)),
+        new AnalogPinConfig(A5, new AnalogOutput(0)),
+        new AnalogPinConfig(A6, new AnalogOutput(0)),
+        new AnalogPinConfig(A7, new AnalogOutput(0))
       )
 
       amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
+
+      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id))
+      context.actorOf(props)
     }
+    // TODO to remove ============================================
 
     goto(WaitingForData) using new WaitingForDataStateData(sparkDeviceIdIdentifiedDeviceInfo)
   }
@@ -318,6 +363,31 @@ class IncomingDataListener(
       )
 
       case _ =>
+    }
+  }
+}
+
+// TODO to remove
+class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long) extends akka.actor.Actor {
+
+  import as.sparkanta.device.config._
+
+  val turnOn = new MessageToDevice(remoteAddressId, new as.sparkanta.device.message.DigitalPinValue(D7, High))
+  val turnOff = new MessageToDevice(remoteAddressId, new as.sparkanta.device.message.DigitalPinValue(D7, Low))
+
+  override def preStart = {
+    context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
+  }
+
+  override def receive = {
+    case true => {
+      broadcaster ! turnOn
+      context.system.scheduler.scheduleOnce(600 milliseconds, self, false)(context.dispatcher)
+    }
+
+    case false => {
+      broadcaster ! turnOff
+      context.system.scheduler.scheduleOnce(600 milliseconds, self, true)(context.dispatcher)
     }
   }
 }
