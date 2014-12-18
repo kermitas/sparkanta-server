@@ -143,11 +143,11 @@ class IncomingDataListener(
   }
 
   protected def analyzeIncomingDataFromUnidentifiedDevice(dataFromDevice: ByteString, sd: SparkDeviceIdUnidentifiedStateData) = {
-    //log.debug(s"Received ${dataFromDevice.size} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}.")
+    log.debug(s"Received ${dataFromDevice.size} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}.")
 
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
-    log.debug(s"Received ${dataFromDevice.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${bufferedMessageFromDeviceReader.buffer.size} (${bufferedMessageFromDeviceReader.buffer.map("" + _).mkString(",")}).")
+    //log.debug(s"Received ${dataFromDevice.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${bufferedMessageFromDeviceReader.buffer.size} (${bufferedMessageFromDeviceReader.buffer.map("" + _).mkString(",")}).")
 
     bufferedMessageFromDeviceReader.getMessageFormDevice match {
 
@@ -212,6 +212,9 @@ class IncomingDataListener(
   }
 
   protected def gotoWaitingForData(deviceHello: DeviceHello, pingPongCountPerSecond: Option[Long]) = {
+
+    log.info(s"Ping-pong stress test result for device of remoteAddressId ${deviceInfo.remoteAddress.id} is $pingPongCountPerSecond.")
+
     val sparkDeviceIdIdentifiedDeviceInfo = deviceInfo.identifySparkDeviceId(deviceHello.sparkDeviceId, pingPongCountPerSecond)
     deviceInfo = sparkDeviceIdIdentifiedDeviceInfo
 
@@ -226,26 +229,27 @@ class IncomingDataListener(
       import as.sparkanta.device.message.PinConfiguration
       import as.sparkanta.device.config._
 
-      /*
+      val pinReadTimeInMs = 500
+
       val pinConfiguration = new PinConfiguration(
-        new DigitalPinConfig(D0, new DigitalInput(1000.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D1, new DigitalInput(1001.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D2, new DigitalInput(1002.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D3, new DigitalInput(1003.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D4, new DigitalInput(1004.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D5, new DigitalInput(1005.toChar, EachDigitalProbeValue)),
-        new DigitalPinConfig(D6, new DigitalInput(1006.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D0, new DigitalInput(pinReadTimeInMs.toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D1, new DigitalInput((pinReadTimeInMs + 1).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D2, new DigitalInput((pinReadTimeInMs + 2).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D3, new DigitalInput((pinReadTimeInMs + 3).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D4, new DigitalInput((pinReadTimeInMs + 4).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D5, new DigitalInput((pinReadTimeInMs + 5).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D6, new DigitalInput((pinReadTimeInMs + 6).toChar, EachDigitalProbeValue)),
         //new DigitalPinConfig(D7, new DigitalInput(1007.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D7, new DigitalOutput(Low)),
-        new AnalogPinConfig(A0, new AnalogInput(1010.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A1, new AnalogInput(1011.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A2, new AnalogInput(1012.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A3, new AnalogInput(1013.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A4, new AnalogInput(1014.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A5, new AnalogInput(1015.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A6, new AnalogInput(1016.toChar, EachAnalogProbeValue)),
-        new AnalogPinConfig(A7, new AnalogInput(1017.toChar, EachAnalogProbeValue))
-      )*/
+        new AnalogPinConfig(A0, new AnalogInput((pinReadTimeInMs + 10).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A1, new AnalogInput((pinReadTimeInMs + 11).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A2, new AnalogInput((pinReadTimeInMs + 12).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A3, new AnalogInput((pinReadTimeInMs + 13).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A4, new AnalogInput((pinReadTimeInMs + 14).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A5, new AnalogInput((pinReadTimeInMs + 15).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A6, new AnalogInput((pinReadTimeInMs + 16).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A7, new AnalogInput((pinReadTimeInMs + 17).toChar, EachAnalogProbeValue))
+      )
 
       /*
       val pinConfiguration = new PinConfiguration(
@@ -267,9 +271,10 @@ class IncomingDataListener(
         new AnalogPinConfig(A7, new AnalogOutput(0))
       )*/
 
+      /*
       val pinConfiguration = new PinConfiguration(
         new DigitalPinConfig(D0, new DigitalOutput(Low)),
-        new DigitalPinConfig(D1, new DigitalOutput(Low)),
+        new DigitalPinConfig(D1, new DigitalInput(1001.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D2, new DigitalOutput(Low)),
         new DigitalPinConfig(D3, new DigitalInput(1003.toChar, EachDigitalProbeValue)),
         new DigitalPinConfig(D4, new DigitalInput(1004.toChar, EachDigitalProbeValue)),
@@ -284,11 +289,11 @@ class IncomingDataListener(
         new AnalogPinConfig(A5, new AnalogOutput(0)),
         new AnalogPinConfig(A6, new AnalogOutput(0)),
         new AnalogPinConfig(A7, new AnalogOutput(0))
-      )
+      )*/
 
       amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
 
-      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id))
+      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 200))
       context.actorOf(props)
     }
     // TODO to remove ============================================
@@ -315,9 +320,11 @@ class IncomingDataListener(
 
   protected def deserializeMessages(dataFromDevice: ByteString, sparkDeviceId: String): Seq[MessageFromDeviceMarker] = {
 
+    log.debug(s"Received ${dataFromDevice.size} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}.")
+
     bufferedMessageFromDeviceReader.bufferIncomingData(dataFromDevice)
 
-    log.debug(s"Received ${dataFromDevice.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, sparkDeviceId '$sparkDeviceId', currently buffered ${bufferedMessageFromDeviceReader.buffer.size} (${bufferedMessageFromDeviceReader.buffer.map("" + _).mkString(",")}).")
+    //log.debug(s"Received ${dataFromDevice.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, sparkDeviceId '$sparkDeviceId', currently buffered ${bufferedMessageFromDeviceReader.buffer.size} (${bufferedMessageFromDeviceReader.buffer.map("" + _).mkString(",")}).")
 
     val result = new ListBuffer[MessageFromDeviceMarker]
 
@@ -368,7 +375,7 @@ class IncomingDataListener(
 }
 
 // TODO to remove
-class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long) extends akka.actor.Actor {
+class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor {
 
   import as.sparkanta.device.config._
 
@@ -382,12 +389,12 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long) exten
   override def receive = {
     case true => {
       broadcaster ! turnOn
-      context.system.scheduler.scheduleOnce(600 milliseconds, self, false)(context.dispatcher)
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, false)(context.dispatcher)
     }
 
     case false => {
       broadcaster ! turnOff
-      context.system.scheduler.scheduleOnce(600 milliseconds, self, true)(context.dispatcher)
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, true)(context.dispatcher)
     }
   }
 }

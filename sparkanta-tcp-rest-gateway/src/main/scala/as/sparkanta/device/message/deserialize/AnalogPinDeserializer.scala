@@ -29,8 +29,8 @@ class AnalogPinDeserializerVersion1 extends Deserializer[AnalogPinValue] {
   override def deserialize(is: InputStream): AnalogPinValue = {
 
     val pin = AnalogPin(is.read)
-    val digitalPin = new DataInputStream(is).readChar
+    val analogPinValue = new DataInputStream(is).readChar
 
-    new AnalogPinValue(pin, digitalPin)
+    new AnalogPinValue(pin, analogPinValue)
   }
 }

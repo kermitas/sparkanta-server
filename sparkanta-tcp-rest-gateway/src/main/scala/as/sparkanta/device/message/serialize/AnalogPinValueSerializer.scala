@@ -1,6 +1,6 @@
 package as.sparkanta.device.message.serialize
 
-import java.io.{ OutputStream, DataOutputStream }
+import java.io.OutputStream
 import as.sparkanta.device.message.AnalogPinValue
 
 class AnalogPinValueSerializer extends AnalogPinValueSerializerVersion1
@@ -17,7 +17,6 @@ class AnalogPinValueSerializerVersion1 extends Serializer[AnalogPinValue] {
     os.write(AnalogPinValue.messageCode)
     os.write(serializationVersion)
     os.write(analogPinValue.pin.pinNumber)
-
-    new DataOutputStream(os).writeChar(analogPinValue.pinValue)
+    os.write(analogPinValue.pinValue)
   }
 }

@@ -121,9 +121,11 @@ class SocketHandler(
   }
 
   protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
+    log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}.")
+
     sd.incomingDataReader.bufferIncomingData(data)
 
-    log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${sd.incomingDataReader.buffer.size} (${sd.incomingDataReader.buffer.map("" + _).mkString(",")}).")
+    //log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${sd.incomingDataReader.buffer.size} (${sd.incomingDataReader.buffer.map("" + _).mkString(",")}).")
 
     sd.incomingDataReader.getSoftwareAndHardwareVersion match {
       case Some((softwareVersion, hardwareVersion)) => {

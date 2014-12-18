@@ -29,8 +29,8 @@ class DigitalPinDeserializerVersion1 extends Deserializer[DigitalPinValue] {
   override def deserialize(is: InputStream): DigitalPinValue = {
 
     val pin = DigitalPin(is.read)
-    val digitalPin = DigitalPinValueConfig(is.read)
+    val digitalPinValue = DigitalPinValueConfig(is.read)
 
-    new DigitalPinValue(pin, digitalPin)
+    new DigitalPinValue(pin, digitalPinValue)
   }
 }

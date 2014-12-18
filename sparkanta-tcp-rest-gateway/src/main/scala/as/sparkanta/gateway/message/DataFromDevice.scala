@@ -8,6 +8,7 @@ class DataFromDevice(
   val deviceInfo: NetworkDeviceInfo
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(data=${data.size} bytes (${data.map("" + _).mkString(",")}),deviceInfo=$deviceInfo)"
+  //override def toString = s"${getClass.getSimpleName}(data=${data.size} bytes (${data.map("" + _).mkString(",")}),deviceInfo=$deviceInfo)"
+  override def toString = s"${getClass.getSimpleName}(data=${data.size} bytes,deviceInfo=$deviceInfo)"
 
 }
