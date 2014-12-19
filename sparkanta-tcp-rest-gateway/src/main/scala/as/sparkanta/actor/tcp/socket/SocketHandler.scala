@@ -183,7 +183,8 @@ class SocketHandler(
     context.watch(incomingDataListener)
 
     if (incomingDataBuffer.size > 0) {
-      log.debug(s"Forwarding ${incomingDataBuffer.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id} to incoming data listener, (${incomingDataBuffer.map("" + _).mkString(",")}).")
+      log.debug(s"Forwarding ${incomingDataBuffer.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id} to incoming data listener.")
+      //log.debug(s"Forwarding ${incomingDataBuffer.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id} to incoming data listener, (${incomingDataBuffer.map("" + _).mkString(",")}).")
       incomingDataListener ! new DataFromDevice(incomingDataBuffer, deviceInfo)
     }
 

@@ -10,7 +10,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.ListBuffer
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.gateway.message.{ DataToDevice, DataToDeviceSendConfirmation }
+import as.sparkanta.gateway.message.DataToDevice
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
 import as.sparkanta.device.message.serialize.Serializer
@@ -59,13 +59,13 @@ class OutgoingDataSender(
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
   when(WaitingForDataToSend) {
-    case Event(dataToDevice: DataToDevice, WaitingForDataToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice, sender) }
+    case Event(dataToDevice: DataToDevice, WaitingForDataToSendStateData) => successOrStopWithFailure { sendRequestWhileNothingToDo(dataToDevice, sender()) }
   }
 
   when(WaitingForAck) {
     case Event(Ack, sd: WaitingForAckStateData)                        => successOrStopWithFailure { ackReceived(sd) }
 
-    case Event(dataToDevice: DataToDevice, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice, sender, sd) }
+    case Event(dataToDevice: DataToDevice, sd: WaitingForAckStateData) => successOrStopWithFailure { sendRequestWhileWaitingForAck(dataToDevice, sender(), sd) }
 
     case Event(AckTimeout, sd: WaitingForAckStateData)                 => successOrStopWithFailure { throw new Exception(s"No ACK for more than ${config.waitingForAckTimeoutInSeconds} seconds, closing connection.") }
   }
@@ -100,22 +100,22 @@ class OutgoingDataSender(
     context.watch(outgoingMessageSerializer)
   }
 
-  protected def sendRequestWhileNothingToDo(dataToDevice: DataToDevice, sender: ActorRef) = {
+  protected def sendRequestWhileNothingToDo(dataToDevice: DataToDevice, senderOfDataToDevice: ActorRef) = {
     val waitingForAckTimeout = sendToWire(dataToDevice.data)
-    goto(WaitingForAck) using new WaitingForAckStateData(new ListBuffer[(DataToDevice, ActorRef)], waitingForAckTimeout, dataToDevice, sender)
+    goto(WaitingForAck) using new WaitingForAckStateData(new ListBuffer[(DataToDevice, ActorRef)], waitingForAckTimeout, dataToDevice, senderOfDataToDevice)
   }
 
-  protected def sendRequestWhileWaitingForAck(dataToDevice: DataToDevice, sender: ActorRef, sd: WaitingForAckStateData) = if (sd.outgoingBuffer.size > config.maximumNumberOfBufferedMessages) {
+  protected def sendRequestWhileWaitingForAck(dataToDevice: DataToDevice, senderOfDataToDevice: ActorRef, sd: WaitingForAckStateData) = if (sd.outgoingBuffer.size > config.maximumNumberOfBufferedMessages) {
     stop(FSM.Failure(new Exception(s"Maximum number of ${config.maximumNumberOfBufferedMessages} buffered messages to send reached.")))
   } else {
-    sd.outgoingBuffer += Tuple2(dataToDevice, sender)
+    sd.outgoingBuffer += Tuple2(dataToDevice, senderOfDataToDevice)
     stay using sd
   }
 
   protected def ackReceived(sd: WaitingForAckStateData) = {
-
     sd.waitingForAckTimeout.cancel
-    sd.senderOfDataToDevice ! new DataToDeviceSendConfirmation(sd.currentlySendingDataToDevice)
+
+    sd.currentlySendingDataToDevice.ack.map { ack => sd.senderOfDataToDevice ! ack }
 
     if (sd.outgoingBuffer.isEmpty) {
       goto(WaitingForDataToSend) using WaitingForDataToSendStateData

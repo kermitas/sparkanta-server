@@ -8,10 +8,11 @@ object DataToDevice {
 
 class DataToDevice(
   val remoteAddressId: Long,
-  val data:            ByteString
+  val data:            ByteString,
+  val ack:             Option[Any] = None
 ) extends Serializable {
 
-  def this(remoteAddressId: Long, datas: Array[Byte]*) = this(remoteAddressId, DataToDevice.concatenate(datas))
+  def this(remoteAddressId: Long, ack: Option[Any], datas: Array[Byte]*) = this(remoteAddressId, DataToDevice.concatenate(datas), ack)
 
-  override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,data=${data.size} bytes)"
+  override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,data=${data.size} bytes,ack=$ack)"
 }

@@ -2,13 +2,13 @@ package as.sparkanta.actor.message.outgoing
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
-import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM }
+import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.serialize.Serializer
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker, Disconnect }
 import as.sparkanta.device.message.length.MessageLengthHeaderCreator
-import as.sparkanta.gateway.message.{ DataToDeviceSendConfirmation, DataToDevice }
+import as.sparkanta.gateway.message.DataToDevice
 import as.sparkanta.server.message.MessageToDevice
 import akka.util.FSMSuccessOrStop
 
@@ -19,7 +19,7 @@ object OutgoingMessageSerializer {
 
   sealed trait StateData extends Serializable
   case object WaitingForMessageToSendStateData extends StateData
-  case class DisconnectingDeviceStateData(disconnectDataToDevice: DataToDevice) extends StateData
+  case class DisconnectingDeviceStateData(disconnectMessageToDevice: MessageToDevice) extends StateData
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
@@ -53,15 +53,18 @@ class OutgoingMessageSerializer(
   startWith(WaitingForMessageToSend, WaitingForMessageToSendStateData)
 
   when(WaitingForMessageToSend) {
-    case Event(mtd: MessageToDevice, WaitingForMessageToSendStateData) => successOrStopWithFailure { serializeMessageToDevice(mtd.messageToDevice) }
+    case Event(mtd: MessageToDevice, WaitingForMessageToSendStateData) => successOrStopWithFailure { serializeMessageToDevice(mtd, sender()) }
 
-    case Event(_: DataToDeviceSendConfirmation, stateData)             => stay using stateData
+    case Event(ack: OutgoingMessageSerializerAck, stateData) => {
+      ack.ackListener ! ack.messageToDevice.ack.get
+      stay using stateData
+    }
   }
 
   when(DisconnectingDevice) {
-    case Event(dtdsc: DataToDeviceSendConfirmation, sd: DisconnectingDeviceStateData)        => successOrStopWithFailure { receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(dtdsc, sd) }
+    case Event(ack: OutgoingMessageSerializerAck, sd: DisconnectingDeviceStateData)          => successOrStopWithFailure { receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(ack, sd) }
 
-    case Event(WaitingForAckAfterSendingDisconnectTimeout, sd: DisconnectingDeviceStateData) => stop(FSM.Failure(new Exception(s"Timeout (${config.waitingForAckAfterSendingDisconnectTimeoutInSeconds} seconds) while waiting for ${classOf[DataToDeviceSendConfirmation].getSimpleName} after sending ${classOf[Disconnect].getSimpleName} message.")))
+    case Event(WaitingForAckAfterSendingDisconnectTimeout, sd: DisconnectingDeviceStateData) => stop(FSM.Failure(new Exception(s"Timeout (${config.waitingForAckAfterSendingDisconnectTimeoutInSeconds} seconds) while waiting for ack after sending ${classOf[Disconnect].getSimpleName} message.")))
   }
 
   onTransition {
@@ -86,27 +89,30 @@ class OutgoingMessageSerializer(
     amaConfig.broadcaster ! new Broadcaster.Register(self, new OutgoingMessageSerializerClassifier(remoteAddressId))
   }
 
-  protected def serializeMessageToDevice(messageToDevice: MessageToDeviceMarker) = {
+  protected def serializeMessageToDevice(messageToDevice: MessageToDevice, senderOfMessageToDevice: ActorRef) = {
 
     val dataToDevice = {
-      val messageToDeviceAsByteArray = serializer.serialize(messageToDevice)
+      val messageToDeviceAsByteArray = serializer.serialize(messageToDevice.messageToDevice)
       val messageLengthHeader = messageLengthHeaderCreator.prepareMessageLengthHeader(messageToDeviceAsByteArray.length)
-      new DataToDevice(remoteAddressId, messageLengthHeader, messageToDeviceAsByteArray)
+
+      val ack: Option[Any] = messageToDevice.ack.map { ack => new OutgoingMessageSerializerAck(messageToDevice, senderOfMessageToDevice) }
+
+      new DataToDevice(remoteAddressId, ack, messageLengthHeader, messageToDeviceAsByteArray)
     }
 
     amaConfig.broadcaster ! dataToDevice
 
-    messageToDevice match {
-      case dd: Disconnect => {
+    messageToDevice.messageToDevice match {
+      case _: Disconnect => {
         context.system.scheduler.scheduleOnce(config.waitingForAckAfterSendingDisconnectTimeoutInSeconds seconds, self, WaitingForAckAfterSendingDisconnectTimeout)(context.dispatcher)
-        goto(DisconnectingDevice) using new DisconnectingDeviceStateData(dataToDevice)
+        goto(DisconnectingDevice) using new DisconnectingDeviceStateData(messageToDevice)
       }
 
-      case messageToDevice => stay using WaitingForMessageToSendStateData
+      case _ => stay using WaitingForMessageToSendStateData
     }
   }
 
-  protected def receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(dtdsc: DataToDeviceSendConfirmation, sd: DisconnectingDeviceStateData) = if (dtdsc.successfullySendDataToDevice == sd.disconnectDataToDevice) {
+  protected def receivedDataToDeviceSendConfirmationWhileDisconnectingDevice(ack: OutgoingMessageSerializerAck, sd: DisconnectingDeviceStateData) = if (ack.messageToDevice == sd.disconnectMessageToDevice) {
     log.debug(s"Stopping because received send confirmation of successful sending of ${classOf[Disconnect].getSimpleName} message.")
     stop(FSM.Normal)
   } else {
@@ -128,3 +134,5 @@ class OutgoingMessageSerializer(
     }
   }
 }
+
+class OutgoingMessageSerializerAck(val messageToDevice: MessageToDevice, val ackListener: ActorRef) extends Serializable

@@ -229,7 +229,7 @@ class IncomingDataListener(
       import as.sparkanta.device.message.PinConfiguration
       import as.sparkanta.device.config._
 
-      val pinReadTimeInMs = 500
+      val pinReadTimeInMs = 100
 
       val pinConfiguration = new PinConfiguration(
         new DigitalPinConfig(D0, new DigitalInput(pinReadTimeInMs.toChar, EachDigitalProbeValue)),
@@ -293,7 +293,7 @@ class IncomingDataListener(
 
       amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
 
-      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 200))
+      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 5))
       context.actorOf(props)
     }
     // TODO to remove ============================================
@@ -375,26 +375,37 @@ class IncomingDataListener(
 }
 
 // TODO to remove
-class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor {
+class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor with akka.actor.ActorLogging {
 
   import as.sparkanta.device.config._
+  import as.sparkanta.device.message.DigitalPinValue
 
-  val turnOn = new MessageToDevice(remoteAddressId, new as.sparkanta.device.message.DigitalPinValue(D7, High))
-  val turnOff = new MessageToDevice(remoteAddressId, new as.sparkanta.device.message.DigitalPinValue(D7, Low))
+  val turnOn = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, High), Some(false))
+  val turnOff = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, Low), Some(true))
+  val sndr = self
 
   override def preStart = {
     context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
+    //broadcaster ! turnOff
   }
 
   override def receive = {
     case true => {
-      broadcaster ! turnOn
-      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, false)(context.dispatcher)
+      //log.info("on")
+      //broadcaster ! turnOn
+
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(turnOn, sndr))(context.dispatcher)
+      //context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, false)(context.dispatcher)
     }
 
     case false => {
-      broadcaster ! turnOff
-      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, true)(context.dispatcher)
+      //log.info("off")
+      //broadcaster ! turnOff
+      //val sndr = self
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(turnOff, sndr))(context.dispatcher)
+      //context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds, self, true)(context.dispatcher)
     }
+
+    case m => log.info(s"Received unknown $m.")
   }
 }
