@@ -110,7 +110,7 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: WaitingForDataStateData)                  => goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceIdIdentifiedDeviceInfo)
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
-      log.debug(s"Nothing comes from device of remoteAddressId ${deviceInfo.remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
+      log.info(s"Nothing comes from device of remoteAddressId ${deviceInfo.remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
       amaConfig.broadcaster ! pingMessageToDevice
       stay using sd
     }
@@ -229,6 +229,28 @@ class IncomingDataListener(
       import as.sparkanta.device.message.PinConfiguration
       import as.sparkanta.device.config._
 
+      val pinReadTimeInMs = 500
+
+      val pinConfiguration = new PinConfiguration(
+        new DigitalPinConfig(D0, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D1, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D2, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D3, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D4, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D5, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D6, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeValue)),
+        new DigitalPinConfig(D7, new DigitalOutput(Low)),
+        new AnalogPinConfig(A0, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A1, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A2, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A3, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A4, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A5, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A6, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+        new AnalogPinConfig(A7, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue))
+      )
+
+      /*
       val pinReadTimeInMs = 100
 
       val pinConfiguration = new PinConfiguration(
@@ -250,6 +272,7 @@ class IncomingDataListener(
         new AnalogPinConfig(A6, new AnalogInput((pinReadTimeInMs + 16).toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A7, new AnalogInput((pinReadTimeInMs + 17).toChar, EachAnalogProbeValue))
       )
+      */
 
       /*
       val pinConfiguration = new PinConfiguration(
@@ -293,7 +316,7 @@ class IncomingDataListener(
 
       amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
 
-      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 5))
+      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 1))
       context.actorOf(props)
     }
     // TODO to remove ============================================
@@ -364,10 +387,17 @@ class IncomingDataListener(
     }
 
     stateData match {
-      case isdi: IdentifiedSparkDeviceId => amaConfig.broadcaster ! new DeviceIsDown(
-        isdi.sparkDeviceIdIdentifiedDeviceInfo,
-        isdi.sparkDeviceIdIdentifiedDeviceInfo.timeInSystem
-      )
+      case isdi: IdentifiedSparkDeviceId => {
+
+        val timeInSystemInMs = isdi.sparkDeviceIdIdentifiedDeviceInfo.timeInSystem
+
+        log.info(s"Device of remoteAddressId ${isdi.sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id} is down (time in system ${timeInSystemInMs} ms).")
+
+        amaConfig.broadcaster ! new DeviceIsDown(
+          isdi.sparkDeviceIdIdentifiedDeviceInfo,
+          timeInSystemInMs
+        )
+      }
 
       case _ =>
     }
@@ -385,8 +415,9 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blink
   val sndr = self
 
   override def preStart = {
-    context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
+    //context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
     //broadcaster ! turnOff
+    self ! false
   }
 
   override def receive = {
