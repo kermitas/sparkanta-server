@@ -110,7 +110,7 @@ class IncomingDataListener(
     case Event(_: Disconnect, sd: WaitingForDataStateData)                  => goto(Disconnecting) using new DisconnectingStateData(sd.sparkDeviceIdIdentifiedDeviceInfo)
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => {
-      log.info(s"Nothing comes from device of remoteAddressId ${deviceInfo.remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
+      log.debug(s"Nothing comes from device of remoteAddressId ${deviceInfo.remoteAddress.id} for more than ${config.sendPingOnIncomingDataInactivityIntervalInSeconds} seconds, sending $ping.")
       amaConfig.broadcaster ! pingMessageToDevice
       stay using sd
     }
@@ -229,6 +229,28 @@ class IncomingDataListener(
       import as.sparkanta.device.message.PinConfiguration
       import as.sparkanta.device.config._
 
+      val pinReadTimeInMs = 0
+
+      val pinConfiguration = new PinConfiguration(
+        new DigitalPinConfig(D0, new DigitalOutput(Low)),
+        new DigitalPinConfig(D1, new DigitalOutput(Low)),
+        new DigitalPinConfig(D2, new DigitalOutput(Low)),
+        new DigitalPinConfig(D3, new DigitalOutput(Low)),
+        new DigitalPinConfig(D4, new DigitalOutput(Low)),
+        new DigitalPinConfig(D5, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeChange)),
+        new DigitalPinConfig(D6, new DigitalInput((pinReadTimeInMs + 0).toChar, EachDigitalProbeChange)),
+        new DigitalPinConfig(D7, new DigitalOutput(Low)),
+        new AnalogPinConfig(A0, new AnalogOutput(0)),
+        new AnalogPinConfig(A1, new AnalogOutput(0)),
+        new AnalogPinConfig(A2, new AnalogOutput(0)),
+        new AnalogPinConfig(A3, new AnalogOutput(0)),
+        new AnalogPinConfig(A4, new AnalogOutput(0)),
+        new AnalogPinConfig(A5, new AnalogOutput(0)),
+        new AnalogPinConfig(A6, new AnalogOutput(0)),
+        new AnalogPinConfig(A7, new AnalogOutput(0))
+      )
+
+      /*
       val pinReadTimeInMs = 500
 
       val pinConfiguration = new PinConfiguration(
@@ -248,7 +270,7 @@ class IncomingDataListener(
         new AnalogPinConfig(A5, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A6, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
         new AnalogPinConfig(A7, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue))
-      )
+      )*/
 
       /*
       val pinReadTimeInMs = 100
@@ -314,10 +336,18 @@ class IncomingDataListener(
         new AnalogPinConfig(A7, new AnalogOutput(0))
       )*/
 
-      amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration)
+      amaConfig.broadcaster ! new MessageToDevice(sparkDeviceIdIdentifiedDeviceInfo.remoteAddress.id, pinConfiguration) {
+        val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 1))
+        context.actorOf(props)
+      }
 
-      val props = akka.actor.Props(new TemporaryBlinkingActor(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 1))
-      context.actorOf(props)
+      {
+        val props = akka.actor.Props(new TemporaryDigitalPinReader(amaConfig.broadcaster, deviceInfo.remoteAddress.id))
+        context.actorOf(props)
+      }
+
+      //val props = akka.actor.Props(new TemporaryBlinkingActor1(amaConfig.broadcaster, deviceInfo.remoteAddress.id, 1))
+      //context.actorOf(props)
     }
     // TODO to remove ============================================
 
@@ -404,6 +434,30 @@ class IncomingDataListener(
   }
 }
 
+class TemporaryDigitalPinReaderClassifier(remoteAddressId: Long) extends as.akka.broadcaster.Classifier {
+  override def map(message: Any, sender: ActorRef) = message match {
+    case a: MessageFromDevice if a.deviceInfo.remoteAddress.id == remoteAddressId && a.messageFromDevice.isInstanceOf[DigitalPinValue] => Some(a.messageFromDevice.asInstanceOf[DigitalPinValue])
+    case _ => None
+  }
+}
+
+// TODO to remove
+class TemporaryDigitalPinReader(broadcaster: ActorRef, remoteAddressId: Long) extends akka.actor.Actor with akka.actor.ActorLogging {
+
+  import as.sparkanta.device.config._
+  import as.sparkanta.device.message.DigitalPinValue
+
+  override def preStart = {
+    broadcaster ! new Broadcaster.Register(self, new TemporaryDigitalPinReaderClassifier(remoteAddressId))
+    broadcaster ! new MessageToDevice(remoteAddressId, new DigitalPinValue(D4, High))
+  }
+
+  override def receive = {
+    case dpv: DigitalPinValue => log.info(s"Received $dpv.")
+    case m                    => log.info(s"Received unknown $m.")
+  }
+}
+
 // TODO to remove
 class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor with akka.actor.ActorLogging {
 
@@ -440,3 +494,51 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blink
     case m => log.info(s"Received unknown $m.")
   }
 }
+
+/*
+// TODO to remove
+class TemporaryBlinkingActor1(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor with akka.actor.ActorLogging {
+
+  import as.sparkanta.device.config._
+  import as.sparkanta.device.message.DigitalPinValue
+
+  final val pin = Array(D0, D1, D2, D3, D4, D5, D6, D7)
+  var pinNumber = 0
+  /*
+  val turnOn = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, High), Some(false))
+  val turnOff = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, Low), Some(true))
+  */
+  val sndr = self
+
+  override def preStart = {
+    //context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
+    //broadcaster ! turnOff
+    self ! false
+  }
+
+  override def receive = {
+
+    /*
+    case false => {
+      broadcaster ! new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), Low), None)
+      pinNumber += 1
+      if (pinNumber > 7) pinNumber = 0
+      broadcaster ! new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), High), Some(false))
+    }*/
+
+    case false => {
+      //broadcaster ! new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), Low), Some(true))
+      val mess = new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), Low), Some(true))
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(mess, sndr))(context.dispatcher)
+    }
+
+    case true => {
+      pinNumber += 1
+      if (pinNumber > 7) pinNumber = 0
+      val mess = new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), High), Some(false))
+      context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(mess, sndr))(context.dispatcher)
+    }
+
+    case m => log.info(s"Received unknown $m.")
+  }
+}*/ 

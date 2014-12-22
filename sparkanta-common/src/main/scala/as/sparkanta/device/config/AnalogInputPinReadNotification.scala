@@ -7,8 +7,8 @@ abstract class AnalogInputPinReadNotification(val analogInputPinReadNotification
 }
 
 object EachAnalogProbeValue extends AnalogInputPinReadNotification(0)
+object EachAnalogProbeChange extends AnalogInputPinReadNotification(1)
 /*
-object EachAnalogProbeChange extends DigitalInputPinReadNotification(1)
 class EachAnalogProbeGreaterThan(val probeValue: Char) extends AnalogInputPinReadNotification(2)
 class EachAnalogProbeLessThan(val probeValue: Char) extends AnalogInputPinReadNotification(3)
 class EachAnalogProbeInsideOfRange(val startOfRange: Char, val endOfRange: Char) extends AnalogInputPinReadNotification(4)

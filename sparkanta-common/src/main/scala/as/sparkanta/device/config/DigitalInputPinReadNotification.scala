@@ -7,6 +7,7 @@ abstract class DigitalInputPinReadNotification(val digitalInputPinReadNotificati
 }
 
 object EachDigitalProbeValue extends DigitalInputPinReadNotification(0)
+object EachDigitalProbeChange extends DigitalInputPinReadNotification(1)
 /*
 object EachDigitalProbeChange extends DigitalInputPinReadNotification(1)
 class DigitalProbeChangeFromLowToHigh(val thenContinueToReadHigh: Boolean) extends DigitalInputPinReadNotification(2)

@@ -2,7 +2,7 @@ package as.sparkanta.device.message.serialize
 
 import java.io.{ OutputStream, DataOutputStream }
 import as.sparkanta.device.message.PinConfiguration
-import as.sparkanta.device.config.{ AnalogPinWorkMode, AnalogOutput, AnalogInput, AnalogPullUpInput, AnalogPullDownInput, AnalogInputPinReadNotification, EachAnalogProbeValue, DigitalPinWorkMode, DigitalOutput, DigitalInput, DigitalPullUpInput, DigitalPullDownInput, DigitalInputPinReadNotification, EachDigitalProbeValue }
+import as.sparkanta.device.config._
 
 class PinConfigurationSerializer extends PinConfigurationSerializerVersion1
 
@@ -66,7 +66,8 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
     os.write(aiprn.analogInputPinReadNotificationType)
 
     aiprn match {
-      case EachAnalogProbeValue =>
+      case EachAnalogProbeValue  =>
+      case EachAnalogProbeChange =>
     }
   }
 
@@ -97,7 +98,8 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
     os.write(diprn.digitalInputPinReadNotificationType)
 
     diprn match {
-      case EachDigitalProbeValue =>
+      case EachDigitalProbeValue  =>
+      case EachDigitalProbeChange =>
     }
   }
 }

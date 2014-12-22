@@ -3,7 +3,7 @@ package as.sparkanta.actor.message.incoming
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import as.sparkanta.device.message.Disconnect
-import as.sparkanta.gateway.message.DataFromDevice
+//import as.sparkanta.gateway.message.DataFromDevice
 import as.sparkanta.server.message.MessageToDevice
 
 /**
