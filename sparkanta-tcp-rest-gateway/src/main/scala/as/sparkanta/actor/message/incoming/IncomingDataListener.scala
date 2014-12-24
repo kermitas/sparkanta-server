@@ -438,7 +438,7 @@ class IncomingDataListener(
   }
 }
 
-class TemporaryDigitalPinReaderClassifier(remoteAddressId: Long) extends as.akka.broadcaster.Classifier {
+/*class TemporaryDigitalPinReaderClassifier(remoteAddressId: Long) extends as.akka.broadcaster.Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
     case a: MessageFromDevice if a.deviceInfo.remoteAddress.id == remoteAddressId && a.messageFromDevice.isInstanceOf[DigitalPinValue] => Some(a.messageFromDevice.asInstanceOf[DigitalPinValue])
     case _ => None
@@ -460,7 +460,7 @@ class TemporaryDigitalPinReader(broadcaster: ActorRef, remoteAddressId: Long) ex
     case dpv: DigitalPinValue => log.info(s"Received $dpv.")
     case m                    => log.info(s"Received unknown $m.")
   }
-}
+}*/
 
 /*
 // TODO to remove
@@ -504,19 +504,13 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blink
 class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blinkTimeInMs: Int) extends akka.actor.Actor with akka.actor.ActorLogging {
 
   import as.sparkanta.device.config._
-  import as.sparkanta.device.message.DigitalPinValue
+  import as.sparkanta.device.message.SetDigitalPinValue
 
   final val pins = Array(D0, D1, D2, D3, D4, D5, D6, D7)
   var pinNumber = 0
-  /*
-  val turnOn = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, High), Some(false))
-  val turnOff = new MessageToDevice(remoteAddressId, new DigitalPinValue(D7, Low), Some(true))
-  */
   val sndr = self
 
   override def preStart = {
-    //context.system.scheduler.scheduleOnce(2000 milliseconds, self, false)(context.dispatcher)
-    //broadcaster ! turnOff
     self ! false
   }
 
@@ -531,15 +525,14 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blink
     }*/
 
     case false => {
-      //broadcaster ! new MessageToDevice(remoteAddressId, new DigitalPinValue(pin(pinNumber), Low), Some(true))
-      val mess = new MessageToDevice(remoteAddressId, new DigitalPinValue(pins(pinNumber), Low), Some(true))
+      val mess = new MessageToDevice(remoteAddressId, new SetDigitalPinValue(pins(pinNumber), Low), Some(true))
       context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(mess, sndr))(context.dispatcher)
     }
 
     case true => {
       pinNumber += 1
       if (pinNumber > 7) pinNumber = 0
-      val mess = new MessageToDevice(remoteAddressId, new DigitalPinValue(pins(pinNumber), High), Some(false))
+      val mess = new MessageToDevice(remoteAddressId, new SetDigitalPinValue(pins(pinNumber), High), Some(false))
       context.system.scheduler.scheduleOnce(blinkTimeInMs milliseconds)(broadcaster.tell(mess, sndr))(context.dispatcher)
     }
 

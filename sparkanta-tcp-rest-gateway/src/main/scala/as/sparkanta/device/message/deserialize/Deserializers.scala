@@ -8,11 +8,7 @@ class Deserializers(protected final val deserializers: Seq[Deserializer[MessageF
   def this() = this(
     Seq(
       new DeviceHelloDeserializer,
-      new DisconnectDeserializer,
-      new PingDeserializer,
       new PongDeserializer,
-      new GatewayHelloDeserializer,
-      new ServerHelloDeserializer,
       new DigitalPinDeserializer,
       new AnalogPinDeserializer,
       new AckDeserializer

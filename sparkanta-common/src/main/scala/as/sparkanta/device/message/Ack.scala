@@ -3,7 +3,7 @@ package as.sparkanta.device.message
 import as.sparkanta.device.AckType
 
 object Ack {
-  lazy final val messageCode: Int = 10
+  lazy final val messageCode: Int = 12
 }
 
 class Ack(val ackMessageCode: Int, val ackType: AckType) extends MessageFormDevice {

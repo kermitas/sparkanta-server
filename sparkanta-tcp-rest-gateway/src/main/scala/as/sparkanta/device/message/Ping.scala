@@ -6,7 +6,7 @@ object Ping {
   lazy final val messageCode: Int = 3
 }
 
-class Ping(val ackType: AckType = NoAck) extends MessageToDevice with MessageFormDevice with DoNotForwardToRestServer {
+class Ping(val ackType: AckType = NoAck) extends MessageToDevice {
 
   override def toString = s"${getClass.getSimpleName}(ackType=$ackType)"
 
