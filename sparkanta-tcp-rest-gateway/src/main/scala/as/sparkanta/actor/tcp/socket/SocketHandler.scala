@@ -127,14 +127,14 @@ class SocketHandler(
 
     //log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${sd.incomingDataReader.buffer.size} (${sd.incomingDataReader.buffer.map("" + _).mkString(",")}).")
 
-    sd.incomingDataReader.getSoftwareAndHardwareVersion match {
-      case Some((softwareVersion, hardwareVersion)) => {
+    sd.incomingDataReader.getSoftwareAndHardwareVersionAndUniqueName match {
+      case Some((softwareVersion, hardwareVersion, deviceUniqueName)) => {
 
         sd.softwareVersionIdentificationTimeout.cancel
 
         val hwVersion = HardwareVersion(hardwareVersion)
 
-        log.debug(s"Device ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion and hardware version is $hwVersion.")
+        log.info(s"Device ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion, hardware version is $hwVersion and device unique name '$deviceUniqueName'.")
 
         if (softwareVersion == 1) {
 

@@ -12,12 +12,20 @@ class BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(identific
 
   def getBuffer: ByteString = buffer
 
-  def getSoftwareAndHardwareVersion: Option[(Int, Int)] = if (buffer.size >= identificationString.length + 2) {
-    val is = readIdentificationString
-    if (is.corresponds(identificationString) { _ == _ }) {
-      Some(readSoftwareAndHardwareVersion)
+  def getSoftwareAndHardwareVersionAndUniqueName: Option[(Int, Int, String)] = if (buffer.size >= identificationString.length + 3) {
+
+    val deviceUniqueNameLength = buffer(identificationString.length + 2)
+
+    if (buffer.size >= identificationString.length + 3 + deviceUniqueNameLength) {
+      val is = readIdentificationString
+      if (is.corresponds(identificationString) { _ == _ }) {
+        Some(readSoftwareAndHardwareVersionAndDeviceUniqueName(deviceUniqueNameLength))
+      } else {
+        throw new Exception(s"Received identification string '${new String(is)}' does not match '${new String(identificationString)}'.")
+      }
+
     } else {
-      throw new Exception(s"Received identification string '${new String(is)}' does not match '${new String(identificationString)}'.")
+      None
     }
   } else {
     None
@@ -29,9 +37,10 @@ class BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(identific
     identificationStringAndRest._1.toArray
   }
 
-  protected def readSoftwareAndHardwareVersion: (Int, Int) = {
-    val softwareVersionAndRest = buffer.splitAt(2)
-    buffer = softwareVersionAndRest._2
-    (softwareVersionAndRest._1(0), softwareVersionAndRest._1(1))
+  protected def readSoftwareAndHardwareVersionAndDeviceUniqueName(deviceUniqueNameLength: Int): (Int, Int, String) = {
+    val buffAndRest = buffer.splitAt(2 + 1 + deviceUniqueNameLength)
+    buffer = buffAndRest._2
+
+    (buffAndRest._1(0), buffAndRest._1(1), new String(buffAndRest._1.drop(3).toArray))
   }
 }
