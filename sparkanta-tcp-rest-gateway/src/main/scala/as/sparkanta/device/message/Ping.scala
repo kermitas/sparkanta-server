@@ -1,11 +1,13 @@
 package as.sparkanta.device.message
 
+import as.sparkanta.device.{ AckType, NoAck }
+
 object Ping {
   lazy final val messageCode: Int = 3
 }
 
-class Ping extends MessageToDevice with MessageFormDevice with DoNotForwardToRestServer {
+class Ping(val ackType: AckType = NoAck) extends MessageToDevice with MessageFormDevice with DoNotForwardToRestServer {
 
-  override def toString = getClass.getSimpleName
+  override def toString = s"${getClass.getSimpleName}(ackType=$ackType)"
 
 }

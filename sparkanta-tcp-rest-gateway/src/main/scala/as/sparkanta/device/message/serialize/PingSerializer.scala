@@ -13,8 +13,7 @@ class PingSerializerVersion1 extends Serializer[Ping] {
 
   import PingSerializerVersion1._
 
-  override def serialize(ping: Ping, os: OutputStream): Unit = {
-    os.write(Ping.messageCode)
-    os.write(serializationVersion)
+  override def serialize(ping: Ping, os: OutputStream, messageNumber: Int): Unit = {
+    writeHeader(os, Ping.messageCode, serializationVersion, messageNumber, ping.ackType)
   }
 }

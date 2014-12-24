@@ -14,16 +14,21 @@ class GatewayHelloDeserializer extends Deserializer[GatewayHello] {
 
   override def messageCode: Int = GatewayHello.messageCode
 
-  override def deserialize(is: InputStream): GatewayHello = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): GatewayHello = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): GatewayHello = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): GatewayHello = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class GatewayHelloDeserializerVersion1 extends Deserializer[GatewayHello] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): GatewayHello = new GatewayHello
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): GatewayHello = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
+
+    new GatewayHello
+  }
 }

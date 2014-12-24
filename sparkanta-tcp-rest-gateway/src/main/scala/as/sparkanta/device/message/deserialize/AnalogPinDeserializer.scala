@@ -15,18 +15,20 @@ class AnalogPinDeserializer extends Deserializer[AnalogPinValue] {
 
   override def messageCode: Int = AnalogPinValue.messageCode
 
-  override def deserialize(is: InputStream): AnalogPinValue = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): AnalogPinValue = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): AnalogPinValue = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): AnalogPinValue = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class AnalogPinDeserializerVersion1 extends Deserializer[AnalogPinValue] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): AnalogPinValue = {
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): AnalogPinValue = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
 
     val pin = AnalogPin(is.read)
     val analogPinValue = new DataInputStream(is).readChar

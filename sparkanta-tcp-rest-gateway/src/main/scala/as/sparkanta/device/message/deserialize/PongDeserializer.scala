@@ -14,16 +14,21 @@ class PongDeserializer extends Deserializer[Pong] {
 
   override def messageCode: Int = Pong.messageCode
 
-  override def deserialize(is: InputStream): Pong = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): Pong = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): Pong = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): Pong = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class PongDeserializerVersion1 extends Deserializer[Pong] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): Pong = new Pong
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): Pong = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
+
+    new Pong
+  }
 }

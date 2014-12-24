@@ -15,18 +15,20 @@ class DigitalPinDeserializer extends Deserializer[DigitalPinValue] {
 
   override def messageCode: Int = DigitalPinValue.messageCode
 
-  override def deserialize(is: InputStream): DigitalPinValue = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): DigitalPinValue = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): DigitalPinValue = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): DigitalPinValue = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class DigitalPinDeserializerVersion1 extends Deserializer[DigitalPinValue] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): DigitalPinValue = {
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): DigitalPinValue = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
 
     val pin = DigitalPin(is.read)
     val digitalPinValue = DigitalPinValueConfig(is.read)

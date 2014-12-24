@@ -16,16 +16,16 @@ class Serializers extends Serializer[MessageToDeviceMarker] {
   protected final val digitalPinValueSerializer = new DigitalPinValueSerializer
   protected final val analogPinValueSerializer = new AnalogPinValueSerializer
 
-  override def serialize(messageToDevice: MessageToDeviceMarker, os: OutputStream) = messageToDevice match {
-    case deviceHello: DeviceHello           => deviceHelloSerializer.serialize(deviceHello, os)
-    case disconnect: Disconnect             => disconnectSerializer.serialize(disconnect, os)
-    case ping: Ping                         => pingSerializer.serialize(ping, os)
-    case pong: Pong                         => pongSerializer.serialize(pong, os)
-    case gatewayHello: GatewayHello         => gatewayHelloSerializer.serialize(gatewayHello, os)
-    case serverHello: ServerHello           => serverHelloSerializer.serialize(serverHello, os)
-    case pinConfiguration: PinConfiguration => pinConfigurationSerializer.serialize(pinConfiguration, os)
-    case digitalPinValue: DigitalPinValue   => digitalPinValueSerializer.serialize(digitalPinValue, os)
-    case analogPinValue: AnalogPinValue     => analogPinValueSerializer.serialize(analogPinValue, os)
+  override def serialize(messageToDevice: MessageToDeviceMarker, os: OutputStream, messageNumber: Int) = messageToDevice match {
+    case deviceHello: DeviceHello           => deviceHelloSerializer.serialize(deviceHello, os, messageNumber)
+    case disconnect: Disconnect             => disconnectSerializer.serialize(disconnect, os, messageNumber)
+    case ping: Ping                         => pingSerializer.serialize(ping, os, messageNumber)
+    case pong: Pong                         => pongSerializer.serialize(pong, os, messageNumber)
+    case gatewayHello: GatewayHello         => gatewayHelloSerializer.serialize(gatewayHello, os, messageNumber)
+    case serverHello: ServerHello           => serverHelloSerializer.serialize(serverHello, os, messageNumber)
+    case pinConfiguration: PinConfiguration => pinConfigurationSerializer.serialize(pinConfiguration, os, messageNumber)
+    case digitalPinValue: DigitalPinValue   => digitalPinValueSerializer.serialize(digitalPinValue, os, messageNumber)
+    case analogPinValue: AnalogPinValue     => analogPinValueSerializer.serialize(analogPinValue, os, messageNumber)
     case unknownMessageToDevice             => throw new Exception(s"Unknown object ${unknownMessageToDevice.getClass.getSimpleName}, don't know how to serialize.")
   }
 }

@@ -13,8 +13,7 @@ class GatewayHelloSerializerVersion1 extends Serializer[GatewayHello] {
 
   import GatewayHelloSerializerVersion1._
 
-  override def serialize(gatewayHello: GatewayHello, os: OutputStream): Unit = {
-    os.write(GatewayHello.messageCode)
-    os.write(serializationVersion)
+  override def serialize(gatewayHello: GatewayHello, os: OutputStream, messageNumber: Int): Unit = {
+    writeHeader(os, GatewayHello.messageCode, serializationVersion, messageNumber, gatewayHello.ackType)
   }
 }

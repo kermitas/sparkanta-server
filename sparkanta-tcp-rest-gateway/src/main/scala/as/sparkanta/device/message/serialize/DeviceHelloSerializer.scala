@@ -13,9 +13,9 @@ class DeviceHelloSerializerVersion1 extends Serializer[DeviceHello] {
 
   import DeviceHelloSerializerVersion1._
 
-  override def serialize(deviceHello: DeviceHello, os: OutputStream): Unit = {
-    os.write(DeviceHello.messageCode)
-    os.write(serializationVersion)
+  override def serialize(deviceHello: DeviceHello, os: OutputStream, messageNumber: Int): Unit = {
+    writeHeader(os, DeviceHello.messageCode, serializationVersion, messageNumber, deviceHello.ackType)
+
     os.write(deviceHello.sparkDeviceId.length)
     os.write(deviceHello.sparkDeviceId.getBytes)
   }

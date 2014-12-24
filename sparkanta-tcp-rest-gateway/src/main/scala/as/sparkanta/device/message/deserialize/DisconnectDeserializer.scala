@@ -14,18 +14,21 @@ class DisconnectDeserializer extends Deserializer[Disconnect] {
 
   override def messageCode: Int = Disconnect.messageCode
 
-  override def deserialize(is: InputStream): Disconnect = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): Disconnect = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): Disconnect = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): Disconnect = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class DisconnectDeserializerVersion1 extends Deserializer[Disconnect] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): Disconnect = {
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): Disconnect = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
+
     val delayBeforeNextConnectionAttemptInSeconds = is.read
     new Disconnect(delayBeforeNextConnectionAttemptInSeconds)
   }

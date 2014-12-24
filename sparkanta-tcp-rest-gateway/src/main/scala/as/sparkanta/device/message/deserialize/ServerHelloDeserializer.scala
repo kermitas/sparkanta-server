@@ -14,16 +14,21 @@ class ServerHelloDeserializer extends Deserializer[ServerHello] {
 
   override def messageCode: Int = ServerHello.messageCode
 
-  override def deserialize(is: InputStream): ServerHello = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): ServerHello = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): ServerHello = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): ServerHello = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class ServerHelloDeserializerDeserializerVersion1 extends Deserializer[ServerHello] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): ServerHello = new ServerHello
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): ServerHello = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
+
+    new ServerHello
+  }
 }

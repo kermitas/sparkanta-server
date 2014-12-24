@@ -14,18 +14,21 @@ class DeviceHelloDeserializer extends Deserializer[DeviceHello] {
 
   override def messageCode: Int = DeviceHello.messageCode
 
-  override def deserialize(is: InputStream): DeviceHello = deserialize(is, is.read)
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): DeviceHello = deserialize(is, is.read, expectedMessageNumber)
 
-  protected def deserialize(is: InputStream, version: Int): DeviceHello = deserializers.get(version) match {
-    case Some(deserializer) => deserializer.deserialize(is)
-    case None               => throw SerializationVersionNotSupportedException(version)
+  protected def deserialize(is: InputStream, serializationVersion: Int, expectedMessageNumber: Int): DeviceHello = deserializers.get(serializationVersion) match {
+    case Some(deserializer) => deserializer.deserialize(is, expectedMessageNumber)
+    case None               => throw SerializationVersionNotSupportedException(serializationVersion)
   }
 }
 
 class DeviceHelloDeserializerVersion1 extends Deserializer[DeviceHello] {
   override def messageCode: Int = ???
 
-  override def deserialize(is: InputStream): DeviceHello = {
+  override def deserialize(is: InputStream, expectedMessageNumber: Int): DeviceHello = {
+
+    validateMessageNumber(is.read, expectedMessageNumber)
+
     val sparkDeviceIdLength = is.read
     val sparkDeviceIdAsByteArray = new Array[Byte](sparkDeviceIdLength)
     is.read(sparkDeviceIdAsByteArray)
