@@ -4,7 +4,7 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
-import as.sparkanta.server.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
+import as.sparkanta.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult }
 import scala.net.IdentifiedInetSocketAddress
 
 /**

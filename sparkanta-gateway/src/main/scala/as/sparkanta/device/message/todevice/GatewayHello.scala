@@ -6,8 +6,8 @@ object GatewayHello {
   lazy final val messageCode: Int = 5
 }
 
-class GatewayHello(val ackType: AckType = NoAck) extends MessageToDevice {
+class GatewayHello extends MessageToDevice {
 
-  override def toString = s"${getClass.getSimpleName}(ackType=$ackType)"
+  override def toString = s"${getClass.getSimpleName}"
 
 }

@@ -1,4 +1,4 @@
-package as.sparkanta.server.message
+package as.sparkanta.message
 
 import as.sparkanta.device.message.todevice.MessageToDevice
 

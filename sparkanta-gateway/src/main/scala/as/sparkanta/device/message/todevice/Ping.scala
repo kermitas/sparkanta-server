@@ -6,8 +6,8 @@ object Ping {
   lazy final val messageCode: Int = 3
 }
 
-class Ping(val ackType: AckType = NoAck) extends MessageToDevice {
+class Ping extends MessageToDevice {
 
-  override def toString = s"${getClass.getSimpleName}(ackType=$ackType)"
+  override def toString = s"${getClass.getSimpleName}"
 
 }

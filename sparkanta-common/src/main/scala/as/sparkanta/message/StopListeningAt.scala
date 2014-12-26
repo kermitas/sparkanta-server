@@ -1,6 +1,4 @@
-package as.sparkanta.server.message
-
-import scala.net.IdentifiedInetSocketAddress
+package as.sparkanta.message
 
 class StopListeningAt(
   val listenAddressId: Long
