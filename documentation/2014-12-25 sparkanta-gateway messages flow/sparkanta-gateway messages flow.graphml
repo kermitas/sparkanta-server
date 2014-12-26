@@ -85,7 +85,7 @@ sparkanta-server)</y:NodeLabel>
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="1052.5343750000002" width="1809.7333333333336" x="427.31249999999994" y="96.15625"/>
+              <y:Geometry height="1067.6515625000002" width="1809.7333333333336" x="427.31249999999994" y="121.5390625"/>
               <y:Fill color="#F2F0D8" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#B7B69E" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="1809.7333333333336" x="0.0" y="0.0">pub-sub</y:NodeLabel>
@@ -93,7 +93,7 @@ sparkanta-server)</y:NodeLabel>
               <y:DropShadow color="#D2D2D2" offsetX="4" offsetY="4"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
-              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="25" topF="25.3828125"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
               <y:Geometry height="281.0" width="191.0" x="697.0" y="63.0"/>
@@ -133,7 +133,7 @@ staticIds: Map[String, Long])<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="297.4" x="432.31250000000006" y="292.79999999999995"/>
+              <y:Geometry height="21.0" width="297.4" x="432.31250000000006" y="282.09999999999997"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="286.615234375" x="5.3923828125000455" y="1.515625">ListeningStopped(IdentifiedInetSocketAddress)<y:LabelModel>
@@ -167,12 +167,10 @@ staticIds: Map[String, Long])<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="65.0" width="409.6" x="432.31249999999994" y="365.19999999999993"/>
+              <y:Geometry height="40.0" width="315.85" x="432.31249999999994" y="343.79999999999995"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="custom" textColor="#000000" visible="true" width="385.837890625" x="11.881054687500011" y="2.5625">NewIncomingConnection(remote: IdentifiedInetSocketAddress, 
-local: IdentifiedInetSocketAddress, 
-rest: IdentifiedInetSocketAddress, 
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="294.82421875" x="10.512890625000011" y="4.03125">NewIncomingConnection(NetworkDeviceInfo, 
 staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
@@ -187,10 +185,10 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="684.9375" x="1526.1083333333336" y="322.09765625"/>
+              <y:Geometry height="21.0" width="744.9375" x="1466.1083333333336" y="240.70078124999998"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="676.64453125" x="4.146484375" y="1.515625">SendDataToDevice(staticId: Long, ByteString, Option[Either[TcpAckTimeoutInMillis, DeviceAckTimeoutInMillis]])<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="735.396484375" x="4.7705078125" y="1.515625">SendDataToDevice(remoteAddressId: Long, ByteString, Option[Either[TcpAckTimeoutInMillis, DeviceAckTimeoutInMillis]])<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -204,10 +202,10 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="261.5999999999999" x="1949.4458333333337" y="251.38671875"/>
+              <y:Geometry height="21.0" width="302.4000000000001" x="1908.6458333333337" y="355.49453125"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="248.53515625" x="6.5324218749999545" y="1.515625">DataFromDevice(DeviceInfo, ByteString)<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="298.638671875" x="1.8806640625002728" y="1.515625">DataFromDevice(NetworkDeviceInfo, ByteString)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -221,7 +219,7 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="206.5999999999999" x="1264.65" y="590.09375"/>
+              <y:Geometry height="21.0" width="206.5999999999999" x="1311.525" y="593.335416666667"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="202.275390625" x="2.1623046874999545" y="1.515625">DisconnectDevice(staticId: Long)<y:LabelModel>
@@ -272,7 +270,7 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="407.5035999999998" x="1803.542233333334" y="397.89453125"/>
+              <y:Geometry height="21.0" width="407.5035999999998" x="1803.542233333334" y="298.09765625"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="396.4609375" x="5.521331250000003" y="1.515625">SendDataToDeviceResult(SendDataToDevice, Option[Exception])<y:LabelModel>
@@ -289,7 +287,7 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="450.0000000000001" x="460.4375" y="700.585416666667"/>
+              <y:Geometry height="21.0" width="450.0000000000001" x="460.4375" y="711.835416666667"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="444.34375" x="2.828125" y="1.515625">SendMessageToDeviceResult(SendMessageToDevice, Option[Exception])<y:LabelModel>
@@ -313,7 +311,7 @@ staticIds: Map[String, Long], TcpActor: ActorRef)<y:LabelModel>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
                   <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="73.84375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="500.2500000000002" x="0.0" y="0.0">SendMessageToDevice(
-staticId: Long, 
+remoteAddressId: Long,
 MessageToDevice,
 Option[Either[TcpAckTimeoutInMillis, DeviceAckTimeoutInMillis]])</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
@@ -392,10 +390,10 @@ Option[Either[TcpAckTimeoutInMillis, DeviceAckTimeoutInMillis]])</y:NodeLabel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="313.5999999999999" x="441.79999999999995" y="908.8541666666672"/>
+              <y:Geometry height="21.0" width="351.19999999999993" x="441.7999999999999" y="908.8541666666672"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="299.201171875" x="7.199414062500011" y="1.515625">CouldNotDeserializeDataFromDevice(DeviceInfo)<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="349.3046875" x="0.947656249999909" y="1.515625">CouldNotDeserializeDataFromDevice(NetworkDeviceInfo)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -412,16 +410,16 @@ Option[Either[TcpAckTimeoutInMillis, DeviceAckTimeoutInMillis]])</y:NodeLabel>
             <y:ProxyAutoBoundsNode>
               <y:Realizers active="0">
                 <y:GroupNode>
-                  <y:Geometry height="193.3828125" width="419.2125000000002" x="441.79999999999995" y="950.3078125000002"/>
+                  <y:Geometry height="233.8828125" width="248.85595703125006" x="441.7999999999999" y="950.3078125000002"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="56.3828125" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="422.77685546875" x="-1.7821777343748977" y="0.0">MessageFromDevice(
-DeviceInfo, 
-MessageFormDevice[with DoNotForwardToRestServer])</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="56.3828125" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="248.85595703125006" x="0.0" y="0.0">MessageFromDevice(
+NetworkDeviceInfo,
+MessageFormDevice)</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
-                  <y:BorderInsets bottom="0" bottomF="0.0" left="231" leftF="231.46249999999998" right="1" rightF="1.0" top="0" topF="0.0"/>
+                  <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
                 </y:GroupNode>
                 <y:GroupNode>
                   <y:Geometry height="50.0" width="50.0" x="1456.0" y="881.033333333334"/>
@@ -441,41 +439,7 @@ MessageFormDevice[with DoNotForwardToRestServer])</y:NodeLabel>
               <data key="d5"/>
               <data key="d6">
                 <y:GenericNode configuration="com.yworks.flowchart.terminator">
-                  <y:Geometry height="21.0" width="133.75000000000034" x="688.2624999999999" y="1062.6906250000002"/>
-                  <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
-                  <y:BorderStyle color="#000000" type="line" width="1.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="123.71875" x="5.015625000000227" y="1.515625">DeviceIdentification<y:LabelModel>
-                      <y:SmartNodeLabelModel distance="4.0"/>
-                    </y:LabelModel>
-                    <y:ModelParameter>
-                      <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
-                    </y:ModelParameter>
-                  </y:NodeLabel>
-                </y:GenericNode>
-              </data>
-            </node>
-            <node id="n2::n13::n1">
-              <data key="d5"/>
-              <data key="d6">
-                <y:GenericNode configuration="com.yworks.flowchart.terminator">
-                  <y:Geometry height="21.0" width="52.50000000000034" x="697.0875" y="1107.6906250000002"/>
-                  <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
-                  <y:BorderStyle color="#000000" type="line" width="1.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="33.80078125" x="9.349609375000227" y="1.515625">Pong<y:LabelModel>
-                      <y:SmartNodeLabelModel distance="4.0"/>
-                    </y:LabelModel>
-                    <y:ModelParameter>
-                      <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
-                    </y:ModelParameter>
-                  </y:NodeLabel>
-                </y:GenericNode>
-              </data>
-            </node>
-            <node id="n2::n13::n2">
-              <data key="d5"/>
-              <data key="d6">
-                <y:GenericNode configuration="com.yworks.flowchart.terminator">
-                  <y:Geometry height="21.0" width="36.50000000000034" x="808.5124999999998" y="1021.6906250000002"/>
+                  <y:Geometry height="21.0" width="36.50000000000034" x="632.4279785156245" y="1021.6906250000002"/>
                   <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="1.0"/>
                   <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="25.755859375" x="5.372070312500114" y="1.515625">Ack<y:LabelModel>
@@ -487,6 +451,73 @@ MessageFormDevice[with DoNotForwardToRestServer])</y:NodeLabel>
                   </y:NodeLabel>
                 </y:GenericNode>
               </data>
+            </node>
+            <node id="n2::n13::n1" yfiles.foldertype="group">
+              <data key="d4"/>
+              <data key="d5"/>
+              <data key="d6">
+                <y:ProxyAutoBoundsNode>
+                  <y:Realizers active="0">
+                    <y:GroupNode>
+                      <y:Geometry height="114.921875" width="215.39999999999998" x="458.5279785156249" y="1054.2687500000002"/>
+                      <y:Fill color="#CAECFF80" transparent="false"/>
+                      <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+                      <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="38.921875" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="218.85595703125" x="-1.7279785156250114" y="0.0">MessageFormDevice[with
+DoNotForwardToRestServer]</y:NodeLabel>
+                      <y:Shape type="roundrectangle"/>
+                      <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
+                      <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+                      <y:BorderInsets bottom="0" bottomF="0.0" left="72" leftF="71.64999999999964" right="0" rightF="0.0" top="0" topF="0.0"/>
+                    </y:GroupNode>
+                    <y:GroupNode>
+                      <y:Geometry height="50.0" width="50.0" x="378.9355590062114" y="1239.9021739130444"/>
+                      <y:Fill color="#CAECFF80" transparent="false"/>
+                      <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+                      <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="50.0" x="0.0" y="0.0">2</y:NodeLabel>
+                      <y:Shape type="roundrectangle"/>
+                      <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
+                      <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+                      <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+                    </y:GroupNode>
+                  </y:Realizers>
+                </y:ProxyAutoBoundsNode>
+              </data>
+              <graph edgedefault="directed" id="n2::n13::n1:">
+                <node id="n2::n13::n1::n0">
+                  <data key="d5"/>
+                  <data key="d6">
+                    <y:GenericNode configuration="com.yworks.flowchart.terminator">
+                      <y:Geometry height="21.0" width="133.75000000000034" x="535.1779785156245" y="1098.1906250000002"/>
+                      <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
+                      <y:BorderStyle color="#000000" type="line" width="1.0"/>
+                      <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="123.71875" x="5.015625000000227" y="1.515625">DeviceIdentification<y:LabelModel>
+                          <y:SmartNodeLabelModel distance="4.0"/>
+                        </y:LabelModel>
+                        <y:ModelParameter>
+                          <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+                        </y:ModelParameter>
+                      </y:NodeLabel>
+                    </y:GenericNode>
+                  </data>
+                </node>
+                <node id="n2::n13::n1::n1">
+                  <data key="d5"/>
+                  <data key="d6">
+                    <y:GenericNode configuration="com.yworks.flowchart.terminator">
+                      <y:Geometry height="21.0" width="52.50000000000034" x="609.0029785156246" y="1143.1906250000002"/>
+                      <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
+                      <y:BorderStyle color="#000000" type="line" width="1.0"/>
+                      <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="33.80078125" x="9.349609375000227" y="1.515625">Pong<y:LabelModel>
+                          <y:SmartNodeLabelModel distance="4.0"/>
+                        </y:LabelModel>
+                        <y:ModelParameter>
+                          <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+                        </y:ModelParameter>
+                      </y:NodeLabel>
+                    </y:GenericNode>
+                  </data>
+                </node>
+              </graph>
             </node>
           </graph>
         </node>
@@ -543,7 +574,7 @@ MessageFormDevice[with DoNotForwardToRestServer])</y:NodeLabel>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
-              <y:Geometry height="29.0" width="100.4" x="176.91562499999992" y="570.9088541666675"/>
+              <y:Geometry height="29.0" width="100.4" x="123.79062499999992" y="570.9088541666675"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="100.4" x="0.0" y="0.0">Serializer</y:NodeLabel>
@@ -605,17 +636,17 @@ MessageFormDevice[with DoNotForwardToRestServer])</y:NodeLabel>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
-              <y:Geometry height="123.80000000000001" width="185.0" x="1197.0" y="-54.66666666666663"/>
+              <y:Geometry height="123.80000000000001" width="190.86666666666497" x="1197.0" y="-54.66666666666663"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="108.765625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="185.0" x="0.0" y="0.0">&lt;to REST forwarder&gt;
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="108.765625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="190.86666666666497" x="0.0" y="0.0">&lt;to REST forwarder&gt;
 (usually it will be
 sparkanta-server)
 
 forwarding objects that
 extends ForwardToRest</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
-              <y:State closed="true" closedHeight="123.80000000000001" closedWidth="185.0" innerGraphDisplayEnabled="false"/>
+              <y:State closed="true" closedHeight="123.80000000000001" closedWidth="190.86666666666497" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
@@ -641,12 +672,12 @@ extends ForwardToRest</y:NodeLabel>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
-              <y:Geometry height="29.0" width="233.39999999999998" x="842.825" y="1204.004166666667"/>
+              <y:Geometry height="29.0" width="228.39999999999998" x="554.1916666666667" y="1216.5270833333332"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="233.39999999999998" x="0.0" y="0.0">DeviceInactivityPingSender</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="228.39999999999998" x="0.0" y="0.0">DeviceInactivityPingSender</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
-              <y:State closed="true" closedHeight="29.0" closedWidth="233.39999999999998" innerGraphDisplayEnabled="false"/>
+              <y:State closed="true" closedHeight="29.0" closedWidth="228.39999999999998" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
@@ -672,7 +703,7 @@ extends ForwardToRest</y:NodeLabel>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
-              <y:Geometry height="29.0" width="215.39999999999998" x="1260.25" y="1204.004166666667"/>
+              <y:Geometry height="29.0" width="215.39999999999998" x="1555.4" y="1219.1906250000002"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="215.39999999999998" x="0.0" y="0.0">DeviceInactivityRemover</y:NodeLabel>
@@ -703,7 +734,7 @@ extends ForwardToRest</y:NodeLabel>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GroupNode>
             <y:GroupNode>
-              <y:Geometry height="29.0" width="140.1875" x="2478.4027609375" y="108.609375"/>
+              <y:Geometry height="29.0" width="140.1875" x="2478.4027609375" y="80.69270833333334"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="140.1875" x="0.0" y="0.0">SocketManager</y:NodeLabel>
@@ -724,7 +755,7 @@ extends ForwardToRest</y:NodeLabel>
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="124.421875" width="295.0" x="2400.9965109375" y="270.38671875"/>
+              <y:Geometry height="124.421875" width="295.0" x="2400.9965109375" y="246.38671875"/>
               <y:Fill color="#CAECFF80" transparent="false"/>
               <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="295.0" x="0.0" y="0.0">SocketHandler</y:NodeLabel>
@@ -751,7 +782,7 @@ extends ForwardToRest</y:NodeLabel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="29.0" width="285.0" x="2405.9965109375" y="301.80859375"/>
+              <y:Geometry height="29.0" width="285.0" x="2405.9965109375" y="277.80859375"/>
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="142.5390625" x="71.23046875" y="5.515625">WaitingForDataToSend<y:LabelModel>
@@ -768,7 +799,7 @@ extends ForwardToRest</y:NodeLabel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="29.0" width="91.0" x="2436.9965109375" y="360.80859375"/>
+              <y:Geometry height="29.0" width="91.0" x="2436.9965109375" y="336.80859375"/>
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="66.794921875" x="12.1025390625" y="5.515625">DeviceAck<y:LabelModel>
@@ -785,7 +816,7 @@ extends ForwardToRest</y:NodeLabel>
           <data key="d5"/>
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="29.0" width="125.0" x="2558.9965109375" y="360.80859375"/>
+              <y:Geometry height="29.0" width="125.0" x="2558.9965109375" y="336.80859375"/>
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="112.29296875" x="6.353515625" y="5.515625">WaitingForTcpAck<y:LabelModel>
@@ -945,6 +976,128 @@ extends ForwardToRest</y:NodeLabel>
         </node>
       </graph>
     </node>
+    <node id="n13" yfiles.foldertype="folder">
+      <data key="d4"/>
+      <data key="d5"/>
+      <data key="d6">
+        <y:ProxyAutoBoundsNode>
+          <y:Realizers active="1">
+            <y:GroupNode>
+              <y:Geometry height="50.0" width="50.0" x="1007.0" y="-110.0"/>
+              <y:Fill color="#CAECFF80" transparent="false"/>
+              <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="50.0" x="0.0" y="0.0">2</y:NodeLabel>
+              <y:Shape type="roundrectangle"/>
+              <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
+              <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GroupNode>
+            <y:GroupNode>
+              <y:Geometry height="29.0" width="282.4" x="818.3250000000002" y="1319.4130208333333"/>
+              <y:Fill color="#CAECFF80" transparent="false"/>
+              <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="282.4" x="0.0" y="0.0">DeviceInactivityPingSenderWorker</y:NodeLabel>
+              <y:Shape type="roundrectangle"/>
+              <y:State closed="true" closedHeight="29.0" closedWidth="282.4" innerGraphDisplayEnabled="false"/>
+              <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GroupNode>
+          </y:Realizers>
+        </y:ProxyAutoBoundsNode>
+      </data>
+      <graph edgedefault="directed" id="n13:"/>
+    </node>
+    <node id="n14" yfiles.foldertype="folder">
+      <data key="d4"/>
+      <data key="d5"/>
+      <data key="d6">
+        <y:ProxyAutoBoundsNode>
+          <y:Realizers active="1">
+            <y:GroupNode>
+              <y:Geometry height="50.0" width="50.0" x="1007.0" y="-110.0"/>
+              <y:Fill color="#CAECFF80" transparent="false"/>
+              <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="50.0" x="0.0" y="0.0">2</y:NodeLabel>
+              <y:Shape type="roundrectangle"/>
+              <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
+              <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GroupNode>
+            <y:GroupNode>
+              <y:Geometry height="29.0" width="265.4" x="1282.125" y="1319.4130208333333"/>
+              <y:Fill color="#CAECFF80" transparent="false"/>
+              <y:BorderStyle color="#666699" type="dotted" width="1.0"/>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#99CCFF" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="265.4" x="0.0" y="0.0">DeviceInactivityRemoverWorker</y:NodeLabel>
+              <y:Shape type="roundrectangle"/>
+              <y:State closed="true" closedHeight="29.0" closedWidth="265.4" innerGraphDisplayEnabled="false"/>
+              <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GroupNode>
+          </y:Realizers>
+        </y:ProxyAutoBoundsNode>
+      </data>
+      <graph edgedefault="directed" id="n14:"/>
+    </node>
+    <node id="n15">
+      <data key="d5"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:Geometry height="38.75" width="258.36666666666497" x="2685.1798442708323" y="632.875"/>
+          <y:Fill color="#FFCC00" transparent="false"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
+          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="253.931640625" x="2.2175130208324845" y="3.40625">Check if device of decoded staticId 
+(or unique name?) is not currently online.<y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:Shape type="rectangle"/>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="n16">
+      <data key="d5"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.flowchart.predefinedProcess">
+          <y:Geometry height="71.0" width="376.9547360248449" x="185.10776397515497" y="-128.41666666666663"/>
+          <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
+          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="custom" textColor="#000000" visible="true" width="350.2890625" x="13.332836762422403" y="5.5625">NetworkDeviceInfo(remote: IdentifiedInetSocketAddress, 
+local: IdentifiedInetSocketAddress, 
+rest: IdentifiedInetSocketAddress, 
+startTimeInMillis: Long)<y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n17">
+      <data key="d5"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.flowchart.predefinedProcess">
+          <y:Geometry height="80.94218750000101" width="305.86666666666497" x="220.65179865424494" y="-11.80885416666763"/>
+          <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
+          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="273.736328125" x="16.065169270832484" y="3.549218750000506">DeviceInfo(staticId: Long,
+softwareVersion: Int,
+hardwareVersion: Int,
+uniqueName: String,
+pingPongMessagesPerSecond: Option[Long])<y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+        </y:GenericNode>
+      </data>
+    </node>
     <edge id="e0" source="n2::n0" target="n0">
       <data key="d9"/>
       <data key="d10">
@@ -1062,7 +1215,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e11" source="n2::n13" target="n6">
+    <edge id="e11" source="n2::n13" target="n13">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1072,7 +1225,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e12" source="n6" target="n2::n11::n0">
+    <edge id="e12" source="n13" target="n2::n11::n0">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1102,7 +1255,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e15" source="n2::n7" target="n6">
+    <edge id="e15" source="n2::n7" target="n13">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1112,7 +1265,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e16" source="n2::n7" target="n7">
+    <edge id="e16" source="n2::n7" target="n14">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1122,7 +1275,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e17" source="n7" target="n2::n6">
+    <edge id="e17" source="n14" target="n2::n6">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1162,7 +1315,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e21" source="n2::n13" target="n7">
+    <edge id="e21" source="n2::n13" target="n14">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1189,7 +1342,9 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="38.201171875" x="-19.100657031250194" y="57.40480041503906">starts<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="77.359375" x="-38.67975859375019" y="45.38379923502606">starts
+(on problem
+stop)<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
         </y:BezierEdge>
       </data>
@@ -1201,7 +1356,9 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="38.201171875" x="-19.100588989257886" y="25.157589721679642">starts<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="77.359375" x="-38.679690551757886" y="11.188839721679642">starts
+(on problem
+stop)<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
         </y:BezierEdge>
       </data>
@@ -1223,7 +1380,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#0000FF" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="118.5859375" x="-190.65412677277664" y="-4.555620487526653">also send to
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="118.5859375" x="-154.2786325520833" y="-22.953125">also send to
 SendDataToDevice
 sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
@@ -1237,14 +1394,14 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#0000FF" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="142.52734375" x="102.84908996440112" y="24.790382246156696">also send to
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="142.52734375" x="128.30512391919706" y="30.47621593491749">also send to
 SendMessageToDevice
 sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e28" source="n6" target="n2::n6">
+    <edge id="e28" source="n13" target="n2::n6">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1261,7 +1418,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#0000FF" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="109.146484375" x="85.85798950195306" y="-22.953145345051553">also send back to
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="109.146484375" x="85.8579284667968" y="-22.953145345051553">also send back to
 DataFromDevice
 sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
@@ -1308,7 +1465,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e34" source="n2::n13::n0" target="n12::n0">
+    <edge id="e34" source="n2::n13::n1::n0" target="n12::n0">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1386,7 +1543,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e41" source="n2::n13::n1" target="n11">
+    <edge id="e41" source="n2::n13::n1::n1" target="n11">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1423,7 +1580,9 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="38.201171875" x="-19.100657031250194" y="95.43649291992188">starts<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="77.359375" x="-38.67975859375019" y="93.4415283203125">starts
+(on problem
+escalate)<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
         </y:BezierEdge>
       </data>
@@ -1433,7 +1592,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="2586.8332608695637" y="339.53644332298194"/>
+            <y:Point x="2586.8332608695637" y="315.53644332298194"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -1445,7 +1604,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="2512.5932608695634" y="340.04844332298194"/>
+            <y:Point x="2512.5932608695634" y="316.04844332298194"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -1457,7 +1616,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="2574.553260869565" y="353.80844332298193"/>
+            <y:Point x="2574.553260869565" y="329.80844332298193"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -1469,14 +1628,14 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="2522.553260869565" y="346.80844332298193"/>
+            <y:Point x="2522.553260869565" y="322.80844332298193"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e43" source="n2::n13::n2" target="n9::n1">
+    <edge id="e43" source="n2::n13::n0" target="n9::n1">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
@@ -1493,6 +1652,64 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#0000FF" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e45" source="n6" target="n13">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="77.359375" x="65.83974202473962" y="13.983846028645758">starts
+(on problem
+stop)<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          </y:EdgeLabel>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e46" source="n7" target="n14">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="77.359375" x="-126.90334472656241" y="12.660587565104379">starts
+(on problem
+stop)<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          </y:EdgeLabel>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e47" source="n2::n8" target="n5">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="50.13211697722545" sy="3.0852523291927128" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#FF0000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e48" source="n15" target="n12::n0">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#808080" type="dashed" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e49" source="n17" target="n16">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="white_delta"/>
         </y:BezierEdge>
       </data>
     </edge>
