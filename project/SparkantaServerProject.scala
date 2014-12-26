@@ -1,9 +1,9 @@
 import sbt._
 import Keys._
 
-object SparkantaRestServerProject {
+object SparkantaServerProject {
 
-  lazy final val projectName = SparkantaProject.projectName + "-rest-server"
+  lazy final val projectName = SparkantaProject.projectName + "-server"
 
   def apply(version: String, common: Project) =
     Project(
