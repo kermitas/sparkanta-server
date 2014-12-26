@@ -3,6 +3,7 @@ package as.sparkanta.device.message.serialize
 import java.io.{ OutputStream, DataOutputStream }
 import as.sparkanta.device.message.todevice.PinConfiguration
 import as.sparkanta.device.config.pin._
+import as.sparkanta.device.AckType
 
 class PinConfigurationSerializer extends PinConfigurationSerializerVersion1
 
@@ -14,8 +15,8 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
 
   import ServerHelloSerializerVersion1._
 
-  override def serialize(pinConfiguration: PinConfiguration, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, PinConfiguration.messageCode, serializationVersion, messageNumber, pinConfiguration.ackType)
+  override def serialize(pinConfiguration: PinConfiguration, ackType: AckType, os: OutputStream, messageNumber: Int): Unit = {
+    writeHeader(os, PinConfiguration.messageCode, serializationVersion, messageNumber, ackType)
 
     val daos = new DataOutputStream(os)
 

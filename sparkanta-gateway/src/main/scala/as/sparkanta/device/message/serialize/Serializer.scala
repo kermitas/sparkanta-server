@@ -8,19 +8,19 @@ trait Serializer[T <: MessageToDevice] {
 
   var messageNumber = 0
 
-  def serialize(messageToDevice: T): Array[Byte] = {
+  def serialize(messageToDevice: T, ackType: AckType): Array[Byte] = {
     val baos = new ByteArrayOutputStream
-    serialize(messageToDevice, baos)
+    serialize(messageToDevice, ackType, baos)
     baos.toByteArray
   }
 
-  def serialize(messageToDevice: T, os: OutputStream): Unit = {
-    serialize(messageToDevice, os, messageNumber)
+  def serialize(messageToDevice: T, ackType: AckType, os: OutputStream): Unit = {
+    serialize(messageToDevice, ackType, os, messageNumber)
     messageNumber += 1
     if (messageNumber > 255) messageNumber = 0
   }
 
-  def serialize(messageToDevice: T, os: OutputStream, messageNumber: Int)
+  def serialize(messageToDevice: T, ackType: AckType, os: OutputStream, messageNumber: Int)
 
   protected def writeHeader(os: OutputStream, messageCode: Int, serializationVersion: Int, messageNumber: Int, ackType: AckType): Unit = {
     os.write(messageCode)
