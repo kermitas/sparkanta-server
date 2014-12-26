@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
@@ -36,3 +37,4 @@ class DeviceHelloDeserializerVersion1 extends Deserializer[DeviceHello] {
     new DeviceHello(sparkDeviceId)
   }
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.restforwarder
 
 import akka.actor.{ ActorLogging, Actor }
@@ -35,3 +36,4 @@ class RestForwarder(amaConfig: AmaConfig, localAddress: IdentifiedInetSocketAddr
     }
   }
 }
+*/ 

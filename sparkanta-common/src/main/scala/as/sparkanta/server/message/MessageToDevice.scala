@@ -3,11 +3,11 @@ package as.sparkanta.server.message
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 
 class MessageToDevice(
-  val remoteAddressId: Long,
+  val staticId:        Long,
   val messageToDevice: MessageToDeviceMarker,
-  val ack:             Option[Any]           = None
+  val tcpAck:          Option[Any]           = None
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,messageToDevice=$messageToDevice,ack=$ack)"
+  override def toString = s"${getClass.getSimpleName}(staticId=$staticId,messageToDevice=$messageToDevice,tcpAck=$tcpAck)"
 
 }

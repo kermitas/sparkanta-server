@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.devicesdb
 
 import akka.actor.{ ActorLogging, Actor }
@@ -53,3 +54,4 @@ class DevicesDb(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case message                => log.warning(s"Unhandled $message send by ${sender()}")
   }
 }
+*/ 

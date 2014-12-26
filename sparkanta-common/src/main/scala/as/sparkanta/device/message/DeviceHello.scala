@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.device.message
 
 import as.sparkanta.device.{ AckType, NoAck }
@@ -11,3 +12,4 @@ class DeviceHello(val sparkDeviceId: String, val ackType: AckType = NoAck) exten
   override def toString = s"${getClass.getSimpleName}(sparkDeviceId=$sparkDeviceId,ackType=$ackType)"
 
 }
+*/ 

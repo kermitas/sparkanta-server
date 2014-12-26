@@ -2,52 +2,71 @@ package as.sparkanta.actor.tcp.socket
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
-import as.sparkanta.gateway.{ SoftwareAndHardwareIdentifiedDeviceInfo, HardwareVersion, NetworkDeviceInfo }
+import as.sparkanta.gateway.{ HardwareVersion, DeviceInfo }
 import akka.actor.{ OneForOneStrategy, SupervisorStrategy, FSM, ActorRef, Terminated, Props, Cancellable }
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.Tcp
+import java.net.InetSocketAddress
 import akka.util.{ FSMSuccessOrStop, ByteString }
-import as.sparkanta.actor.message.outgoing.OutgoingDataSender
-import as.sparkanta.actor.message.incoming.IncomingDataListener
-import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
-import as.sparkanta.device.message.length.Message255LengthHeaderCreator
-import as.sparkanta.device.message.deserialize.Deserializers
-import as.sparkanta.device.message.serialize.Serializers
+//import as.sparkanta.actor.message.outgoing.OutgoingDataSender
+//import as.sparkanta.actor.message.incoming.IncomingDataListener
+//import as.sparkanta.gateway.message.{ SparkDeviceIdWasIdentified, DataFromDevice, ConnectionClosed, SoftwareAndHardwareVersionWasIdentified }
+import as.sparkanta.gateway.message.{ DeviceIsUp, DeviceIsDown, ConnectionClosed, UnknownDeviceUniqueName }
+//import as.sparkanta.device.message.length.Message255LengthHeaderCreator
+//import as.sparkanta.device.message.deserialize.Deserializers
+//import as.sparkanta.device.message.serialize.Serializers
 import scala.net.IdentifiedInetSocketAddress
-import as.akka.broadcaster.Broadcaster
+import as.sparkanta.server.message.MessageToDevice
+import as.sparkanta.device.message.{ GatewayHello, ServerHello, Ping }
+//import as.akka.broadcaster.Broadcaster
+import scala.collection.mutable.Set
 
 object SocketHandler {
   sealed trait State extends Serializable
-  case object SoftwareVersionUnidentified extends State
+  case object Identification extends State
+  case object StressTest extends State
   case object WaitingForData extends State
 
   sealed trait StateData extends Serializable
-  case class SoftwareVersionUnidentifiedStateData(incomingDataReader: BufferedIdentificationStringWithSoftwareAndHardwareVersionReader, softwareVersionIdentificationTimeout: Cancellable) extends StateData
-  case class WaitingForDataStateData(incomingDataListener: ActorRef) extends StateData
+  case class IdentificationStateData(identificationTimeout: Cancellable) extends StateData
+  class IdentifiedDeviceStateData(val deviceInfo: DeviceInfo) extends StateData
+  case class StressTestStateData(override val deviceInfo: DeviceInfo, val stressTestTimeout: Cancellable) extends IdentifiedDeviceStateData(deviceInfo)
+  case class WaitingForDataStateData(override val deviceInfo: DeviceInfo) extends IdentifiedDeviceStateData(deviceInfo)
 
   sealed trait Message extends Serializable
   sealed trait InternalMessage extends Message
-  case object SoftwareVersionIdentificationTimeout extends InternalMessage
+  case object IdentificationTimeout extends InternalMessage
+  case object IncomingDataInactivityTimeout extends InternalMessage
+  case object StressTestTimeout extends InternalMessage
 
-  class ConnectionWasLostException(remoteAddress: IdentifiedInetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Connection between remote side $remoteAddress and us $localAddress was lost.")
-  class WatchedActorDied(diedWatchedActor: AnyRef, remoteAddress: IdentifiedInetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died.")
-  class WatchedTcpActorDied(diedTcpWatchedActor: ActorRef, remoteAddress: IdentifiedInetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched tcp actor $diedTcpWatchedActor died.")
+  class ConnectionWasLostException(remoteAddress: InetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Connection between remote side $remoteAddress and us $localAddress was lost.")
+  class WatchedActorDied(diedWatchedActor: AnyRef, remoteAddress: InetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched actor $diedWatchedActor died.")
+  class WatchedTcpActorDied(diedTcpWatchedActor: ActorRef, remoteAddress: InetSocketAddress, localAddress: IdentifiedInetSocketAddress) extends Exception(s"Stopping (remoteAddress $remoteAddress, localAddress $localAddress) because watched TCP actor $diedTcpWatchedActor died.")
 }
 
 class SocketHandler(
-  amaConfig:      AmaConfig,
-  config:         SocketHandlerConfig,
-  var deviceInfo: NetworkDeviceInfo,
-  tcpActor:       ActorRef
+  amaConfig:                AmaConfig,
+  config:                   SocketHandlerConfig,
+  remoteAddress:            InetSocketAddress,
+  localAddress:             IdentifiedInetSocketAddress,
+  deviceStaticIds:          Map[String, Long],
+  staticIdsCurrentlyOnline: Set[Long],
+  tcpActor:                 ActorRef
 ) extends FSM[SocketHandler.State, SocketHandler.StateData] with FSMSuccessOrStop[SocketHandler.State, SocketHandler.StateData] {
 
   def this(
-    amaConfig:  AmaConfig,
-    deviceInfo: NetworkDeviceInfo,
-    tcpActor:   ActorRef
-  ) = this(amaConfig, SocketHandlerConfig.fromTopKey(amaConfig.config), deviceInfo, tcpActor)
+    amaConfig:                AmaConfig,
+    remoteAddress:            InetSocketAddress,
+    localAddress:             IdentifiedInetSocketAddress,
+    deviceStaticIds:          Map[String, Long],
+    staticIdsCurrentlyOnline: Set[Long],
+    tcpActor:                 ActorRef
+  ) = this(amaConfig, SocketHandlerConfig.fromTopKey(amaConfig.config), remoteAddress, localAddress, deviceStaticIds, staticIdsCurrentlyOnline, tcpActor)
 
   import SocketHandler._
+
+  protected val incomingDataBuffer = new IncomingDataBuffer(config.identificationString)
+  protected var incomingDataInactivityTimeout = setIncomingDataInactivityTimeout
 
   override val supervisorStrategy = OneForOneStrategy() {
     case t => {
@@ -57,16 +76,26 @@ class SocketHandler(
   }
 
   {
-    val softwareVersionIdentificationTimeout = context.system.scheduler.scheduleOnce(config.softwareVersionIdentificationTimeoutInSeconds seconds, self, SoftwareVersionIdentificationTimeout)(context.dispatcher)
-    startWith(SoftwareVersionUnidentified, new SoftwareVersionUnidentifiedStateData(new BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(config.identificationString), softwareVersionIdentificationTimeout))
+    val identificationTimeout = context.system.scheduler.scheduleOnce(config.identificationTimeoutInSeconds seconds, self, IdentificationTimeout)(context.dispatcher)
+    startWith(Identification, new IdentificationStateData(identificationTimeout))
   }
 
-  when(SoftwareVersionUnidentified) {
-    case Event(Tcp.Received(data), sd: SoftwareVersionUnidentifiedStateData)                   => successOrStopWithFailure { analyzeIncomingData(data, sd) }
+  when(Identification) {
+    case Event(Tcp.Received(data), sd: IdentificationStateData)    => successOrStopWithFailure { analyzeIncomingData(data, sd) }
 
-    case Event(SoftwareVersionIdentificationTimeout, sd: SoftwareVersionUnidentifiedStateData) => successOrStopWithFailure { throw new Exception(s"Software version identification timeout (${config.softwareVersionIdentificationTimeoutInSeconds} seconds) reached.") }
+    case Event(IdentificationTimeout, sd: IdentificationStateData) => successOrStopWithFailure { throw new Exception(s"Device identification timeout (${config.identificationTimeoutInSeconds} seconds) exceeded.") }
   }
 
+  when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
+    case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
+
+      // TODO implement !!!
+
+      stay using sd
+    }
+  }
+
+  /*
   when(WaitingForData, stateTimeout = config.incomingDataInactivityTimeoutInSeconds seconds) {
     case Event(Tcp.Received(dataFromDevice), sd: WaitingForDataStateData) => successOrStopWithFailure {
 
@@ -78,27 +107,24 @@ class SocketHandler(
     }
 
     case Event(StateTimeout, sd: WaitingForDataStateData) => successOrStopWithFailure { throw new Exception(s"Incoming data inactivity timeout (${config.incomingDataInactivityTimeoutInSeconds} seconds) reached.") }
-  }
+  }*/
 
   onTransition {
     case fromState -> toState => log.info(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {
-    case Event(Tcp.PeerClosed, stateData) => stop(FSM.Failure(new ConnectionWasLostException(deviceInfo.remoteAddress, deviceInfo.localAddress)))
+    case Event(Tcp.PeerClosed, stateData)                => stop(FSM.Failure(new ConnectionWasLostException(remoteAddress, localAddress)))
+
+    case Event(IncomingDataInactivityTimeout, stateData) => stop(FSM.Failure(new Exception(s"Incoming data inactivity timeout (${config.incomingDataInactivityTimeoutInSeconds} seconds) exceeded.")))
 
     case Event(Terminated(diedWatchedActor), stateData) => {
       val exception = if (diedWatchedActor.equals(tcpActor))
-        new WatchedActorDied(diedWatchedActor, deviceInfo.remoteAddress, deviceInfo.localAddress)
+        new WatchedTcpActorDied(tcpActor, remoteAddress, localAddress)
       else
-        new WatchedTcpActorDied(tcpActor, deviceInfo.remoteAddress, deviceInfo.localAddress)
+        new WatchedActorDied(diedWatchedActor, remoteAddress, localAddress)
 
       stop(FSM.Failure(exception))
-    }
-
-    case Event(sdwi: SparkDeviceIdWasIdentified, stateData) => {
-      deviceInfo = sdwi.deviceInfo
-      stay using stateData
     }
 
     case Event(unknownMessage, stateData) => {
@@ -114,32 +140,86 @@ class SocketHandler(
   initialize
 
   override def preStart(): Unit = {
-    // notifying broadcaster to register us with given classifier
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new SocketHandlerClassifier(deviceInfo.remoteAddress.id))
-
     context.watch(tcpActor)
   }
 
-  protected def analyzeIncomingData(data: ByteString, sd: SoftwareVersionUnidentifiedStateData) = {
-    log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}.")
+  protected def resetIncomingDataInactivityTimeout: Unit = {
+    incomingDataInactivityTimeout.cancel
+    setIncomingDataInactivityTimeout
+  }
 
-    sd.incomingDataReader.bufferIncomingData(data)
+  protected def setIncomingDataInactivityTimeout: Cancellable = {
+    incomingDataInactivityTimeout = context.system.scheduler.scheduleOnce(config.incomingDataInactivityTimeoutInSeconds seconds, self, IncomingDataInactivityTimeout)(context.dispatcher)
+    incomingDataInactivityTimeout
+  }
 
-    //log.debug(s"Received ${data.length} bytes from device of remoteAddressId ${deviceInfo.remoteAddress.id}, currently buffered ${sd.incomingDataReader.buffer.size} (${sd.incomingDataReader.buffer.map("" + _).mkString(",")}).")
+  protected def analyzeIncomingData(data: ByteString, sd: IdentificationStateData) = {
 
-    sd.incomingDataReader.getSoftwareAndHardwareVersionAndUniqueName match {
-      case Some((softwareVersion, hardwareVersion, deviceUniqueName)) => {
+    log.debug(s"Received ${data.length} bytes from $remoteAddress.")
 
-        sd.softwareVersionIdentificationTimeout.cancel
+    resetIncomingDataInactivityTimeout
 
-        val hwVersion = HardwareVersion(hardwareVersion)
+    incomingDataBuffer.bufferIncomingData(data)
 
-        log.info(s"Device ${deviceInfo.remoteAddress} successfully send identification string '${config.identificationString}', software version $softwareVersion, hardware version is $hwVersion and device unique name '$deviceUniqueName'.")
+    incomingDataBuffer.getSoftwareAndHardwareVersionAndUniqueName match {
+      case Some((softwareVersion, hwVersion, deviceUniqueName)) => {
 
+        sd.identificationTimeout.cancel
+
+        val hardwareVersion = HardwareVersion(hwVersion)
+
+        log.info(s"Device $remoteAddress successfully send identification string '${config.identificationString}', software version $softwareVersion, hardware version is $hardwareVersion and device unique name '$deviceUniqueName'.")
+
+        deviceStaticIds.get(deviceUniqueName) match {
+          case Some(staticId) => staticIdsCurrentlyOnline.synchronized {
+            if (staticIdsCurrentlyOnline.find(_ == staticId).isDefined) {
+              throw new Exception(s"Device of static id $staticId ('$deviceUniqueName') is currently online, I can not authorize you.")
+            } else {
+
+              // according to softwareVersion we should here create all needed infrastructure for communication with device of this software version
+              if (softwareVersion == 1) {
+
+                val deviceInfo = new DeviceInfo(staticId, softwareVersion, hardwareVersion, deviceUniqueName, remoteAddress, localAddress)
+
+                // TODO start serializer
+                // TODO start data sender
+                // TODO start deserializer
+
+                amaConfig.broadcaster ! new DeviceIsUp(deviceInfo)
+
+                staticIdsCurrentlyOnline += staticId
+
+                config.stressTestTimeInSeconds match {
+                  case Some(stressTestTimeInSeconds) => {
+                    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.staticId, new Ping)
+                    val stressTestTimeout = context.system.scheduler.scheduleOnce(stressTestTimeInSeconds seconds, self, StressTestTimeout)(context.dispatcher)
+                    goto(StressTest) using new StressTestStateData(deviceInfo, stressTestTimeout)
+                  }
+
+                  case None => {
+                    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.staticId, new GatewayHello)
+                    amaConfig.broadcaster ! new MessageToDevice(deviceInfo.staticId, new ServerHello) // TODO in future should be send by server (not here by gateway)
+                    goto(WaitingForData) using new WaitingForDataStateData(deviceInfo)
+                  }
+                }
+              } else {
+                throw new Exception(s"Software version $softwareVersion is not supported.")
+              }
+            }
+          }
+
+          case None => {
+            amaConfig.broadcaster ! new UnknownDeviceUniqueName(deviceUniqueName, remoteAddress, localAddress)
+            throw new Exception(s"Could not find static id for device unique name '$deviceUniqueName'.")
+          }
+        }
+
+        /*
         if (softwareVersion == 1) {
 
           // according to softwareVersion we should here create all needed infrastructure for communication with device of this software version
 
+          /*
           val softwareAndHardwareIdentifiedDeviceInfo = deviceInfo.identifySoftwareAndHardwareVersion(softwareVersion, hwVersion)
           deviceInfo = softwareAndHardwareIdentifiedDeviceInfo
 
@@ -148,16 +228,19 @@ class SocketHandler(
           amaConfig.broadcaster ! new SoftwareAndHardwareVersionWasIdentified(deviceInfo)
 
           goto(WaitingForData) using new WaitingForDataStateData(incomingDataListener)
+          */
 
         } else {
           throw new Exception(s"Software version $softwareVersion is not supported.")
         }
+        */
       }
 
       case None => stay using sd
     }
   }
 
+  /*
   protected def prepareCommunicationInfrastructureForDeviceOfSoftwareVersion1(incomingDataBuffer: ByteString, softwareAndHardwareIdentifiedDeviceInfo: SoftwareAndHardwareIdentifiedDeviceInfo): ActorRef = {
 
     val softwareVersion = 1
@@ -191,14 +274,9 @@ class SocketHandler(
     // ---
 
     incomingDataListener
-  }
+  }*/
 
   protected def terminate(reason: FSM.Reason, currentState: SocketHandler.State, stateData: SocketHandler.StateData): Unit = {
-
-    val softwareVersion = stateData match {
-      case WaitingForDataStateData(softwareVersion) => Some(softwareVersion)
-      case _                                        => None
-    }
 
     val closedByRemoteSide = reason match {
       case FSM.Failure(cause) if cause.isInstanceOf[ConnectionWasLostException] => true
@@ -210,33 +288,43 @@ class SocketHandler(
       case _ => false
     }
 
+    val deviceInfo = stateData match {
+      case idsd: IdentifiedDeviceStateData => Some(idsd.deviceInfo)
+      case _                               => None
+    }
+
     val connectionClosed: ConnectionClosed = reason match {
 
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        new ConnectionClosed(None, closedByRemoteSide, deviceInfo)
+        new ConnectionClosed(None, closedByRemoteSide, remoteAddress, localAddress)
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, deviceInfo)
+        new ConnectionClosed(Some(new Exception(s"${getClass.getSimpleName} actor was shut down.")), closedByRemoteSide, remoteAddress, localAddress)
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
         cause match {
-          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, deviceInfo)
+          case t: Throwable => new ConnectionClosed(Some(t), closedByRemoteSide, remoteAddress, localAddress)
 
           case unknownCause => {
-            val e = new Exception(s"Failure stop with unknown cause type (${unknownCause.getClass.getSimpleName}), $unknownCause.")
-            new ConnectionClosed(Some(e), closedByRemoteSide, deviceInfo)
+            val e = new Exception(s"Failure stop with unknown cause type of ${unknownCause.getClass.getSimpleName}, $unknownCause.")
+            new ConnectionClosed(Some(e), closedByRemoteSide, remoteAddress, localAddress)
           }
         }
       }
     }
 
+    deviceInfo.map { deviceInfo =>
+      staticIdsCurrentlyOnline.synchronized { staticIdsCurrentlyOnline += deviceInfo.staticId }
+      amaConfig.broadcaster ! new DeviceIsDown(deviceInfo, deviceInfo.timeInSystemInMillis)
+    }
+
     amaConfig.broadcaster ! connectionClosed
-    if (tcpActorDied) tcpActor ! Tcp.Close
+    if (!tcpActorDied) tcpActor ! Tcp.Close
   }
 }

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.disconnectall
 
 import scala.language.postfixOps
@@ -51,3 +52,4 @@ class DisconnectAllDevices(amaConfig: AmaConfig) extends Actor with ActorLogging
     }
   }
 }
+*/ 

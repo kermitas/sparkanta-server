@@ -7,7 +7,7 @@ class Deserializers(protected final val deserializers: Seq[Deserializer[MessageF
 
   def this() = this(
     Seq(
-      new DeviceHelloDeserializer,
+      //new DeviceHelloDeserializer,
       new PongDeserializer,
       new DigitalPinDeserializer,
       new AnalogPinDeserializer,

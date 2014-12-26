@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.outgoing
 
 import scala.language.postfixOps
@@ -136,3 +137,4 @@ class OutgoingMessageSerializer(
 }
 
 class OutgoingMessageSerializerAck(val messageToDevice: MessageToDevice, val ackListener: ActorRef) extends Serializable
+*/ 

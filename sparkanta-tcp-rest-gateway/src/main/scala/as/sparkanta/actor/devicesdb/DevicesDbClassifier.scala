@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.devicesdb
 
 import akka.actor.ActorRef
@@ -19,3 +20,4 @@ class DevicesDbClassifier extends Classifier {
     case _ => None
   }
 }
+*/ 

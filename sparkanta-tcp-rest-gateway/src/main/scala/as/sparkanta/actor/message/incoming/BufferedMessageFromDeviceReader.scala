@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.incoming
 
 import akka.util.{ ByteString, CompactByteString }
@@ -38,3 +39,4 @@ class BufferedMessageFromDeviceReader(messageHeader: MessageLengthHeaderCreator,
     }
   }
 }
+*/ 

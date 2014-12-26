@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.outgoing
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -40,3 +41,4 @@ class OutgoingDataSenderConfig(
   val maximumNumberOfBufferedMessages: Int,
   val waitingForAckTimeoutInSeconds:   Int
 )
+*/ 

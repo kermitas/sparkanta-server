@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import as.sparkanta.device.message.{ MessageFormDevice => MessageFormDeviceMarker }
@@ -10,4 +11,4 @@ class MessageFromDevice(
 
   override def toString = s"${getClass.getSimpleName}(messageFromDevice=$messageFromDevice,deviceInfo=$deviceInfo)"
 
-}
+}*/ 

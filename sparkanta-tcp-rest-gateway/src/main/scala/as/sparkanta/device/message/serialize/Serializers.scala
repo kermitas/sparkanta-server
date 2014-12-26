@@ -2,7 +2,7 @@ package as.sparkanta.device.message.serialize
 
 import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
 import java.io.OutputStream
-import as.sparkanta.device.message.{ DeviceHello, Disconnect, Ping, Pong, GatewayHello, ServerHello, PinConfiguration, DigitalPinValue, AnalogPinValue, SetDigitalPinValue, SetAnalogPinValue }
+import as.sparkanta.device.message.{ Disconnect, Ping, GatewayHello, ServerHello, PinConfiguration, SetDigitalPinValue, SetAnalogPinValue }
 
 class Serializers extends Serializer[MessageToDeviceMarker] {
 

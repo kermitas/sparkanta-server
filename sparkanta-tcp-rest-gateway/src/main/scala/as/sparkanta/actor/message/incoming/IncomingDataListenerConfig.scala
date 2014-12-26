@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.incoming
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -53,3 +54,5 @@ class IncomingDataListenerConfig(
   val sendPingOnIncomingDataInactivityIntervalInSeconds: Int,
   val stressTestTimeoutInSeconds:                        Option[Long]
 )
+
+*/ 

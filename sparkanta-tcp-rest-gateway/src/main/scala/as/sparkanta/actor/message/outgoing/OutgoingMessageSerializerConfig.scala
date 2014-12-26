@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.outgoing
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -37,3 +38,4 @@ object OutgoingMessageSerializerConfig {
 class OutgoingMessageSerializerConfig(
   val waitingForAckAfterSendingDisconnectTimeoutInSeconds: Int
 )
+*/ 

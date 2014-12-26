@@ -5,11 +5,11 @@ import scala.concurrent.duration._
 import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, ActorRef, Cancellable, FSM, Terminated }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
-import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable.ListBuffer
 import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult }
 import as.ama.addon.lifecycle.ShutdownSystem
 import scala.net.IdentifiedInetSocketAddress
+import scala.collection.mutable.Set
 
 object ServerSocketManager {
   sealed trait State extends Serializable
@@ -25,18 +25,17 @@ object ServerSocketManager {
   case object OpeningServerSocketTimeout extends InternalMessage
 
   case class ServerSocketRecord(listenAddress: IdentifiedInetSocketAddress, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
+
+  val staticIdsCurrentlyOnline = Set[Long]()
 }
 
 class ServerSocketManager(
-  amaConfig:                AmaConfig,
-  remoteAddressIdNumerator: AtomicLong
+  amaConfig: AmaConfig
 ) extends FSM[ServerSocketManager.State, ServerSocketManager.StateData] {
-
-  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0))
 
   import ServerSocketManager._
 
-  protected val tasksToDo = ListBuffer[(ListenAt, ActorRef)]()
+  protected val taskBuffer = ListBuffer[(ListenAt, ActorRef)]()
   protected val openedServerSockets = ListBuffer[ServerSocketRecord]()
 
   override val supervisorStrategy = OneForOneStrategy() {
@@ -97,7 +96,7 @@ class ServerSocketManager(
   protected def listenAt(listenAt: ListenAt, listenAtResultListener: ActorRef) = openedServerSockets.find(ssr => ssr.listenAddress.id == listenAt.listenAddress.id) match {
 
     case Some(ssr) => {
-      log.debug(s"Server socket ${ssr.listenAddress} is already open, resetting 'keep open server socket timeout' (${ssr.keepServerSocketOpenTimeoutInSeconds} seconds).")
+      log.debug(s"Server socket ${ssr.listenAddress} is already open, resetting 'keep server socket opened timeout' (${ssr.keepServerSocketOpenTimeoutInSeconds} seconds).")
 
       ssr.keepOpenServerSocketTimeout.cancel()
       ssr.keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(ssr.keepServerSocketOpenTimeoutInSeconds, ssr.listenAddress)
@@ -107,7 +106,7 @@ class ServerSocketManager(
       stay using WaitingForOpeningServerSocketRequestStateData
     }
 
-    case None => goto(OpeningServerSocket) using startServerSocket(listenAt, listenAtResultListener)
+    case None => goto(OpeningServerSocket) using startServerSocketHandler(listenAt, listenAtResultListener)
   }
 
   protected def createOpenedServerSocketTimeout(keepServerSocketOpenTimeoutInSeconds: Int, listenAddress: IdentifiedInetSocketAddress): Cancellable = {
@@ -115,7 +114,7 @@ class ServerSocketManager(
     context.system.scheduler.scheduleOnce(keepServerSocketOpenTimeoutInSeconds seconds, amaConfig.broadcaster, stopListeningAt)(context.dispatcher)
   }
 
-  protected def startServerSocket(listenAt: ListenAt, listenAtResultListener: ActorRef): OpeningServerSocketStateData = {
+  protected def startServerSocketHandler(listenAt: ListenAt, listenAtResultListener: ActorRef): OpeningServerSocketStateData = {
 
     log.debug(s"Trying to open server socket at ${listenAt.listenAddress} (with ${listenAt.openingServerSocketTimeoutInSeconds} seconds timeout).")
 
@@ -123,7 +122,7 @@ class ServerSocketManager(
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
     val serverSocketHandler = {
-      val props = Props(new ServerSocketHandler(amaConfig, remoteAddressIdNumerator, listenAt, self))
+      val props = Props(new ServerSocketHandler(amaConfig, listenAt, self, staticIdsCurrentlyOnline))
       context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + listenAt.listenAddress.id)
     }
 
@@ -133,7 +132,7 @@ class ServerSocketManager(
   }
 
   protected def addTaskToDo(listenAt: ListenAt, listenAtResultListener: ActorRef, sd: OpeningServerSocketStateData) = {
-    tasksToDo += Tuple2(listenAt, listenAtResultListener)
+    taskBuffer += Tuple2(listenAt, listenAtResultListener)
     stay using sd
   }
 
@@ -143,7 +142,7 @@ class ServerSocketManager(
 
     if (lar.isInstanceOf[ListenAtSuccessResult]) {
 
-      log.debug(s"Successfully bind to ${lar.listenAt.listenAddress}, setting 'keep open server socket timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
+      log.debug(s"Successfully bind to ${lar.listenAt.listenAddress}, setting 'keep server socket opened timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
 
       val lasr = lar.asInstanceOf[ListenAtSuccessResult]
 
@@ -157,10 +156,10 @@ class ServerSocketManager(
     pickupNextTaskOrGotoFirstState
   }
 
-  protected def pickupNextTaskOrGotoFirstState = tasksToDo.headOption match {
+  protected def pickupNextTaskOrGotoFirstState = taskBuffer.headOption match {
     case Some(taskToDo) => {
-      tasksToDo -= taskToDo
-      stay using startServerSocket(taskToDo._1, taskToDo._2)
+      taskBuffer -= taskToDo
+      stay using startServerSocketHandler(taskToDo._1, taskToDo._2)
     }
 
     case None => goto(WaitingForOpeningServerSocketRequest) using WaitingForOpeningServerSocketRequestStateData

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.outgoing
 
 import akka.actor.ActorRef
@@ -14,3 +15,4 @@ class OutgoingDataSenderClassifier(remoteAddressId: Long) extends Classifier {
     case _ => None
   }
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.disconnectall
 
 import akka.actor.ActorRef
@@ -14,3 +15,4 @@ class DisconnectAllDevicesClassifier extends Classifier {
     case _                              => None
   }
 }
+*/ 

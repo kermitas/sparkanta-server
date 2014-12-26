@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.incoming
 
 import scala.collection.mutable.ListBuffer
@@ -539,3 +540,4 @@ class TemporaryBlinkingActor(broadcaster: ActorRef, remoteAddressId: Long, blink
     case m => log.info(s"Received unknown $m.")
   }
 }
+*/ 

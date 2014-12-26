@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import akka.util.{ ByteString, CompactByteString }
@@ -16,3 +17,4 @@ class DataToDevice(
 
   override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,data=${data.size} bytes,ack=$ack)"
 }
+*/ 

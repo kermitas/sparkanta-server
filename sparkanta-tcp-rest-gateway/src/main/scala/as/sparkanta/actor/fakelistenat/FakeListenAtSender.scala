@@ -23,7 +23,8 @@ class FakeListenAtSender(amaConfig: AmaConfig, config: FakeListenAtSenderConfig)
     listenAddress,
     config.openingServerSocketTimeoutInSeconds,
     config.keepServerSocketOpenTimeoutInSeconds,
-    forwardToRestAddress
+    forwardToRestAddress,
+    Map(("abc" -> 1))
   )
 
   /**

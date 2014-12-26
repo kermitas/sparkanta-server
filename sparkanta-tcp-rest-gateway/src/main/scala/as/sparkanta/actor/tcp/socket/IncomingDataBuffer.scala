@@ -2,7 +2,7 @@ package as.sparkanta.actor.tcp.socket
 
 import akka.util.{ ByteString, CompactByteString }
 
-class BufferedIdentificationStringWithSoftwareAndHardwareVersionReader(identificationString: Array[Byte]) {
+class IncomingDataBuffer(identificationString: Array[Byte]) {
 
   def this(identificationString: String) = this(identificationString.getBytes)
 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.outgoing
 
 import as.sparkanta.gateway.SoftwareAndHardwareIdentifiedDeviceInfo
@@ -149,3 +150,4 @@ class OutgoingDataSender(
     }
   }
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import as.sparkanta.gateway.SparkDeviceIdIdentifiedDeviceInfo
@@ -10,3 +11,4 @@ class SparkDeviceIdWasIdentified(
   override def toString = s"${getClass.getSimpleName}(deviceInfo=$deviceInfo,pingPongCountPerSecond=$pingPongCountPerSecond)"
 
 }
+*/ 

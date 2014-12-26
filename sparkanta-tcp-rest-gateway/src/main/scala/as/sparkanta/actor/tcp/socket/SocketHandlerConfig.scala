@@ -9,15 +9,16 @@ object SocketHandlerConfig {
 
   final val topConfigKey = classOf[SocketHandlerConfig].getSimpleName
 
-  final val softwareVersionIdentificationTimeoutInSecondsConfigKey = "softwareVersionIdentificationTimeoutInSeconds"
+  final val identificationTimeoutInSecondsConfigKey = "identificationTimeoutInSeconds"
   final val incomingDataInactivityTimeoutInSecondsConfigKey = "incomingDataInactivityTimeoutInSeconds"
   final val identificationStringConfigKey = "identificationString"
+  final val stressTestTimeInSecondsConfigKey = "stressTestTimeInSeconds"
 
   /**
    * Assumes that Config contains:
    *
    *   SocketHandlerConfig {
-   *     softwareVersionIdentificationTimeoutInSeconds = ...
+   *     identificationTimeoutInSeconds = ...
    *     ...
    *   }
    */
@@ -26,20 +27,34 @@ object SocketHandlerConfig {
   /**
    * Assumes that Config contains:
    *
-   *   softwareVersionIdentificationTimeoutInSeconds = ...
+   *   identificationTimeoutInSeconds = ...
    *   ...
    */
   def apply(config: Config = ConfigFactory.load): SocketHandlerConfig = {
-    val softwareVersionIdentificationTimeoutInSeconds = config.getInt(softwareVersionIdentificationTimeoutInSecondsConfigKey)
+    val identificationTimeoutInSeconds = config.getInt(identificationTimeoutInSecondsConfigKey)
     val incomingDataInactivityTimeoutInSeconds = config.getInt(incomingDataInactivityTimeoutInSecondsConfigKey)
     val identificationString = config.getString(identificationStringConfigKey)
+    val stressTestTimeInSeconds = optionallyReadLongGreaterThanZero(stressTestTimeInSecondsConfigKey, config)
 
-    new SocketHandlerConfig(softwareVersionIdentificationTimeoutInSeconds, incomingDataInactivityTimeoutInSeconds, identificationString)
+    new SocketHandlerConfig(identificationTimeoutInSeconds, incomingDataInactivityTimeoutInSeconds, identificationString, stressTestTimeInSeconds)
+  }
+
+  protected def optionallyReadLongGreaterThanZero(path: String, config: Config): Option[Long] = if (config.hasPath(path)) {
+    val value = config.getLong(path)
+
+    if (value > 0)
+      Some(value)
+    else
+      None
+
+  } else {
+    None
   }
 }
 
 class SocketHandlerConfig(
-  val softwareVersionIdentificationTimeoutInSeconds: Int,
-  val incomingDataInactivityTimeoutInSeconds:        Int,
-  val identificationString:                          String
+  val identificationTimeoutInSeconds:         Int,
+  val incomingDataInactivityTimeoutInSeconds: Int,
+  val identificationString:                   String,
+  val stressTestTimeInSeconds:                Option[Long]
 )
