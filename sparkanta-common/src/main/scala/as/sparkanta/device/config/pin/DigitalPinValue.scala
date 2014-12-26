@@ -1,4 +1,4 @@
-package as.sparkanta.device.config
+package as.sparkanta.device.config.pin
 
 object DigitalPinValue {
   def apply(value: Int): DigitalPinValue = if (value > 0) High else Low

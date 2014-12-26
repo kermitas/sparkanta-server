@@ -1,4 +1,4 @@
-package as.sparkanta.device.config
+package as.sparkanta.device.config.pin
 
 abstract class AnalogPinWorkMode(val workMode: Byte) extends Serializable {
 

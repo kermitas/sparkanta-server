@@ -1,4 +1,4 @@
-package as.sparkanta.device.config
+package as.sparkanta.device.config.pin
 
 abstract class Pin(val pinNumber: Byte) extends Serializable {
 

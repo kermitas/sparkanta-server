@@ -1,6 +1,6 @@
 package as.sparkanta.device.message
 
-import as.sparkanta.device.config.AnalogPin
+import as.sparkanta.device.config.pin.AnalogPin
 import as.sparkanta.device.{ AckType, NoAck }
 
 object AnalogPinValue {

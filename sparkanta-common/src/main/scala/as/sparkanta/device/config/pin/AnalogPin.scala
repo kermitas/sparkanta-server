@@ -1,4 +1,4 @@
-package as.sparkanta.device.config
+package as.sparkanta.device.config.pin
 
 object AnalogPin {
   lazy final val minPinNumber = 0;

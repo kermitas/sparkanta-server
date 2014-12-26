@@ -2,7 +2,7 @@ package as.sparkanta.device.message.serialize
 
 import java.io.{ OutputStream, DataOutputStream }
 import as.sparkanta.device.message.PinConfiguration
-import as.sparkanta.device.config._
+import as.sparkanta.device.config.pin._
 
 class PinConfigurationSerializer extends PinConfigurationSerializerVersion1
 

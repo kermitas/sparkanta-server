@@ -1,6 +1,6 @@
 package as.sparkanta.device.message
 
-import as.sparkanta.device.config._
+import as.sparkanta.device.config.pin._
 import as.sparkanta.device.{ AckType, NoAck }
 
 object PinConfiguration {

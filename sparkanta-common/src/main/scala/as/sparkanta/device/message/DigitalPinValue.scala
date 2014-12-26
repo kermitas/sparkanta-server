@@ -1,6 +1,6 @@
 package as.sparkanta.device.message
 
-import as.sparkanta.device.config.{ DigitalPin, DigitalPinValue => DigitalPinValueConfig }
+import as.sparkanta.device.config.pin.{ DigitalPin, DigitalPinValue => DigitalPinValueConfig }
 import as.sparkanta.device.{ AckType, NoAck }
 
 object DigitalPinValue {
