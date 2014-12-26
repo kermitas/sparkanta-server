@@ -1,4 +1,4 @@
-package as.sparkanta.actor.tcp.socket
+/*package as.sparkanta.actor.tcp.socket
 
 import akka.util.{ ByteString, CompactByteString }
 
@@ -44,3 +44,4 @@ class IncomingDataBuffer(identificationString: Array[Byte]) {
     (buffAndRest._1(0), buffAndRest._1(1), new String(buffAndRest._1.drop(3).toArray))
   }
 }
+*/ 

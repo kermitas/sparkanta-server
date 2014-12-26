@@ -6,11 +6,10 @@ class ListenAt(
   val listenAddress:                        IdentifiedInetSocketAddress,
   val openingServerSocketTimeoutInSeconds:  Int,
   val keepServerSocketOpenTimeoutInSeconds: Int,
-  val forwardToRestAddress:                 IdentifiedInetSocketAddress,
-  val deviceStaticIds:                      Map[String, Long]
+  val forwardToRestAddress:                 IdentifiedInetSocketAddress
 ) extends Serializable {
 
-  override def toString = s"${getClass.getSimpleName}(listenAddress=$listenAddress,openingServerSocketTimeoutInSeconds=$openingServerSocketTimeoutInSeconds,keepServerSocketOpenTimeoutInSeconds=$keepServerSocketOpenTimeoutInSeconds,forwardToRestAddress=$forwardToRestAddress,deviceIds=$deviceStaticIds)"
+  override def toString = s"${getClass.getSimpleName}(listenAddress=$listenAddress,openingServerSocketTimeoutInSeconds=$openingServerSocketTimeoutInSeconds,keepServerSocketOpenTimeoutInSeconds=$keepServerSocketOpenTimeoutInSeconds,forwardToRestAddress=$forwardToRestAddress)"
 
 }
 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.socket
 
 import scala.language.postfixOps
@@ -328,3 +329,4 @@ class SocketHandler(
     if (!tcpActorDied) tcpActor ! Tcp.Close
   }
 }
+*/ 

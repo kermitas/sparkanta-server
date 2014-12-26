@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.socket
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -58,3 +59,4 @@ class SocketHandlerConfig(
   val identificationString:                   String,
   val stressTestTimeInSeconds:                Option[Long]
 )
+*/ 

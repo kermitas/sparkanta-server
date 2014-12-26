@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import scala.net.IdentifiedInetSocketAddress
@@ -13,3 +14,4 @@ class ConnectionClosed(
   override def toString = s"${getClass.getSimpleName}(throwable=$throwable,closedByRemoteSide=$closedByRemoteSide,remoteAddress=$remoteAddress,localAddress=$localAddress)"
 
 }
+*/ 

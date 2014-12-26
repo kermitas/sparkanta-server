@@ -1,20 +1,19 @@
 package as.sparkanta.gateway
 
 import scala.net.IdentifiedInetSocketAddress
-import java.net.InetSocketAddress
+//import java.net.InetSocketAddress
+import as.sparkanta.device.message.fromdevice.DeviceIdentification
 
 class DeviceInfo(
-  val staticId:               Long,
-  val softwareVersion:        Int,
-  val hardwareVersion:        HardwareVersion,
-  val deviceUniqueName:       String,
-  val remoteAddress:          InetSocketAddress,
-  val localAddress:           IdentifiedInetSocketAddress,
-  val startTimeInMillis:      Long                        = System.currentTimeMillis,
+  remoteAddress:              IdentifiedInetSocketAddress,
+  localAddress:               IdentifiedInetSocketAddress,
+  restAddress:                IdentifiedInetSocketAddress,
+  startTimeInMillis:          Long,
+  val deviceIdentification:   DeviceIdentification,
   val pingPongCountPerSecond: Option[Long]                = None
-) extends Serializable {
+) extends NetworkDeviceInfo(remoteAddress, localAddress, restAddress, startTimeInMillis) {
 
   def timeInSystemInMillis: Long = System.currentTimeMillis - startTimeInMillis
 
-  override def toString = s"${getClass.getSimpleName}(staticId=$staticId,softwareVersion=$softwareVersion,hardwareVersion=$hardwareVersion,deviceUniqueName=$deviceUniqueName,remoteAddress=$remoteAddress,localAddress=$localAddress,startTimeInMillis=$startTimeInMillis,pingPongCountPerSecond=$pingPongCountPerSecond)"
+  override def toString = s"${getClass.getSimpleName}(deviceIdentification=$deviceIdentification,remoteAddress=$remoteAddress,localAddress=$localAddress,restAddress=$restAddress,startTimeInMillis=$startTimeInMillis,timeInSystem=$timeInSystemInMillis,pingPongCountPerSecond=$pingPongCountPerSecond)"
 }

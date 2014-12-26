@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import scala.net.IdentifiedInetSocketAddress
@@ -11,3 +12,4 @@ class NewIncomingConnection(
   override def toString = s"${getClass.getSimpleName}(remoteAddress=$remoteAddress,localAddress=$localAddress)"
 
 }
+*/ 

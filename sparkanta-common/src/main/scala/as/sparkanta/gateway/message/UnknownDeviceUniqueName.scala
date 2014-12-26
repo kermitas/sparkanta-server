@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway.message
 
 import java.net.InetSocketAddress
@@ -11,4 +12,4 @@ class UnknownDeviceUniqueName(
 
   override def toString = s"${getClass.getSimpleName}(unknownName=$unknownName,remoteAddress=$remoteAddress,localAddress=$localAddress)"
 
-}
+}*/ 

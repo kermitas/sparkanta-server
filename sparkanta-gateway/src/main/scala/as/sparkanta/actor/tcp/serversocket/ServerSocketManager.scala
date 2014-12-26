@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.serversocket
 
 import scala.language.postfixOps
@@ -189,3 +190,4 @@ class ServerSocketManager(
     amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${classOf[ServerSocketManager].getSimpleName} is stopping.")))
   }
 }
+*/ 
