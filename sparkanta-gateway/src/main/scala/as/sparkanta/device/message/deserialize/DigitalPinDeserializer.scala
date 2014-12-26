@@ -2,7 +2,7 @@ package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
-import as.sparkanta.device.message.DigitalPinValue
+import as.sparkanta.device.message.fromdevice.DigitalPinValue
 import as.sparkanta.device.config.pin.{ DigitalPin, DigitalPinValue => DigitalPinValueConfig }
 
 class DigitalPinDeserializer extends Deserializer[DigitalPinValue] {

@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.ServerHello
+import as.sparkanta.device.message.todevice.ServerHello
 
 class ServerHelloSerializer extends ServerHelloSerializerVersion1
 

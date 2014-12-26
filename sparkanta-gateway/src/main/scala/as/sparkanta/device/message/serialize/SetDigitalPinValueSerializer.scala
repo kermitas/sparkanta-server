@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.SetDigitalPinValue
+import as.sparkanta.device.message.todevice.SetDigitalPinValue
 
 class SetDigitalPinValueSerializer extends SetDigitalPinValueSerializerVersion1
 

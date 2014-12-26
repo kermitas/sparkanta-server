@@ -1,4 +1,4 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.todevice
 
 import as.sparkanta.device.{ AckType, NoAck }
 
@@ -6,7 +6,7 @@ object GatewayHello {
   lazy final val messageCode: Int = 5
 }
 
-class GatewayHello(val ackType: AckType = NoAck) extends MessageFormDevice with MessageToDevice {
+class GatewayHello(val ackType: AckType = NoAck) extends MessageToDevice {
 
   override def toString = s"${getClass.getSimpleName}(ackType=$ackType)"
 

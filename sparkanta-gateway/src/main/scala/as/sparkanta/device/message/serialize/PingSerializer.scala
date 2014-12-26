@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.Ping
+import as.sparkanta.device.message.todevice.Ping
 
 class PingSerializer extends PingSerializerVersion1
 

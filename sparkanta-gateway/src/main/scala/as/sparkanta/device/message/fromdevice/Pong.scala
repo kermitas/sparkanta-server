@@ -1,4 +1,4 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.fromdevice
 
 import as.sparkanta.device.{ AckType, NoAck }
 

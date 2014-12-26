@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.deserialize
 
 import java.io.{ InputStream, ByteArrayInputStream }
-import as.sparkanta.device.message.MessageFormDevice
+import as.sparkanta.device.message.fromdevice.MessageFormDevice
 
 trait Deserializer[+T <: MessageFormDevice] {
 

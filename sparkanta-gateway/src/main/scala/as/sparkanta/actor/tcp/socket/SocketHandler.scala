@@ -17,7 +17,7 @@ import as.sparkanta.gateway.message.{ DeviceIsUp, DeviceIsDown, ConnectionClosed
 //import as.sparkanta.device.message.serialize.Serializers
 import scala.net.IdentifiedInetSocketAddress
 import as.sparkanta.server.message.MessageToDevice
-import as.sparkanta.device.message.{ GatewayHello, ServerHello, Ping }
+import as.sparkanta.device.message.todevice.{ GatewayHello, ServerHello, Ping }
 //import as.akka.broadcaster.Broadcaster
 import scala.collection.mutable.Set
 

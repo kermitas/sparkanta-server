@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.GatewayHello
+import as.sparkanta.device.message.todevice.GatewayHello
 
 class GatewayHelloSerializer extends GatewayHelloSerializerVersion1
 

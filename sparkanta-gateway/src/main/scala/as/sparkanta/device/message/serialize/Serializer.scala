@@ -1,10 +1,10 @@
 package as.sparkanta.device.message.serialize
 
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.todevice.MessageToDevice
 import as.sparkanta.device.AckType
 import java.io.{ ByteArrayOutputStream, OutputStream }
 
-trait Serializer[T <: MessageToDeviceMarker] {
+trait Serializer[T <: MessageToDevice] {
 
   var messageNumber = 0
 

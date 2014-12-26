@@ -2,7 +2,7 @@ package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
-import as.sparkanta.device.message.Ack
+import as.sparkanta.device.message.fromdevice.Ack
 import as.sparkanta.device.AckType
 
 class AckDeserializer extends Deserializer[Ack] {

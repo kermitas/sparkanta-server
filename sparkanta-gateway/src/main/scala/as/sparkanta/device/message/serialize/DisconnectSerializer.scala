@@ -1,7 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.Disconnect
+import as.sparkanta.device.message.todevice.Disconnect
 
 class DisconnectSerializer extends DisconnectSerializerVersion1
 

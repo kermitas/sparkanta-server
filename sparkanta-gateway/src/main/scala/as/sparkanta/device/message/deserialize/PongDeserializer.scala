@@ -2,7 +2,7 @@ package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
-import as.sparkanta.device.message.Pong
+import as.sparkanta.device.message.fromdevice.Pong
 
 class PongDeserializer extends Deserializer[Pong] {
 

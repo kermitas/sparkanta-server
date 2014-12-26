@@ -1,6 +1,6 @@
 package as.sparkanta.server.message
 
-import as.sparkanta.device.message.{ MessageToDevice => MessageToDeviceMarker }
+import as.sparkanta.device.message.todevice.{ MessageToDevice => MessageToDeviceMarker }
 
 class MessageToDevice(
   val staticId:        Long,

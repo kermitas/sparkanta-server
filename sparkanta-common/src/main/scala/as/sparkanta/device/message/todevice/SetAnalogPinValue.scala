@@ -1,4 +1,4 @@
-package as.sparkanta.device.message
+package as.sparkanta.device.message.todevice
 
 import as.sparkanta.device.config.pin.AnalogPin
 import as.sparkanta.device.{ AckType, NoAck }

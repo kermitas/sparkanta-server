@@ -1,13 +1,13 @@
 package as.sparkanta.device.message.deserialize
 
 import java.io.InputStream
-import as.sparkanta.device.message.MessageFormDevice
+import as.sparkanta.device.message.fromdevice.MessageFormDevice
 
 class Deserializers(protected final val deserializers: Seq[Deserializer[MessageFormDevice]]) extends Deserializer[MessageFormDevice] {
 
   def this() = this(
     Seq(
-      //new DeviceHelloDeserializer,
+      new DeviceIdentificationDeserializer,
       new PongDeserializer,
       new DigitalPinDeserializer,
       new AnalogPinDeserializer,
