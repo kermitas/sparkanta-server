@@ -1,9 +1,9 @@
 import sbt._
 import Keys._
 
-object SparkantaTcpRestGatewayProject {
+object SparkantaGatewayProject {
 
-  lazy final val projectName                 = SparkantaProject.projectName + "-tcp-rest-gateway"
+  lazy final val projectName                 = SparkantaProject.projectName + "-gateway"
   lazy final val mainClassFullyQualifiedName = "as.ama.Main"
 
   def apply(version: String, common: Project, akkaUtils: Project) =

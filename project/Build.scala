@@ -8,8 +8,8 @@ object Build extends sbt.Build {
   lazy val akkaUtils      = SparkantaAkkaUtilsProject(version)
 
   lazy val common         = SparkantaCommonProject(version, scalaUtils)
-  lazy val tcpRestGateway = SparkantaTcpRestGatewayProject(version, common, akkaUtils)
+  lazy val gateway	  = SparkantaGatewayProject(version, common, akkaUtils)
   lazy val restServer     = SparkantaRestServerProject(version, common)
 
-  lazy val sparkanta      = SparkantaProject(version, tcpRestGateway, restServer)
+  lazy val sparkanta      = SparkantaProject(version, gateway, restServer)
 }
