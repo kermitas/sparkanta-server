@@ -82,15 +82,15 @@ sparkanta-server)</y:NodeLabel>
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="1059.2324706595136" width="1793.833333333334" x="426.01249999999993" y="121.5390625"/>
+              <y:Geometry height="1059.2324706595136" width="1792.5333333333338" x="427.3125" y="121.5390625"/>
               <y:Fill color="#F2F0D8" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#B7B69E" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="1793.833333333334" x="0.0" y="0.0">pub-sub</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#B7B69E" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="1792.5333333333338" x="0.0" y="0.0">pub-sub</y:NodeLabel>
               <y:Shape type="rectangle"/>
               <y:DropShadow color="#D2D2D2" offsetX="4" offsetY="4"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
-              <y:BorderInsets bottom="0" bottomF="0.0" left="1" leftF="1.3000000000000682" right="0" rightF="0.0" top="6" topF="6.131435582822064"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="6" topF="6.131435582822064"/>
             </y:GroupNode>
             <y:GroupNode>
               <y:Geometry height="281.0" width="191.0" x="697.0" y="63.0"/>
@@ -436,10 +436,10 @@ AckType)</y:NodeLabel>
         <node id="n2::n12">
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="351.19999999999993" x="441.7999999999999" y="908.8541666666672"/>
+              <y:Geometry height="21.0" width="426.59861104294487" x="441.79999999999995" y="908.8541666666672"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="349.3046875" x="0.9476562499999659" y="1.515625">CouldNotDeserializeDataFromDevice(NetworkDeviceInfo)<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="416.201171875" x="5.1987195839724905" y="1.515625">CouldNotDeserializeDataFromDevice(NetworkDeviceInfo, Exception)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -629,10 +629,11 @@ DoNotForwardToRestServer]</y:NodeLabel>
         <node id="n2::n16">
           <data key="d6">
             <y:GenericNode configuration="com.yworks.flowchart.terminator">
-              <y:Geometry height="21.0" width="326.8000000000002" x="1168.8249999999998" y="196.19999999999993"/>
+              <y:Geometry height="38.75" width="261.398020449898" x="1201.525989775051" y="196.19999999999993"/>
               <y:Fill color="#99CC00" color2="#339966" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="316.052734375" x="5.373632812500091" y="1.515625">CouldNotForwardToRest(ForwardToRest, Exception)<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="248.2890625" x="6.554478974949006" y="3.40625">CouldNotForwardToRest(ForwardToRest,
+restAddress, Exception)<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -1520,7 +1521,7 @@ sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" ang
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#0000FF" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="109.146484375" x="85.8579284667968" y="-22.953145345051553">also send back to
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="109.146484375" x="85.84604187011712" y="-22.953145345051553">also send back to
 DataFromDevice
 sender<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
