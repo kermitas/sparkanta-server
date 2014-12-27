@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import as.sparkanta.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult, StopListeningAt }
 import as.ama.addon.lifecycle.ShutdownSystem
 import scala.net.IdentifiedInetSocketAddress
-import scala.collection.mutable.Set
+import java.util.concurrent.atomic.AtomicLong
 
 object ServerSocketManager {
   sealed trait State extends Serializable
@@ -29,8 +29,11 @@ object ServerSocketManager {
 }
 
 class ServerSocketManager(
-  amaConfig: AmaConfig
+  amaConfig:                        AmaConfig,
+  remoteConnectionsUniqueNumerator: AtomicLong
 ) extends FSM[ServerSocketManager.State, ServerSocketManager.StateData] {
+
+  def this(amaConfig: AmaConfig) = this(amaConfig, new AtomicLong(0))
 
   import ServerSocketManager._
 
@@ -120,14 +123,10 @@ class ServerSocketManager(
     import context.dispatcher
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
-    val serverSocketHandler: ActorRef = null
-    /*
     val serverSocketHandler = {
-      val props = Props(new ServerSocketHandler(amaConfig, listenAt, self))
+      val props = Props(new ServerSocketHandler(amaConfig, listenAt, remoteConnectionsUniqueNumerator, self))
       context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + listenAt.listenAddress.id)
-    }*/
-
-    serverSocketHandler ! true
+    }
 
     new OpeningServerSocketStateData(listenAt, listenAtResultListener, openingServerSocketTimeout, serverSocketHandler)
   }

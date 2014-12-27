@@ -1,9 +1,8 @@
-/*
 package as.sparkanta.actor.tcp.serversocket
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.server.message.StopListeningAt
+import as.sparkanta.message.StopListeningAt
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -14,4 +13,4 @@ class ServerSocketHandlerClassifier(listenAddressId: Long) extends Classifier {
     case a: StopListeningAt if a.listenAddressId == listenAddressId => Some(a)
     case _ => None
   }
-}*/ 
+}
