@@ -1,9 +1,8 @@
-/*
 package as.sparkanta.actor.tcp.serversocket
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.server.message.ListenAt
+import as.sparkanta.message.ListenAt
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -15,4 +14,3 @@ class ServerSocketManagerClassifier extends Classifier {
     case _           => None
   }
 }
-*/ 

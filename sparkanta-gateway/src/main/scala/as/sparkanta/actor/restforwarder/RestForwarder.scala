@@ -11,9 +11,13 @@ class RestForwarder(amaConfig: AmaConfig) extends Actor with ActorLogging {
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
-  override def preStart(): Unit = {
+  override def preStart(): Unit = try {
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new RestForwarderClassifier)
+
+    amaConfig.sendInitializationResult()
+  } catch {
+    case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
   }
 
   override def receive = {

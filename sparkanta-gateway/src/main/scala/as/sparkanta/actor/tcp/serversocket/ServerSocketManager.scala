@@ -1,4 +1,3 @@
-/*
 package as.sparkanta.actor.tcp.serversocket
 
 import scala.language.postfixOps
@@ -7,7 +6,7 @@ import akka.actor.{ SupervisorStrategy, OneForOneStrategy, Props, ActorRef, Canc
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.ListBuffer
-import as.sparkanta.server.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult }
+import as.sparkanta.message.{ ListenAt, ListenAtSuccessResult, ListenAtErrorResult, ListenAtResult, StopListeningAt }
 import as.ama.addon.lifecycle.ShutdownSystem
 import scala.net.IdentifiedInetSocketAddress
 import scala.collection.mutable.Set
@@ -27,7 +26,6 @@ object ServerSocketManager {
 
   case class ServerSocketRecord(listenAddress: IdentifiedInetSocketAddress, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
 
-  val staticIdsCurrentlyOnline = Set[Long]()
 }
 
 class ServerSocketManager(
@@ -80,15 +78,13 @@ class ServerSocketManager(
   /**
    * Will be executed when actor is created and also after actor restart (if postRestart() is not override).
    */
-  override def preStart(): Unit = {
-    try {
-      // notifying broadcaster to register us with given classifier
-      amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketManagerClassifier)
+  override def preStart(): Unit = try {
+    // notifying broadcaster to register us with given classifier
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketManagerClassifier)
 
-      amaConfig.sendInitializationResult()
-    } catch {
-      case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
-    }
+    amaConfig.sendInitializationResult()
+  } catch {
+    case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
   }
 
   protected def removeFromOpenedServerSocketList(serverSocketActor: ActorRef) =
@@ -102,7 +98,9 @@ class ServerSocketManager(
       ssr.keepOpenServerSocketTimeout.cancel()
       ssr.keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(ssr.keepServerSocketOpenTimeoutInSeconds, ssr.listenAddress)
 
-      listenAtResultListener ! new ListenAtSuccessResult(listenAt)
+      val listenAtSuccessResult = new ListenAtSuccessResult(listenAt)
+
+      sendResponse(listenAtResultListener, listenAtSuccessResult)
 
       stay using WaitingForOpeningServerSocketRequestStateData
     }
@@ -122,10 +120,12 @@ class ServerSocketManager(
     import context.dispatcher
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
+    val serverSocketHandler: ActorRef = null
+    /*
     val serverSocketHandler = {
-      val props = Props(new ServerSocketHandler(amaConfig, listenAt, self, staticIdsCurrentlyOnline))
+      val props = Props(new ServerSocketHandler(amaConfig, listenAt, self))
       context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + listenAt.listenAddress.id)
-    }
+    }*/
 
     serverSocketHandler ! true
 
@@ -152,7 +152,7 @@ class ServerSocketManager(
       context.watch(sd.serverSocketHandler)
     }
 
-    sd.listenAtResultListener ! lar
+    sendResponse(sd.listenAtResultListener, lar)
 
     pickupNextTaskOrGotoFirstState
   }
@@ -167,9 +167,15 @@ class ServerSocketManager(
   }
 
   protected def openingServerSocketTimeout(sd: OpeningServerSocketStateData) = {
-    sd.listenAtResultListener ! new ListenAtErrorResult(sd.listenAt, new Exception(s"Timeout (${sd.listenAt.openingServerSocketTimeoutInSeconds} seconds) while opening server socket."))
+    val listenAtErrorResult = new ListenAtErrorResult(sd.listenAt, new Exception(s"Timeout (${sd.listenAt.openingServerSocketTimeoutInSeconds} seconds) while opening server socket."))
+    sendResponse(sd.listenAtResultListener, listenAtErrorResult)
     context.stop(sd.serverSocketHandler)
     pickupNextTaskOrGotoFirstState
+  }
+
+  protected def sendResponse(listenAtResultListener: ActorRef, lar: ListenAtResult): Unit = {
+    listenAtResultListener ! lar
+    amaConfig.broadcaster ! lar
   }
 
   protected def terminate(reason: FSM.Reason, currentState: ServerSocketManager.State, stateData: ServerSocketManager.StateData): Unit = {
@@ -190,4 +196,3 @@ class ServerSocketManager(
     amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${classOf[ServerSocketManager].getSimpleName} is stopping.")))
   }
 }
-*/ 
