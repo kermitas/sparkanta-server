@@ -16,7 +16,7 @@ class TcpAck(val timeoutInMillis: Long) extends AckType {
 
 }
 
-class DeviceAck(val timeoutInMillis: Long, deviceAck: DeviceAckType) extends AckType {
+class DeviceAck(val timeoutInMillis: Long, val deviceAck: DeviceAckType) extends AckType {
 
   override def toString = s"${getClass.getSimpleName}(deviceAck=$deviceAck,timeoutInMillis=$timeoutInMillis)"
 

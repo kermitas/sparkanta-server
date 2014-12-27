@@ -1,14 +1,14 @@
 package as.sparkanta.device.message.serialize
 
 import as.sparkanta.device.message.todevice.MessageToDevice
-import as.sparkanta.device.AckType
+import as.sparkanta.device.{ AckType, NoAck }
 import java.io.{ ByteArrayOutputStream, OutputStream }
 
 trait Serializer[T <: MessageToDevice] {
 
   var messageNumber = 0
 
-  def serialize(messageToDevice: T, ackType: AckType): Array[Byte] = {
+  def serialize(messageToDevice: T, ackType: AckType = NoAck): Array[Byte] = {
     val baos = new ByteArrayOutputStream
     serialize(messageToDevice, ackType, baos)
     baos.toByteArray

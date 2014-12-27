@@ -1,6 +1,6 @@
 package as.sparkanta.message
 
-sealed abstract class SendMessageToDeviceResult(val sendMessageToDevice: SendMessageToDevice, val exception: Option[Exception]) extends Serializable {
+sealed class SendMessageToDeviceResult(val sendMessageToDevice: SendMessageToDevice, val exception: Option[Exception]) extends Serializable {
 
   override def toString = s"${getClass.getSimpleName}(sendMessageToDevice=$sendMessageToDevice,exception=$exception)"
 

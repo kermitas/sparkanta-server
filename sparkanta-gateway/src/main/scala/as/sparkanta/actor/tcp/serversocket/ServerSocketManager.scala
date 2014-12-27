@@ -102,7 +102,8 @@ class ServerSocketManager(
 
       val listenAtSuccessResult = new ListenAtSuccessResult(listenAt)
 
-      sendResponse(listenAtResultListener, listenAtSuccessResult)
+      listenAtResultListener ! listenAtSuccessResult
+      amaConfig.broadcaster ! listenAtSuccessResult
 
       stay using WaitingForOpeningServerSocketRequestStateData
     }
@@ -148,7 +149,7 @@ class ServerSocketManager(
       context.watch(sd.serverSocketHandler)
     }
 
-    sendResponse(sd.listenAtResultListener, lar)
+    sd.listenAtResultListener ! lar
 
     pickupNextTaskOrGotoFirstState
   }
@@ -164,14 +165,9 @@ class ServerSocketManager(
 
   protected def openingServerSocketTimeout(sd: OpeningServerSocketStateData) = {
     val listenAtErrorResult = new ListenAtErrorResult(sd.listenAt, new Exception(s"Timeout (${sd.listenAt.openingServerSocketTimeoutInSeconds} seconds) while opening server socket."))
-    sendResponse(sd.listenAtResultListener, listenAtErrorResult)
+    sd.listenAtResultListener ! listenAtErrorResult
     context.stop(sd.serverSocketHandler)
     pickupNextTaskOrGotoFirstState
-  }
-
-  protected def sendResponse(listenAtResultListener: ActorRef, lar: ListenAtResult): Unit = {
-    listenAtResultListener ! lar
-    amaConfig.broadcaster ! lar
   }
 
   protected def terminate(reason: FSM.Reason, currentState: ServerSocketManager.State, stateData: ServerSocketManager.StateData): Unit = {

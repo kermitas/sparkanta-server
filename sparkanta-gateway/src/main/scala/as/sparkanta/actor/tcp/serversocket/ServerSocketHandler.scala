@@ -16,7 +16,7 @@ class ServerSocketHandler(
   remoteConnectionsUniqueNumerator: AtomicLong
 ) extends Actor with ActorLogging {
 
-  protected var started = false
+  protected var wasSuccessfullyBound = false
 
   override def receive = {
     case Tcp.Connected(remoteAddress, _) => newIncomingConnection(remoteAddress, sender())
@@ -37,7 +37,7 @@ class ServerSocketHandler(
   }
 
   override def postStop(): Unit = {
-    if (started) amaConfig.broadcaster ! new ListeningStopped(listenAt)
+    if (wasSuccessfullyBound) amaConfig.broadcaster ! new ListeningStopped(listenAt)
   }
 
   protected def bind: Unit = try {
@@ -46,7 +46,7 @@ class ServerSocketHandler(
     IO(Tcp) ! Tcp.Bind(self, listenAt.listenAddress)
   } catch {
     case e: Exception => {
-      context.parent ! new ListenAtErrorResult(listenAt, new Exception("Problem while preparing to bind.", e))
+      amaConfig.broadcaster ! new ListenAtErrorResult(listenAt, new Exception("Problem while preparing to bind.", e))
       context.stop(self)
     }
   }
@@ -54,12 +54,12 @@ class ServerSocketHandler(
   protected def boundSuccess: Unit = {
     log.info(s"Successfully bound to ${listenAt.listenAddress}.")
 
-    started = true
-    context.parent ! new ListenAtSuccessResult(listenAt)
+    amaConfig.broadcaster ! new ListenAtSuccessResult(listenAt)
+    wasSuccessfullyBound = true
   }
 
   protected def boundFailed: Unit = {
-    context.parent ! new ListenAtErrorResult(listenAt, new Exception(s"Could not bind to ${listenAt.listenAddress}."))
+    amaConfig.broadcaster ! new ListenAtErrorResult(listenAt, new Exception(s"Could not bind to ${listenAt.listenAddress}."))
     context.stop(self)
   }
 
