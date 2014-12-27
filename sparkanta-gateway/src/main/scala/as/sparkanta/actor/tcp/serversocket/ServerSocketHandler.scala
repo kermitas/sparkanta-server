@@ -6,20 +6,20 @@ import as.sparkanta.gateway.NetworkDeviceInfo
 import as.sparkanta.ama.config.AmaConfig
 import akka.io.{ IO, Tcp }
 import java.net.InetSocketAddress
-import as.sparkanta.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, NewIncomingConnection }
+import as.sparkanta.message.{ StopListeningAt, ListenAt, ListenAtSuccessResult, ListenAtErrorResult, NewIncomingConnection, ListeningStopped }
 import scala.net.IdentifiedInetSocketAddress
 import java.util.concurrent.atomic.AtomicLong
 
 class ServerSocketHandler(
   amaConfig:                        AmaConfig,
   listenAt:                         ListenAt,
-  remoteConnectionsUniqueNumerator: AtomicLong,
-  var listenAtResultListener:       ActorRef
+  remoteConnectionsUniqueNumerator: AtomicLong
 ) extends Actor with ActorLogging {
+
+  protected var started = false
 
   override def receive = {
     case Tcp.Connected(remoteAddress, _) => newIncomingConnection(remoteAddress, sender())
-    case true                            => bind
     case _: Tcp.Bound                    => boundSuccess
     case Tcp.CommandFailed(_: Tcp.Bind)  => boundFailed
     case sla: StopListeningAt            => stopListeningAt(sla)
@@ -33,33 +33,41 @@ class ServerSocketHandler(
     // notifying broadcaster to register us with given classifier
     amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketHandlerClassifier(listenAt.listenAddress.id))
 
-    self ! true
+    bind
   }
 
-  protected def bind: Unit = {
+  override def postStop(): Unit = {
+    if (started) amaConfig.broadcaster ! new ListeningStopped(listenAt)
+  }
+
+  protected def bind: Unit = try {
     import context.system
     log.debug(s"Trying to bind to ${listenAt.listenAddress}.")
     IO(Tcp) ! Tcp.Bind(self, listenAt.listenAddress)
+  } catch {
+    case e: Exception => {
+      context.parent ! new ListenAtErrorResult(listenAt, new Exception("Problem while preparing to bind.", e))
+      context.stop(self)
+    }
   }
 
   protected def boundSuccess: Unit = {
     log.info(s"Successfully bound to ${listenAt.listenAddress}.")
 
-    listenAtResultListener ! new ListenAtSuccessResult(listenAt)
-    listenAtResultListener = null
+    started = true
+    context.parent ! new ListenAtSuccessResult(listenAt)
   }
 
   protected def boundFailed: Unit = {
-    val message = s"Could not bind to ${listenAt.listenAddress}."
-    log.error(message)
-
-    listenAtResultListener ! new ListenAtErrorResult(listenAt, new Exception(message))
+    context.parent ! new ListenAtErrorResult(listenAt, new Exception(s"Could not bind to ${listenAt.listenAddress}."))
     context.stop(self)
   }
 
-  protected def newIncomingConnection(remoteAddr: InetSocketAddress, tcpActor: ActorRef): Unit = {
+  protected def newIncomingConnection(remoteAddr: InetSocketAddress, tcpActor: ActorRef): Unit = try {
     val remoteAddress = new IdentifiedInetSocketAddress(remoteConnectionsUniqueNumerator.getAndIncrement, remoteAddr.getHostString, remoteAddr.getPort)
     newIncomingConnection(remoteAddress, tcpActor)
+  } catch {
+    case e: Exception => log.error(s"Problem while accepting new incoming connection from $remoteAddr to ${listenAt.listenAddress}.", e)
   }
 
   protected def newIncomingConnection(remoteAddress: IdentifiedInetSocketAddress, tcpActor: ActorRef): Unit = {

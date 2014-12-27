@@ -25,7 +25,6 @@ object ServerSocketManager {
   case object OpeningServerSocketTimeout extends InternalMessage
 
   case class ServerSocketRecord(listenAddress: IdentifiedInetSocketAddress, serverSocketHandler: ActorRef, keepServerSocketOpenTimeoutInSeconds: Int, var keepOpenServerSocketTimeout: Cancellable) extends Serializable
-
 }
 
 class ServerSocketManager(
@@ -124,7 +123,7 @@ class ServerSocketManager(
     val openingServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.openingServerSocketTimeoutInSeconds seconds, self, OpeningServerSocketTimeout)
 
     val serverSocketHandler = {
-      val props = Props(new ServerSocketHandler(amaConfig, listenAt, remoteConnectionsUniqueNumerator, self))
+      val props = Props(new ServerSocketHandler(amaConfig, listenAt, remoteConnectionsUniqueNumerator))
       context.actorOf(props, name = classOf[ServerSocketHandler].getSimpleName + "-" + listenAt.listenAddress.id)
     }
 
@@ -143,8 +142,6 @@ class ServerSocketManager(
     if (lar.isInstanceOf[ListenAtSuccessResult]) {
 
       log.debug(s"Successfully bind to ${lar.listenAt.listenAddress}, setting 'keep server socket opened timeout' to ${lar.listenAt.keepServerSocketOpenTimeoutInSeconds} seconds.")
-
-      val lasr = lar.asInstanceOf[ListenAtSuccessResult]
 
       val keepOpenServerSocketTimeout = createOpenedServerSocketTimeout(lar.listenAt.keepServerSocketOpenTimeoutInSeconds, lar.listenAt.listenAddress)
       openedServerSockets += new ServerSocketRecord(lar.listenAt.listenAddress, sd.serverSocketHandler, lar.listenAt.keepServerSocketOpenTimeoutInSeconds, keepOpenServerSocketTimeout)
