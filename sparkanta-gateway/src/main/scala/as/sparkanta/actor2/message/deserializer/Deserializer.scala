@@ -7,7 +7,6 @@ import akka.util.ReplyOn1Impl
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.fromdevice.MessageFormDevice
-import as.sparkanta.device.AckType
 import as.sparkanta.device.message.deserialize.Deserializers
 
 object Deserializer {
@@ -34,8 +33,8 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case f: DeserializeFromBroadcaster => deserializeAndSendResponse(f.message, sender, true)
-    case d: Deserialize                => deserializeAndSendResponse(d, sender, false)
+    case a: DeserializeFromBroadcaster => deserializeAndSendResponse(a.message, sender, true)
+    case a: Deserialize                => deserializeAndSendResponse(a, sender, false)
     case message                       => log.warning(s"Unhandled $message send by ${sender()}")
   }
 

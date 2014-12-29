@@ -34,8 +34,7 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-
-    case s: Serialize => serializeAndSendResponse(s, sender, false)
+    case a: Serialize => serializeAndSendResponse(a, sender, false)
     case message      => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
