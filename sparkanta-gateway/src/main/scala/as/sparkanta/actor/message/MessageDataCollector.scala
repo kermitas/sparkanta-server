@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message
 
 import akka.actor.{ ActorLogging, Actor }
@@ -54,3 +55,4 @@ class MessageDataCollector(amaConfig: AmaConfig) extends Actor with ActorLogging
     }
   }
 }
+*/ 

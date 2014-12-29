@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.fakelistenat
 
 import scala.language.postfixOps
@@ -54,3 +55,4 @@ class FakeListenAtSender(amaConfig: AmaConfig, config: FakeListenAtSenderConfig)
     case message                     => log.warning(s"Unhandled $message send by ${sender()}")
   }
 }
+*/ 

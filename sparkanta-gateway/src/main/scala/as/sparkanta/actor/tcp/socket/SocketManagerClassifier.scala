@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.socket
 
 import akka.actor.ActorRef
@@ -14,3 +15,4 @@ class SocketManagerClassifier extends Classifier {
     case _                        => None
   }
 }
+*/ 

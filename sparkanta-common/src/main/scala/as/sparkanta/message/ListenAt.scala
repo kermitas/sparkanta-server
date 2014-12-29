@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import scala.net.IdentifiedInetSocketAddress
@@ -12,3 +13,4 @@ class ListenAt(
   override def toString = s"${getClass.getSimpleName}(listenAddress=$listenAddress,openingServerSocketTimeoutInSeconds=$openingServerSocketTimeoutInSeconds,keepServerSocketOpenTimeoutInSeconds=$keepServerSocketOpenTimeoutInSeconds,restAddress=$restAddress)"
 
 }
+*/ 

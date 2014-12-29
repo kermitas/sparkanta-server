@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 sealed class ListenAtResult(val listenAt: ListenAt, val exception: Option[Exception]) extends Serializable {
@@ -9,3 +10,4 @@ sealed class ListenAtResult(val listenAt: ListenAt, val exception: Option[Except
 class ListenAtSuccessResult(listenAt: ListenAt) extends ListenAtResult(listenAt, None)
 
 class ListenAtErrorResult(listenAt: ListenAt, exception: Exception) extends ListenAtResult(listenAt, Some(exception))
+*/ 

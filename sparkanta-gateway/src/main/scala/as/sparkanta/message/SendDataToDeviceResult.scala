@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 sealed class SendDataToDeviceResult(val sendDataToDevice: SendDataToDevice, val exception: Option[Exception]) extends Serializable {
@@ -9,3 +10,4 @@ sealed class SendDataToDeviceResult(val sendDataToDevice: SendDataToDevice, val 
 class SendDataToDeviceSuccessResult(sendDataToDevice: SendDataToDevice) extends SendDataToDeviceResult(sendDataToDevice, None)
 
 class SendDataToDeviceErrorResult(sendDataToDevice: SendDataToDevice, exception: Exception) extends SendDataToDeviceResult(sendDataToDevice, Some(exception))
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 class SpeedTestDevice(val remoteAddressId: Long, val testTimeInSeconds: Int) extends Serializable {
@@ -5,3 +6,4 @@ class SpeedTestDevice(val remoteAddressId: Long, val testTimeInSeconds: Int) ext
   override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,testTimeInSeconds=$testTimeInSeconds)"
 
 }
+*/ 

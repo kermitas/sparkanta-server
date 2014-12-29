@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.socket
 
 import akka.actor.{ Actor, Props, ActorLogging, SupervisorStrategy, OneForOneStrategy }
@@ -42,3 +43,4 @@ class SocketManager(amaConfig: AmaConfig) extends Actor with ActorLogging {
       amaConfig.broadcaster ! new ConnectionClosed(nic.networkDeviceInfo, Some(new Exception(message, e)))
   }
 }
+*/ 

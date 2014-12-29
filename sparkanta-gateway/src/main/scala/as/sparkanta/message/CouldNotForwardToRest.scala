@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import scala.net.IdentifiedInetSocketAddress
@@ -7,3 +8,4 @@ class CouldNotForwardToRest(val forwardToRestServer: ForwardToRestServer, restAd
   override def toString = s"${getClass.getSimpleName}(exception=$exception,restAddress=$restAddress,forwardToRestServer=$forwardToRestServer)"
 
 }
+*/ 

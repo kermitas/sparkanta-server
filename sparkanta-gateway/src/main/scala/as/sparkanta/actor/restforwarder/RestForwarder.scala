@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.restforwarder
 
 import akka.actor.{ ActorLogging, Actor }
@@ -41,3 +42,4 @@ class RestForwarder(amaConfig: AmaConfig) extends Actor with ActorLogging {
     }
   }
 }
+*/ 

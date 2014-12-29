@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import akka.actor.ActorRef
@@ -8,3 +9,4 @@ class NewIncomingConnection(val networkDeviceInfo: NetworkDeviceInfo, val tcpAct
   override def toString = s"${getClass.getSimpleName}(networkDeviceInfo=$networkDeviceInfo,tcpActor=$tcpActor)"
 
 }
+*/ 

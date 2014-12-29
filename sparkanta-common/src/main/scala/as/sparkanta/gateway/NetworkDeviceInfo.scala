@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.gateway
 
 import scala.net.IdentifiedInetSocketAddress
@@ -12,3 +13,4 @@ class NetworkDeviceInfo(
 
   override def toString = s"${getClass.getSimpleName}(remoteAddress=$remoteAddress,localAddress=$localAddress,restAddress=$restAddress,startTimeInMillis=$startTimeInMillis)"
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.fakelistenat
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -71,3 +72,4 @@ class FakeListenAtSenderConfig(
   val forwardToRestPort:                    Int,
   val resendListenAtIntervalInSeconds:      Int
 )
+*/ 

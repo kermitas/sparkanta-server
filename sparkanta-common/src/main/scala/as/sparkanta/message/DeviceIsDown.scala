@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import as.sparkanta.gateway.DeviceInfo
@@ -12,3 +13,4 @@ class DeviceIsDown(
   override def toString = s"${getClass.getSimpleName}(timeInSystemInMillis=$timeInSystemInMillis,deviceInfo=$deviceInfo)"
 
 }
+*/ 

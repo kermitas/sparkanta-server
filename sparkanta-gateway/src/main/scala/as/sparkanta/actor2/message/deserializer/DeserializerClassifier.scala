@@ -1,9 +1,8 @@
-/*
-package as.sparkanta.actor.message
+package as.sparkanta.actor2.message.deserializer
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
-import as.sparkanta.message.NewMessageDataFromDevice
+import as.sparkanta.actor2.message.deserializer.Deserializer.{ Deserialize, DeserializeFromBroadcaster }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -11,8 +10,7 @@ import as.sparkanta.message.NewMessageDataFromDevice
  */
 class DeserializerClassifier extends Classifier {
   override def map(message: Any, sender: ActorRef) = message match {
-    case a: NewMessageDataFromDevice => Some(a)
-    case _                           => None
+    case a: Deserialize => Some(new DeserializeFromBroadcaster(a))
+    case _              => None
   }
 }
-*/ 

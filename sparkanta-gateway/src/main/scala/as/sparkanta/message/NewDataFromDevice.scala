@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import akka.util.ByteString
@@ -8,3 +9,4 @@ class NewDataFromDevice(val networkDeviceInfo: NetworkDeviceInfo, val dataFromDe
   override def toString = s"${getClass.getSimpleName}(dataFromDevice=${dataFromDevice.length} bytes,networkDeviceInfo=$networkDeviceInfo)"
 
 }
+*/ 

@@ -1,7 +1,5 @@
 package as.sparkanta.device.message.fromdevice
 
-import as.sparkanta.device.{ AckType, NoAck }
-
 object DeviceIdentification {
   lazy final val messageCode: Int = 1
 }

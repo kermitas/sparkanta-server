@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 class DisconnectDevice(val remoteAddressId: Long, val delayBeforeNextConnectionAttemptInSeconds: Int) extends Serializable {
@@ -5,3 +6,4 @@ class DisconnectDevice(val remoteAddressId: Long, val delayBeforeNextConnectionA
   override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,delayBeforeNextConnectionAttemptInSeconds=$delayBeforeNextConnectionAttemptInSeconds)"
 
 }
+*/ 

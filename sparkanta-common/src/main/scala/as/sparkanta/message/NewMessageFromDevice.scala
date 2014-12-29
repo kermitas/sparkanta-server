@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import as.sparkanta.device.message.fromdevice.MessageFormDevice
@@ -13,3 +14,4 @@ class NewMessageFromDevice(
   override def toString = s"${getClass.getSimpleName}(messageFromDevice=$messageFromDevice,networkDeviceInfo=$networkDeviceInfo)"
 
 }
+*/ 

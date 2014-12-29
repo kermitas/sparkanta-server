@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message
 
 import akka.actor.{ ActorLogging, Actor, ActorRef }
@@ -33,3 +34,4 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     }
   }
 }
+*/ 

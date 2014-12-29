@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message
 
 import akka.actor.{ ActorLogging, Actor, ActorRef }
@@ -62,3 +63,4 @@ class SendDataToDeviceWithSendMessageToDevice(
   val sendMessageToDevice:                 SendMessageToDevice,
   val sendMessageToDeviceResponseListener: ActorRef
 ) extends SendDataToDevice(remoteAddressId, dataToDevice, ack)
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.socket
 
 import akka.actor.{ ActorLogging, ActorRef, Actor }
@@ -10,3 +11,4 @@ class SocketHandler(val networkDeviceInfo: NetworkDeviceInfo, val tcpActor: Acto
     case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 }
+*/ 

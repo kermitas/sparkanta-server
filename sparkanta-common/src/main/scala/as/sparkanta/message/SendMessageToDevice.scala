@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import as.sparkanta.device.message.todevice.MessageToDevice
@@ -11,3 +12,4 @@ class SendMessageToDevice(
   override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,messageToDevice=$messageToDevice,ack=$ack)"
 
 }
+*/ 

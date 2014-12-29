@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message
 
 import akka.actor.ActorRef
@@ -16,3 +17,4 @@ class MessageDataCollectorClassifier extends Classifier {
     case _                        => None
   }
 }
+*/ 

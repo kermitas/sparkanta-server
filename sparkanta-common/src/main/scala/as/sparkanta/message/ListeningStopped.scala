@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 class ListeningStopped(
@@ -9,3 +10,4 @@ class ListeningStopped(
   override def toString = s"${getClass.getSimpleName}(listenAt=$listenAt)"
 
 }
+*/ 

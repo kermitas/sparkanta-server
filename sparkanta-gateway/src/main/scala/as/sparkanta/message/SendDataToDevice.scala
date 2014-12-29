@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.message
 
 import akka.util.ByteString
@@ -17,3 +18,4 @@ class SendDataToDevice(
   override def toString = s"${getClass.getSimpleName}(remoteAddressId=$remoteAddressId,dataToDevice=${dataToDevice.length} bytes,ack=$ack)"
 
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.restforwarder
 
 import akka.actor.ActorRef
@@ -20,3 +21,4 @@ class RestForwarderClassifier extends Classifier {
     case _ => None
   }
 }
+*/ 

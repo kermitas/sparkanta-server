@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.tcp.serversocket
 
 import akka.actor.{ Actor, ActorRef, ActorLogging }
@@ -83,3 +84,4 @@ class ServerSocketHandler(
     context.stop(self)
   }
 }
+*/ 
