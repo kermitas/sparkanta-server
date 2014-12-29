@@ -44,7 +44,6 @@ class MessageDataCollector(amaConfig: AmaConfig) extends Actor with ActorLogging
   }
 
   protected def analyzeBuffer(record: Record): Unit = {
-
     val bufferSize = record.buffer.size
 
     if (bufferSize > 0 && bufferSize >= record.buffer(0)) {
