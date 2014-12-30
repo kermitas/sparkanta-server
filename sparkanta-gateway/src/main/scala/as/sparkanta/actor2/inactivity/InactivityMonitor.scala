@@ -12,7 +12,7 @@ import scala.collection.mutable.Map
 object InactivityMonitor {
   trait Message extends Serializable
   trait IncomingMessage extends Message
-  trait IncomingInternalMessage extends IncomingMessage
+  trait InternalMessage extends IncomingMessage
   trait OutgoingMessage extends Message
 
   class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingMessage
@@ -23,8 +23,8 @@ object InactivityMonitor {
   class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends ReplyOn1Impl[StartInactivityMonitor](startInactivityMonitor, startInactivityMonitorSender) with OutgoingMessage
 
   class Record(var warningTimer: Option[Cancellable], var inactivityTimer: Option[Cancellable], val startInactivityMonitor: StartInactivityMonitor, val startInactivityMonitorSender: ActorRef, val publishReplyOnBroadcaster: Boolean, var lastActiveTime: Long)
-  class WarningTimeout(val record: Record) extends IncomingInternalMessage
-  class InactivityTimeout(val record: Record) extends IncomingInternalMessage
+  class WarningTimeout(val record: Record) extends InternalMessage
+  class InactivityTimeout(val record: Record) extends InternalMessage
 }
 
 class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
