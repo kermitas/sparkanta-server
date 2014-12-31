@@ -1,6 +1,5 @@
 package as.sparkanta.actor2.message
 
-import as.ama.util.FromBroadcaster
 import scala.util.Try
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -16,7 +15,6 @@ object MessageDataAccumulator {
 
   class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingMessage
   class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends ReplyOn1Impl[AccumulateMessageData](accumulateMessageData, accumulateMessageDataSender) with OutgoingMessage
-  class AccumulateMessageDataFromBroadcaster(accumulateMessageData: AccumulateMessageData) extends FromBroadcaster[AccumulateMessageData](accumulateMessageData) with IncomingMessage
   class ClearData(val id: Long) extends IncomingMessage
 
   class Record(var buffer: ByteString)
@@ -29,22 +27,21 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
   protected val map = Map[Long, Record]()
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new MessageDataAccumulatorClassifier)
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new MessageDataAccumulatorClassifier(context, amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
   }
 
   override def receive = {
-    case a: AccumulateMessageDataFromBroadcaster => accumulateMessageDataAndSendResponse(a.message, sender, true)
-    case a: AccumulateMessageData                => accumulateMessageDataAndSendResponse(a, sender, false)
-    case a: ClearData                            => map.remove(a.id)
-    case message                                 => log.warning(s"Unhandled $message send by ${sender()}")
+    case a: AccumulateMessageData => accumulateMessageDataAndSendResponse(a, sender)
+    case a: ClearData             => map.remove(a.id)
+    case message                  => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
-  protected def accumulateMessageDataAndSendResponse(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef, publishReplyOnBroadcaster: Boolean): Unit = try {
+  protected def accumulateMessageDataAndSendResponse(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): Unit = try {
     val messageDataAccumulationResult = performMessageDataAccumulation(accumulateMessageData, accumulateMessageDataSender)
-    sendResponse(messageDataAccumulationResult, accumulateMessageDataSender, publishReplyOnBroadcaster)
+    accumulateMessageDataSender ! messageDataAccumulationResult
   } catch {
     case e: Exception => log.error("Problem during accumulation of message data.", e)
   }
@@ -86,10 +83,5 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
     }
 
     result
-  }
-
-  protected def sendResponse(messageDataAccumulationResult: MessageDataAccumulationResult, responseListener: ActorRef, publishReplyOnBroadcaster: Boolean): Unit = {
-    responseListener ! messageDataAccumulationResult
-    if (publishReplyOnBroadcaster) amaConfig.broadcaster ! messageDataAccumulationResult
   }
 }

@@ -1,6 +1,5 @@
 package as.sparkanta.actor2.message.deserializer
 
-import as.ama.util.FromBroadcaster
 import scala.util.Try
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import akka.util.ReplyOn1Impl
@@ -16,7 +15,6 @@ object Deserializer {
 
   class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingMessage
   class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends ReplyOn1Impl[Deserialize](deserialize, serializeSender) with OutgoingMessage
-  class DeserializeFromBroadcaster(deserialize: Deserialize) extends FromBroadcaster[Deserialize](deserialize) with IncomingMessage
 }
 
 class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -26,21 +24,20 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected val deserializers = new Deserializers
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new DeserializerClassifier)
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new DeserializerClassifier(context, amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
   }
 
   override def receive = {
-    case a: DeserializeFromBroadcaster => deserializeAndSendResponse(a.message, sender, true)
-    case a: Deserialize                => deserializeAndSendResponse(a, sender, false)
-    case message                       => log.warning(s"Unhandled $message send by ${sender()}")
+    case a: Deserialize => deserializeAndSendResponse(a, sender)
+    case message        => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
-  protected def deserializeAndSendResponse(deserialize: Deserialize, deserializeSender: ActorRef, publishReplyOnBroadcaster: Boolean): Unit = try {
+  protected def deserializeAndSendResponse(deserialize: Deserialize, deserializeSender: ActorRef): Unit = try {
     val deserializationResult = performDeserialization(deserialize, deserializeSender)
-    sendResponse(deserializationResult, deserializeSender, publishReplyOnBroadcaster)
+    deserializeSender ! deserializationResult
   } catch {
     case e: Exception => log.error("Problem during deserialization.", e)
   }
@@ -50,8 +47,4 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     new DeserializationResult(deserializedMessageFromDevice, deserialize, deserializeSender)
   }
 
-  protected def sendResponse(deserializationResult: DeserializationResult, responseListener: ActorRef, publishReplyOnBroadcaster: Boolean): Unit = {
-    responseListener ! deserializationResult
-    if (publishReplyOnBroadcaster) amaConfig.broadcaster ! deserializationResult
-  }
 }

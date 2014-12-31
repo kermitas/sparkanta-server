@@ -1,6 +1,7 @@
 package akka.util
 
 import akka.actor.ActorRef
+import as.akka.broadcaster.MessageWithSender
 
 trait ReplyOn1[T] extends Serializable {
   def request1: MessageWithSender[T]

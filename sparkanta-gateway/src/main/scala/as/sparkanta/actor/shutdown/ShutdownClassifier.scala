@@ -1,7 +1,6 @@
 package as.sparkanta.actor.shutdown
 
-import akka.actor.ActorRef
-import as.akka.broadcaster.Classifier
+import as.akka.broadcaster.{ MessageWithSender, Classifier }
 import as.ama.addon.inputstream.InputStreamText
 
 /**
@@ -9,8 +8,8 @@ import as.ama.addon.inputstream.InputStreamText
  * in this message.
  */
 class ShutdownClassifier extends Classifier {
-  override def map(message: Any, sender: ActorRef) = message match {
-    case a: InputStreamText => Some(a)
+  override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
+    case a: InputStreamText => Some(messageWithSender)
     case _                  => None
   }
 }

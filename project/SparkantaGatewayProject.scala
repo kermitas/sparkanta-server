@@ -17,7 +17,7 @@ object SparkantaGatewayProject {
 
       settings     = CommonSettings(projectName, version) ++
                      ScalaTestSettings() ++
-                     AmaSettings() ++
+                     AmaSettings.main() ++
                      AkkaSlf4JSettings() ++
                      LogbackClassicSettings() ++
                      SpraySettings.client ++

@@ -2,7 +2,14 @@ import sbt._
 import Keys._
 
 object AmaSettings {
-  def apply() = Seq(
-    libraryDependencies += "as.ama" %% "ama" % "0.4.8"
+
+  lazy final val amaVersion = "0.5.0"
+
+  def main() = Seq(
+    libraryDependencies += "as.ama" %% "ama" % amaVersion
+  )
+
+  def akka() = Seq(
+    libraryDependencies += "as.ama" %% "ama-akka" % amaVersion
   )
 }

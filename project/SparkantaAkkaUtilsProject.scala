@@ -11,6 +11,7 @@ object SparkantaAkkaUtilsProject {
       base     = file(projectName),
 
       settings = CommonSettings(projectName, version) ++
-                 AkkaSettings()
+                 AkkaSettings() ++
+                 AmaSettings.akka()
     )
 }
