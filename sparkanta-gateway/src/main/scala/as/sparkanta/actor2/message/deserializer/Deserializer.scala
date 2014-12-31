@@ -2,19 +2,20 @@ package as.sparkanta.actor2.message.deserializer
 
 import scala.util.Try
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import akka.util.ReplyOn1Impl
-import as.akka.broadcaster.Broadcaster
+//import akka.util.ReplyOn1Impl
+import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.fromdevice.MessageFormDevice
 import as.sparkanta.device.message.deserialize.Deserializers
+import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Deserializer {
-  trait Message extends Serializable
+  /*trait Message extends Serializable
   trait IncomingMessage extends Message
-  trait OutgoingMessage extends Message
+  trait OutgoingMessage extends Message*/
 
-  class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingMessage
-  class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends ReplyOn1Impl[Deserialize](deserialize, serializeSender) with OutgoingMessage
+  class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingReplyableMessage
+  class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(deserialize, serializeSender))
 }
 
 class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -24,7 +25,7 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected val deserializers = new Deserializers
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new DeserializerClassifier(context, amaConfig.broadcaster))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new DeserializerClassifier(amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
@@ -37,7 +38,7 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   protected def deserializeAndSendResponse(deserialize: Deserialize, deserializeSender: ActorRef): Unit = try {
     val deserializationResult = performDeserialization(deserialize, deserializeSender)
-    deserializeSender ! deserializationResult
+    deserializationResult.reply(self)
   } catch {
     case e: Exception => log.error("Problem during deserialization.", e)
   }

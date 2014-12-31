@@ -2,20 +2,21 @@ package as.sparkanta.actor2.message.serializer
 
 import scala.util.Try
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import akka.util.ReplyOn1Impl
-import as.akka.broadcaster.Broadcaster
+//import akka.util.ReplyOn1Impl
+import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.todevice.MessageToDevice
 import as.sparkanta.device.AckType
 import as.sparkanta.device.message.serialize.Serializers
+import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Serializer {
-  trait Message extends Serializable
+  /*trait Message extends Serializable
   trait IncomingMessage extends Message
-  trait OutgoingMessage extends Message
+  trait OutgoingMessage extends Message*/
 
-  class Serialize(val messageToDevice: MessageToDevice, val ack: AckType) extends IncomingMessage
-  class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends ReplyOn1Impl[Serialize](serialize, serializeSender) with OutgoingMessage
+  class Serialize(val messageToDevice: MessageToDevice, val ack: AckType) extends IncomingReplyableMessage
+  class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(serialize, serializeSender))
 }
 
 class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -25,7 +26,7 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected val serializers = new Serializers
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new SerializerClassifier(context, amaConfig.broadcaster))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new SerializerClassifier(amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
@@ -38,7 +39,7 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   protected def serializeAndSendResponse(serialize: Serialize, serializeSender: ActorRef): Unit = try {
     val serializationResult = performSerialization(serialize, serializeSender)
-    serializeSender ! serializationResult
+    serializationResult.reply(self)
   } catch {
     case e: Exception => log.error("Problem during serialization.", e)
   }

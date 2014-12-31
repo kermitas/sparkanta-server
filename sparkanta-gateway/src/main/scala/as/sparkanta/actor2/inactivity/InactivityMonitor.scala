@@ -3,22 +3,26 @@ package as.sparkanta.actor2.inactivity
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, ActorLogging, Actor, Cancellable }
-import akka.util.ReplyOn1Impl
+//import akka.util.ReplyOn1Impl
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.Map
+import akka.util.{ IncomingMessage, IncomingReplyableMessage, InternalMessage, OutgoingReplyOn1Message }
+import as.akka.broadcaster.MessageWithSender
 
 object InactivityMonitor {
+  /*
   trait Message extends Serializable
   trait IncomingMessage extends Message
   trait InternalMessage extends IncomingMessage
   trait OutgoingMessage extends Message
+  */
 
-  class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingMessage
+  class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingReplyableMessage
   class Active(val id: Long) extends IncomingMessage
   class StopInactivityMonitor(val id: Long) extends IncomingMessage
-  class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends ReplyOn1Impl[StartInactivityMonitor](startInactivityMonitor, startInactivityMonitorSender) with OutgoingMessage
-  class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends ReplyOn1Impl[StartInactivityMonitor](startInactivityMonitor, startInactivityMonitorSender) with OutgoingMessage
+  class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(startInactivityMonitor, startInactivityMonitorSender))
+  class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(startInactivityMonitor, startInactivityMonitorSender))
 
   class WarningTimeout(val record: Record) extends InternalMessage
   class InactivityTimeout(val record: Record) extends InternalMessage
@@ -33,7 +37,7 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected val map = Map[Long, Record]()
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new InactivityMonitorClassifier(context, amaConfig.broadcaster))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new InactivityMonitorClassifier(amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
@@ -68,22 +72,14 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     }
   }
 
-  protected def stopInactivityMonitor(id: Long): Unit = map.get(id) match {
-    case Some(record) => {
-      cancelTimers(record)
-      map.remove(id)
-    }
-
-    case None =>
+  protected def stopInactivityMonitor(id: Long): Unit = map.get(id).map { record =>
+    cancelTimers(record)
+    map.remove(id)
   }
 
-  protected def active(id: Long): Unit = map.get(id) match {
-    case Some(record) => {
-      record.lastActiveTime = System.currentTimeMillis
-      resetTimers(record)
-    }
-
-    case None =>
+  protected def active(id: Long): Unit = map.get(id).map { record =>
+    record.lastActiveTime = System.currentTimeMillis
+    resetTimers(record)
   }
 
   protected def cancelTimers(record: Record): Unit = {
@@ -106,15 +102,13 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     record.warningTimer = None
 
     val inactivityWarning = new InactivityWarning(System.currentTimeMillis - record.lastActiveTime, record.startInactivityMonitor, record.startInactivityMonitorSender)
-
-    record.startInactivityMonitorSender ! inactivityWarning
+    inactivityWarning.reply(self)
   }
 
   protected def inactivityTimeout(record: Record): Unit = {
 
     val inactivityDetected = new InactivityDetected(System.currentTimeMillis - record.lastActiveTime, record.startInactivityMonitor, record.startInactivityMonitorSender)
-
-    record.startInactivityMonitorSender ! inactivityDetected
+    inactivityDetected.reply(self)
 
     stopInactivityMonitor(record.startInactivityMonitor.id)
   }

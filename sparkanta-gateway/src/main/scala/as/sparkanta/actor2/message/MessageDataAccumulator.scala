@@ -3,18 +3,19 @@ package as.sparkanta.actor2.message
 import scala.util.Try
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import akka.util.ReplyOn1Impl
-import as.akka.broadcaster.Broadcaster
+//import akka.util.ReplyOn1Impl
+import as.akka.broadcaster.{ Broadcaster, MessageWithSender }
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.{ Map, ListBuffer }
+import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object MessageDataAccumulator {
-  trait Message extends Serializable
+  /*trait Message extends Serializable
   trait IncomingMessage extends Message
-  trait OutgoingMessage extends Message
+  trait OutgoingMessage extends Message*/
 
-  class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingMessage
-  class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends ReplyOn1Impl[AccumulateMessageData](accumulateMessageData, accumulateMessageDataSender) with OutgoingMessage
+  class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingReplyableMessage
+  class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
   class ClearData(val id: Long) extends IncomingMessage
 
   class Record(var buffer: ByteString)
@@ -27,7 +28,7 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
   protected val map = Map[Long, Record]()
 
   override def preStart(): Unit = try {
-    amaConfig.broadcaster ! new Broadcaster.Register(self, new MessageDataAccumulatorClassifier(context, amaConfig.broadcaster))
+    amaConfig.broadcaster ! new Broadcaster.Register(self, new MessageDataAccumulatorClassifier(amaConfig.broadcaster))
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
@@ -41,7 +42,7 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
 
   protected def accumulateMessageDataAndSendResponse(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): Unit = try {
     val messageDataAccumulationResult = performMessageDataAccumulation(accumulateMessageData, accumulateMessageDataSender)
-    accumulateMessageDataSender ! messageDataAccumulationResult
+    messageDataAccumulationResult.reply(self)
   } catch {
     case e: Exception => log.error("Problem during accumulation of message data.", e)
   }
