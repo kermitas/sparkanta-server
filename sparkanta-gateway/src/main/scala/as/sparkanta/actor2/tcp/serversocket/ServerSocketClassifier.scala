@@ -2,7 +2,7 @@ package as.sparkanta.actor2.tcp.serversocket
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.{ MessageWithSender, Classifier }
-import as.sparkanta.actor2.tcp.serversocket.ServerSocket.{ ListenAt, StopListeningAt, ListeningStarted, ListeningStopped }
+import as.sparkanta.actor2.tcp.serversocket.ServerSocket.{ ListenAt, StopListeningAt }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -16,10 +16,10 @@ class ServerSocketClassifier(broadcaster: ActorRef) extends Classifier {
       Some(messageWithSender)
     }
 
-    //case a: StopListeningAt => {
-    //  a.replyAlsoOn = Some(Seq(broadcaster))
-    //  Some(messageWithSender)
-    //}
+    case a: StopListeningAt => {
+      a.replyAlsoOn = Some(Seq(broadcaster))
+      Some(messageWithSender)
+    }
 
     //case a: ListeningStarted => Some(messageWithSender)
 

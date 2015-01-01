@@ -80,12 +80,13 @@ class ServerSocketWorker(
 
     val keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
 
-    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(listenAt, listenAtSender)
+    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(false, listenAt, listenAtSender)
     val listeningStarted = new ServerSocket.ListeningStarted(listenAt, listenAtSender)
 
-    broadcaster ! new Broadcaster.Register(self, new ServerSocketWorkerClassifier(listenAt.listenAddress.id, broadcaster))
+    //broadcaster ! new Broadcaster.Register(self, new ServerSocketWorkerClassifier(listenAt.listenAddress.id, broadcaster))
 
     successfulListenAtResult.reply(serverSocket)
+    serverSocket ! listeningStarted
     listeningStarted.reply(serverSocket)
 
     goto(Bound) using new BoundStateData(akkaServerSocketTcpActor, keepOpenedServerSocketTimeout)
@@ -110,9 +111,9 @@ class ServerSocketWorker(
     log.debug(s"Resetting close timeout (previous ${listenAt.keepOpenForMs} milliseconds, new one ${newListenAt.keepOpenForMs} milliseconds) for ${listenAt.listenAddress}.")
 
     sd.keepOpenedServerSocketTimeout.cancel
-    val keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(newListenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
+    sd.keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(newListenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
 
-    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(newListenAt, newListenAtSender)
+    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(true, newListenAt, newListenAtSender)
     successfulListenAtResult.reply(serverSocket)
 
     listenAt = newListenAt
@@ -156,16 +157,16 @@ class ServerSocketWorker(
 
     sd.keepOpenedServerSocketTimeout.cancel
 
-    val stopListeningAtResult = new ServerSocket.StopListeningAtResult(Success(true), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
-    stopListeningAtResult.reply(serverSocket)
+    val successStopListeningAtResult = new ServerSocket.SuccessStopListeningAtResult(true, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+    successStopListeningAtResult.reply(serverSocket)
 
     stop(FSM.Normal)
   } catch {
     case iae: IllegalArgumentException => {
       log.warning(iae.getMessage)
 
-      val stopListeningAtResult = new ServerSocket.StopListeningAtResult(Failure(iae), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
-      stopListeningAtSender ! stopListeningAtResult
+      val errorStopListeningAtResult = new ServerSocket.ErrorStopListeningAtResult(iae, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+      errorStopListeningAtResult.reply(sender)
 
       stay using sd
     }
@@ -173,37 +174,43 @@ class ServerSocketWorker(
 
   protected def terminate(reason: FSM.Reason, currentState: ServerSocketWorker.State, stateData: ServerSocketWorker.StateData): Unit = {
 
-    val exception = reason match {
-      case FSM.Normal => {
-        log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        None
-      }
-
-      case FSM.Shutdown => {
-        log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        None
-      }
-
-      case FSM.Failure(cause) => {
-        log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
-        cause match {
-          case e: Exception => Some(e)
-          case u            => Some(new Exception(s"${getClass.getSimpleName} actor stopped, cause type ${u.getClass.getSimpleName}, cause $u."))
-        }
-      }
+    reason match {
+      case FSM.Normal         => log.debug(s"Stopping (normal), state $currentState, data $stateData.")
+      case FSM.Shutdown       => log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
+      case FSM.Failure(cause) => log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
     }
 
     currentState match {
       case Binding => {
-        val listenAtResult = new ServerSocket.ListenAtResult(exception, listenAt, listenAtSender)
-        listenAtResult.reply(serverSocket)
+
+        val exception = reason match {
+          case FSM.Normal   => new Exception(s"${getClass.getSimpleName} actor was stopped normally.")
+          case FSM.Shutdown => new Exception(s"${getClass.getSimpleName} actor was shutdown.")
+          case FSM.Failure(cause) => cause match {
+            case e: Exception => e
+            case u            => new Exception(s"${getClass.getSimpleName} actor was stopped, cause type ${u.getClass.getSimpleName}, cause $u.")
+          }
+        }
+
+        val errorListenAtResult = new ServerSocket.ErrorListenAtResult(exception, listenAt, listenAtSender)
+        errorListenAtResult.reply(serverSocket)
       }
 
       case Bound => {
         val boundStateData = stateData.asInstanceOf[BoundStateData]
         boundStateData.akkaServerSocketTcpActor ! Tcp.Close // is it needed?
 
+        val exception = reason match {
+          case FSM.Failure(cause) => cause match {
+            case e: Exception => Some(e)
+            case u            => Some(new Exception(s"${getClass.getSimpleName} actor was stopped, cause type ${u.getClass.getSimpleName}, cause $u."))
+          }
+
+          case _ => None
+        }
+
         val listeningStopped = new ServerSocket.ListeningStopped(exception, listenAt, listenAtSender)
+        serverSocket ! listeningStopped
         listeningStopped.reply(serverSocket)
       }
     }

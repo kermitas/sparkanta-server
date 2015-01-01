@@ -1,4 +1,4 @@
-
+/*
 package as.sparkanta.actor2.tcp.serversocket
 
 import akka.actor.ActorRef
@@ -25,3 +25,4 @@ class ServerSocketWorkerClassifier(id: Long, broadcaster: ActorRef) extends Clas
     case _ => None
   }
 }
+*/ 
