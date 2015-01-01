@@ -3,7 +3,6 @@ package as.sparkanta.actor2.inactivity
 import akka.actor.ActorRef
 import as.akka.broadcaster.{ Classifier, MessageWithSender }
 import as.sparkanta.actor2.inactivity.InactivityMonitor.{ StartInactivityMonitor, Active, StopInactivityMonitor }
-//import akka.util.ForwardToMany
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
@@ -13,10 +12,6 @@ class InactivityMonitorClassifier(broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
     case a: StartInactivityMonitor => {
-      //val props = Props(new ForwardToMany(true, messageWithSender.messageSender, broadcaster))
-      //val newSender = actorRefFactory.actorOf(props)
-      //Some(messageWithSender.copy(messageSender = newSender))
-
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }

@@ -21,10 +21,6 @@ class ServerSocketClassifier(broadcaster: ActorRef) extends Classifier {
       Some(messageWithSender)
     }
 
-    //case a: ListeningStarted => Some(messageWithSender)
-
-    //case a: ListeningStopped => Some(messageWithSender)
-
     case _ => None
   }
 }

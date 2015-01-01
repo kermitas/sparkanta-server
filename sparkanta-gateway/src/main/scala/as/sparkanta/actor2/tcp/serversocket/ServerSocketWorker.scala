@@ -1,11 +1,8 @@
 package as.sparkanta.actor2.tcp.serversocket
 
-import as.akka.broadcaster.Broadcaster
-
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.net.{ IdentifiedInetSocketAddress, IdentifiedConnectionInfo }
-import scala.util.{ Success, Failure }
 import akka.actor.{ Cancellable, FSM, ActorRef }
 import akka.io.{ IO, Tcp }
 import akka.util.FSMSuccessOrStop
@@ -82,8 +79,6 @@ class ServerSocketWorker(
 
     val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(false, listenAt, listenAtSender)
     val listeningStarted = new ServerSocket.ListeningStarted(listenAt, listenAtSender)
-
-    //broadcaster ! new Broadcaster.Register(self, new ServerSocketWorkerClassifier(listenAt.listenAddress.id, broadcaster))
 
     successfulListenAtResult.reply(serverSocket)
     serverSocket ! listeningStarted

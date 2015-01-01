@@ -3,17 +3,12 @@ package as.sparkanta.actor2.message
 import scala.util.Try
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-//import akka.util.ReplyOn1Impl
 import as.akka.broadcaster.{ Broadcaster, MessageWithSender }
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.{ Map, ListBuffer }
 import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object MessageDataAccumulator {
-  /*trait Message extends Serializable
-  trait IncomingMessage extends Message
-  trait OutgoingMessage extends Message*/
-
   class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingReplyableMessage
   class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
   class ClearData(val id: Long) extends IncomingMessage

@@ -3,7 +3,6 @@ package as.sparkanta.actor2.inactivity
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, ActorLogging, Actor, Cancellable }
-//import akka.util.ReplyOn1Impl
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.Map
@@ -11,12 +10,6 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, InternalMessage, O
 import as.akka.broadcaster.MessageWithSender
 
 object InactivityMonitor {
-  /*
-  trait Message extends Serializable
-  trait IncomingMessage extends Message
-  trait InternalMessage extends IncomingMessage
-  trait OutgoingMessage extends Message
-  */
 
   class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingReplyableMessage
   class Active(val id: Long) extends IncomingMessage
