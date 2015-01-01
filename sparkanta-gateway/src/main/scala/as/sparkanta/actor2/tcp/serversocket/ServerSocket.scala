@@ -93,10 +93,6 @@ class ServerSocket(
   override def preStart(): Unit = try {
     amaConfig.broadcaster ! new Broadcaster.Register(self, new ServerSocketClassifier(amaConfig.broadcaster))
 
-    context.system.scheduler.scheduleOnce(2 seconds, amaConfig.broadcaster, new ListenAt(new IdentifiedInetSocketAddress(0, "localhost", 8080), 5000, 5000))(context.dispatcher)
-
-    context.system.scheduler.scheduleOnce(10 seconds, amaConfig.broadcaster, new ListenAt(new IdentifiedInetSocketAddress(0, "localhost", 8080), 8000, 25000))(context.dispatcher)
-
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
