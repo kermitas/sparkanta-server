@@ -1,6 +1,6 @@
 package as.sparkanta.actor2.message
 
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.{ Broadcaster, MessageWithSender }
@@ -10,7 +10,9 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Me
 
 object MessageDataAccumulator {
   class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingReplyableMessage
-  class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
+  abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
+  class MessageDataAccumulationSuccessResult(messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
+  class MessageDataAccumulationErrorResult(exception: Exception, accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Failure(exception), accumulateMessageData, accumulateMessageDataSender)
   class ClearData(val id: Long) extends IncomingMessage
 
   class Record(var buffer: ByteString)
@@ -42,14 +44,14 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
     case e: Exception => log.error("Problem during accumulation of message data.", e)
   }
 
-  protected def performMessageDataAccumulation(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): MessageDataAccumulationResult = {
-    val accumulatedMessageData = Try {
-      val record = getOrCreateRecord(accumulateMessageData.id)
-      record.buffer = record.buffer ++ accumulateMessageData.messageData
-      analyzeRecord(record)
-    }
+  protected def performMessageDataAccumulation(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): MessageDataAccumulationResult = try {
+    val record = getOrCreateRecord(accumulateMessageData.id)
+    record.buffer = record.buffer ++ accumulateMessageData.messageData
+    val accumulatedMessageData = analyzeRecord(record)
 
-    new MessageDataAccumulationResult(accumulatedMessageData, accumulateMessageData, accumulateMessageDataSender)
+    new MessageDataAccumulationSuccessResult(accumulatedMessageData, accumulateMessageData, accumulateMessageDataSender)
+  } catch {
+    case e: Exception => new MessageDataAccumulationErrorResult(e, accumulateMessageData, accumulateMessageDataSender)
   }
 
   protected def getOrCreateRecord(id: Long): Record = map.get(id) match {
