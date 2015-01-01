@@ -1,6 +1,6 @@
 package as.sparkanta.actor2.message.serializer
 
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
 import as.sparkanta.ama.config.AmaConfig
@@ -11,7 +11,9 @@ import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Serializer {
   class Serialize(val messageToDevice: MessageToDevice, val ack: AckType) extends IncomingReplyableMessage
-  class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(serialize, serializeSender))
+  abstract class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(serialize, serializeSender))
+  class SuccessSerializationResult(serializedMessageToDevice: Array[Byte], serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Success(serializedMessageToDevice), serialize, serializeSender)
+  class ErrorSerializationResult(exception: Exception, serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Failure(exception), serialize, serializeSender)
 }
 
 class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -39,8 +41,10 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case e: Exception => log.error("Problem during serialization.", e)
   }
 
-  protected def performSerialization(serialize: Serialize, serializeSender: ActorRef): SerializationResult = {
-    val serializedMessageToDevice = Try { serializers.serialize(serialize.messageToDevice, serialize.ack) }
-    new SerializationResult(serializedMessageToDevice, serialize, serializeSender)
+  protected def performSerialization(serialize: Serialize, serializeSender: ActorRef): SerializationResult = try {
+    val serializedMessageToDevice = serializers.serialize(serialize.messageToDevice, serialize.ack)
+    new SuccessSerializationResult(serializedMessageToDevice, serialize, serializeSender)
+  } catch {
+    case e: Exception => new ErrorSerializationResult(e, serialize, serializeSender)
   }
 }

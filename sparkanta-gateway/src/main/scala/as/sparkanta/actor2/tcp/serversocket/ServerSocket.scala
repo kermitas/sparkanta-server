@@ -38,7 +38,7 @@ class ServerSocket(
 
   import ServerSocket._
 
-  protected val map = Map[Long, ActorRef]()
+  protected val map = Map[Long, ActorRef]() // listen address id -> server socket worker
 
   override val supervisorStrategy = OneForOneStrategy() {
     case _ => SupervisorStrategy.Stop
@@ -70,7 +70,10 @@ class ServerSocket(
 
   protected def listeningStarted(id: Long, serverSocketWorker: ActorRef): Unit = map.get(id) match {
 
-    case Some(serverSocketWorker) => log.error(s"Listen address id $id is already known! Could not add it again!!")
+    case Some(serverSocketWorker) => {
+      val e = new Exception(s"Listen address id $id is already known (served by worker actor $serverSocketWorker), could not add it again.")
+      log.error("", e)
+    }
 
     case None => {
       map.put(id, serverSocketWorker)

@@ -1,6 +1,6 @@
 package as.sparkanta.actor2.message.deserializer
 
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
 import as.sparkanta.ama.config.AmaConfig
@@ -10,7 +10,9 @@ import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Deserializer {
   class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingReplyableMessage
-  class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(deserialize, serializeSender))
+  abstract class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(deserialize, serializeSender))
+  class SuccessDeserializationResult(deserializedMessageFromDevice: MessageFormDevice, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Success(deserializedMessageFromDevice), deserialize, serializeSender)
+  class ErrorDeserializationResult(exception: Exception, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Failure(exception), deserialize, serializeSender)
 }
 
 class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -38,9 +40,10 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case e: Exception => log.error("Problem during deserialization.", e)
   }
 
-  protected def performDeserialization(deserialize: Deserialize, deserializeSender: ActorRef): DeserializationResult = {
-    val deserializedMessageFromDevice = Try { deserializers.deserialize(deserialize.serializedMessageFromDevice) }
-    new DeserializationResult(deserializedMessageFromDevice, deserialize, deserializeSender)
+  protected def performDeserialization(deserialize: Deserialize, deserializeSender: ActorRef): DeserializationResult = try {
+    val deserializedMessageFromDevice = deserializers.deserialize(deserialize.serializedMessageFromDevice)
+    new SuccessDeserializationResult(deserializedMessageFromDevice, deserialize, deserializeSender)
+  } catch {
+    case e: Exception => new ErrorDeserializationResult(e, deserialize, deserializeSender)
   }
-
 }
