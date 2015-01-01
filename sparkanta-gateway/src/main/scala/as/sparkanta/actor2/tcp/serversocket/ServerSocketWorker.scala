@@ -77,7 +77,7 @@ class ServerSocketWorker(
 
     val keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
 
-    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(false, listenAt, listenAtSender)
+    val successfulListenAtResult = new ServerSocket.ListenAtSuccessfulResult(false, listenAt, listenAtSender)
     val listeningStarted = new ServerSocket.ListeningStarted(listenAt, listenAtSender)
 
     successfulListenAtResult.reply(serverSocket)
@@ -108,7 +108,7 @@ class ServerSocketWorker(
     sd.keepOpenedServerSocketTimeout.cancel
     sd.keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(newListenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
 
-    val successfulListenAtResult = new ServerSocket.SuccessfulListenAtResult(true, newListenAt, newListenAtSender)
+    val successfulListenAtResult = new ServerSocket.ListenAtSuccessfulResult(true, newListenAt, newListenAtSender)
     successfulListenAtResult.reply(serverSocket)
 
     listenAt = newListenAt
@@ -119,7 +119,7 @@ class ServerSocketWorker(
     case iae: IllegalArgumentException => {
       log.warning(iae.getMessage)
 
-      val errorListenAtResult = new ServerSocket.ErrorListenAtResult(iae, newListenAt, newListenAtSender)
+      val errorListenAtResult = new ServerSocket.ListenAtErrorResult(iae, newListenAt, newListenAtSender)
       errorListenAtResult.reply(serverSocket)
 
       stay using sd
@@ -152,7 +152,7 @@ class ServerSocketWorker(
 
     sd.keepOpenedServerSocketTimeout.cancel
 
-    val successStopListeningAtResult = new ServerSocket.SuccessStopListeningAtResult(true, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+    val successStopListeningAtResult = new ServerSocket.StopListeningAtSuccessResult(true, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
     successStopListeningAtResult.reply(serverSocket)
 
     stop(FSM.Normal)
@@ -160,7 +160,7 @@ class ServerSocketWorker(
     case iae: IllegalArgumentException => {
       log.warning(iae.getMessage)
 
-      val errorStopListeningAtResult = new ServerSocket.ErrorStopListeningAtResult(iae, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+      val errorStopListeningAtResult = new ServerSocket.StopListeningAtErrorResult(iae, stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
       errorStopListeningAtResult.reply(sender)
 
       stay using sd
@@ -187,7 +187,7 @@ class ServerSocketWorker(
           }
         }
 
-        val errorListenAtResult = new ServerSocket.ErrorListenAtResult(exception, listenAt, listenAtSender)
+        val errorListenAtResult = new ServerSocket.ListenAtErrorResult(exception, listenAt, listenAtSender)
         errorListenAtResult.reply(serverSocket)
       }
 
