@@ -13,6 +13,9 @@ import as.ama.addon.lifecycle.ShutdownSystem
 import scala.collection.mutable.Map
 
 object Socket {
+
+  lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config
+
   class ListenAt(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef) extends IncomingReplyableMessage
   abstract class ListenAtResult(val wasListening: Try[Boolean], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
   class ListenAtSuccessResult(wasListening: Boolean, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Success(wasListening), listenAt, listenAtSender)
@@ -39,6 +42,7 @@ object Socket {
   class StoppedByLocalSideRequest(val stopListeningAt: StopListeningAt, val stopListeningAtSender: ActorRef) extends StoppedByLocalSide
 }
 
+// TODO parese its own configuration object with parameters like: how many queued SendData tasks are allowed
 class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   import Socket._
@@ -78,7 +82,7 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
     }
 
     case None => {
-      val props = Props(new SocketWorker(listenAt, listenAtSender, self))
+      val props = Props(new SocketWorker(listenAt, listenAtSender, self, maximumQueuedSendDataMessages))
       context.actorOf(props, name = classOf[SocketWorker].getSimpleName + "-" + listenAt.connectionInfo.remote.id)
     }
   }

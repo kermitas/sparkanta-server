@@ -9,7 +9,7 @@ import scala.collection.mutable.{ Map, ListBuffer }
 import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object MessageDataAccumulator {
-  class AccumulateMessageData(val messageData: Array[Byte], val id: Long) extends IncomingReplyableMessage
+  class AccumulateMessageData(val messageData: ByteString, val id: Long) extends IncomingReplyableMessage
   abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
   class MessageDataAccumulationSuccessResult(messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationErrorResult(exception: Exception, accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Failure(exception), accumulateMessageData, accumulateMessageDataSender)

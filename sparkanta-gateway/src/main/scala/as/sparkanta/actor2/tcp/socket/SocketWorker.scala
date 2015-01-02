@@ -22,7 +22,7 @@ object SocketWorker {
   object TcpAck extends Tcp.Event
 }
 
-class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketActor: ActorRef) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
+class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketActor: ActorRef, maximumQueuedSendDataMessages: Int) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
 
   import SocketWorker._
   import context.dispatcher
@@ -98,6 +98,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   }
 
   protected def bufferSendData(sendData: Socket.SendData, sendDataSender: ActorRef, sd: WaitingForTcpAckStateData) = {
+    if (dataToSend.size >= maximumQueuedSendDataMessages) throw new Exception(s"Maximum ($maximumQueuedSendDataMessages) queued ${sendData.getClass.getSimpleName} messages reached.")
     dataToSend += Tuple2(sendData, sendDataSender)
     stay using sd
   }
