@@ -6,6 +6,7 @@ import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.actor2.tcp.serversocket.ServerSocket
 import as.sparkanta.actor2.tcp.socket.Socket
 import as.sparkanta.actor2.message.MessageDataAccumulator
+import as.sparkanta.actor2.message.deserializer.Deserializer
 import as.sparkanta.actor2.inactivity.InactivityMonitor
 
 class StaticDevice(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -18,7 +19,7 @@ class StaticDevice(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case a: ServerSocket.NewConnection => amaConfig.broadcaster ! new Socket.ListenAt(a.connectionInfo, a.akkaSocketTcpActor)
+    case a: ServerSocket.NewConnection => amaConfig.broadcaster ! new Socket.ListenAt(a.connectionInfo, a.akkaSocketTcpActor) // TODO .. and receive result!
 
     // on Socket.ListenAtSuccessResult:
     // - start Device actor
@@ -37,6 +38,11 @@ class StaticDevice(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case a: Socket.ListeningStopped => { // TODO: do this BUT on DeviceDown !!
       amaConfig.broadcaster ! new MessageDataAccumulator.ClearData(a.request1.message.connectionInfo.remote.id)
       amaConfig.broadcaster ! new InactivityMonitor.StopInactivityMonitor(a.request1.message.connectionInfo.remote.id)
+    }
+
+    case a: MessageDataAccumulator.MessageDataAccumulationResult => a match {
+      case a: MessageDataAccumulator.MessageDataAccumulationSuccessResult => a.messageData.get.foreach(messageData => amaConfig.broadcaster ! new Deserializer.Deserialize(messageData))
+      case a: MessageDataAccumulator.MessageDataAccumulationErrorResult   => // TODO publish ?WHAT? on broadcaster
     }
 
     case message => log.warning(s"Unhandled $message send by ${sender()}")
