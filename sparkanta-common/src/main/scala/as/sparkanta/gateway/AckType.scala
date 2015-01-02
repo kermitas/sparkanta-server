@@ -1,6 +1,6 @@
-package as.sparkanta.message
+package as.sparkanta.gateway
 
-import as.sparkanta.device.{ AckType => DeviceAckType }
+import as.sparkanta.device.message.todevice.DeviceAckType
 
 sealed trait AckType extends Serializable {
 

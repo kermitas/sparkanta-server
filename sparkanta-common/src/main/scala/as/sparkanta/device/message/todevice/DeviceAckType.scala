@@ -1,13 +1,13 @@
-package as.sparkanta.device
+package as.sparkanta.device.message.todevice
 
-object AckType {
+object DeviceAckType {
   def apply(ackType: Int) = ackType match {
     case NoAck.ackType       => NoAck
     case ReceivedAck.ackType => ReceivedAck
   }
 }
 
-sealed abstract class AckType(val ackType: Int) extends Serializable {
+sealed abstract class DeviceAckType(val ackType: Int) extends Serializable {
 
   require(ackType >= 0 && ackType <= 255, s"Ack type ($ackType) can be only between 0 and 255.")
 
@@ -15,5 +15,5 @@ sealed abstract class AckType(val ackType: Int) extends Serializable {
 
 }
 
-object NoAck extends AckType(0)
-object ReceivedAck extends AckType(1)
+object NoAck extends DeviceAckType(0)
+object ReceivedAck extends DeviceAckType(1)

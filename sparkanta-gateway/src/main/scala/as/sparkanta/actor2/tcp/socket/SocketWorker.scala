@@ -7,7 +7,7 @@ import akka.util.ByteString
 import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import scala.collection.mutable.ListBuffer
-import as.sparkanta.message.{ NoAck, TcpAck }
+import as.sparkanta.gateway.{ NoAck, TcpAck }
 
 object SocketWorker {
   sealed trait State extends Serializable
@@ -22,7 +22,7 @@ object SocketWorker {
   object TcpAck extends Tcp.Event
 }
 
-class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketActor: ActorRef, maximumQueuedSendDataMessages: Int) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
+class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketActor: ActorRef) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
 
   import SocketWorker._
   import context.dispatcher
@@ -98,8 +98,14 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   }
 
   protected def bufferSendData(sendData: Socket.SendData, sendDataSender: ActorRef, sd: WaitingForTcpAckStateData) = {
-    if (dataToSend.size >= maximumQueuedSendDataMessages) throw new Exception(s"Maximum ($maximumQueuedSendDataMessages) queued ${sendData.getClass.getSimpleName} messages reached.")
-    dataToSend += Tuple2(sendData, sendDataSender)
+    if (dataToSend.size >= listenAt.maximumQueuedSendDataMessages) {
+      val exception = new Exception(s"Maximum (${listenAt.maximumQueuedSendDataMessages}) queued ${sendData.getClass.getSimpleName} messages reached.")
+      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, sendData, sendDataSender, listenAt, listenAtSender)
+      sendDataErrorResult.reply(socketActor)
+    } else {
+      dataToSend += Tuple2(sendData, sendDataSender)
+    }
+
     stay using sd
   }
 

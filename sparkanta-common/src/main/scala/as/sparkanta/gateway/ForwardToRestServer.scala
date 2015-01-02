@@ -1,10 +1,10 @@
-package as.sparkanta.message
+package as.sparkanta.gateway
 
-import scala.net.IdentifiedInetSocketAddress
+import as.sparkanta.device.DeviceInfo
 
 /**
  * Marker trait. It defined that this message should be picked up and send to REST server.
  */
 trait ForwardToRestServer extends Serializable {
-  def restAddressToForwardTo: IdentifiedInetSocketAddress
+  def deviceInfo: DeviceInfo
 }

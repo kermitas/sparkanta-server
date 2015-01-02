@@ -7,15 +7,14 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.Map
 import akka.util.{ IncomingMessage, IncomingReplyableMessage, InternalMessage, OutgoingReplyOn1Message }
-import as.akka.broadcaster.MessageWithSender
 
 object InactivityMonitor {
 
   class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingReplyableMessage
   class Active(val id: Long) extends IncomingMessage
   class StopInactivityMonitor(val id: Long) extends IncomingMessage
-  class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(startInactivityMonitor, startInactivityMonitorSender))
-  class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(startInactivityMonitor, startInactivityMonitorSender))
+  class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
+  class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
 
   class WarningTimeout(val record: Record) extends InternalMessage
   class InactivityTimeout(val record: Record) extends InternalMessage

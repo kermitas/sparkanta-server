@@ -1,12 +1,12 @@
 package as.sparkanta.device.message.fromdevice
 
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.DeviceAckType
 
 object Ack {
   lazy final val messageCode: Int = 12
 }
 
-class Ack(val ackedMessageCode: Int, val requestedAckType: AckType) extends MessageFormDevice {
+class Ack(val ackedMessageCode: Int, val requestedAckType: DeviceAckType) extends MessageFormDevice {
 
   require(ackedMessageCode >= 0 && ackedMessageCode <= 255, s"Acked message code ($ackedMessageCode) can be only between 0 and 255.")
 

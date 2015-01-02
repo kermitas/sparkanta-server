@@ -2,16 +2,15 @@ package as.sparkanta.actor2.message.serializer
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
+import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
-import as.sparkanta.device.message.todevice.MessageToDevice
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.{ MessageToDevice, DeviceAckType }
 import as.sparkanta.device.message.serialize.Serializers
 import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Serializer {
-  class Serialize(val messageToDevice: MessageToDevice, val ack: AckType) extends IncomingReplyableMessage
-  abstract class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(serialize, serializeSender))
+  class Serialize(val messageToDevice: MessageToDevice, val ack: DeviceAckType) extends IncomingReplyableMessage
+  abstract class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(serialize, serializeSender)
   class SerializationSuccessResult(serializedMessageToDevice: Array[Byte], serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Success(serializedMessageToDevice), serialize, serializeSender)
   class SerializationErrorResult(exception: Exception, serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Failure(exception), serialize, serializeSender)
 }

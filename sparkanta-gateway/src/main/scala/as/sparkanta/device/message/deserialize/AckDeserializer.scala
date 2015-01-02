@@ -3,7 +3,7 @@ package as.sparkanta.device.message.deserialize
 import java.io.InputStream
 import scala.io.SerializationVersionNotSupportedException
 import as.sparkanta.device.message.fromdevice.Ack
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.DeviceAckType
 
 class AckDeserializer extends Deserializer[Ack] {
 
@@ -31,7 +31,7 @@ class AckDeserializerVersion1 extends Deserializer[Ack] {
     validateMessageNumber(is.read, expectedMessageNumber)
 
     val ackMessageCode = is.read
-    val ackType = AckType(is.read)
+    val ackType = DeviceAckType(is.read)
 
     new Ack(ackMessageCode, ackType)
   }

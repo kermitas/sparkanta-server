@@ -9,7 +9,13 @@ import as.sparkanta.actor2.message.MessageDataAccumulator
 import as.sparkanta.actor2.message.deserializer.Deserializer
 import as.sparkanta.actor2.inactivity.InactivityMonitor
 
+object StaticDevice {
+  lazy final val maximumQueuedSendDataMessages = 50
+}
+
 class StaticDevice(amaConfig: AmaConfig) extends Actor with ActorLogging {
+
+  import StaticDevice._
 
   override def preStart(): Unit = try {
     amaConfig.broadcaster ! new Broadcaster.Register(self, new StaticDeviceClassifier)
@@ -19,7 +25,7 @@ class StaticDevice(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case a: ServerSocket.NewConnection => amaConfig.broadcaster ! new Socket.ListenAt(a.connectionInfo, a.akkaSocketTcpActor) // TODO .. and receive result!
+    case a: ServerSocket.NewConnection => amaConfig.broadcaster ! new Socket.ListenAt(a.connectionInfo, a.akkaSocketTcpActor, maximumQueuedSendDataMessages) // TODO .. and receive result!
 
     // on Socket.ListenAtSuccessResult:
     // - start Device actor

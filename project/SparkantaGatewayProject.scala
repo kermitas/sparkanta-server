@@ -6,14 +6,14 @@ object SparkantaGatewayProject {
   lazy final val projectName                 = SparkantaProject.projectName + "-gateway"
   lazy final val mainClassFullyQualifiedName = "as.ama.Main"
 
-  def apply(version: String, common: Project, akkaUtils: Project, typesafeUtils: Project) =
+  def apply(version: String, common: Project, typesafeUtils: Project) =
     Project(
       id           = projectName,
       base         = file(projectName),
 
-      aggregate    = Seq(common, akkaUtils, typesafeUtils),
-      dependencies = Seq(common, akkaUtils, typesafeUtils),
-      delegates    = Seq(common, akkaUtils, typesafeUtils),
+      aggregate    = Seq(common, typesafeUtils),
+      dependencies = Seq(common, typesafeUtils),
+      delegates    = Seq(common, typesafeUtils),
 
       settings     = CommonSettings(projectName, version) ++
                      ScalaTestSettings() ++

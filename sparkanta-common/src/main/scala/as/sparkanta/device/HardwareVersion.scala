@@ -1,4 +1,4 @@
-package as.sparkanta.gateway
+package as.sparkanta.device
 
 object HardwareVersion {
   def apply(hardwareVersion: Int) = hardwareVersion match {
@@ -9,7 +9,9 @@ object HardwareVersion {
   }
 }
 
-abstract class HardwareVersion(val hardwareVersion: Int) extends Serializable
+abstract class HardwareVersion(val hardwareVersion: Int) extends Serializable {
+  require(hardwareVersion >= 0 && hardwareVersion <= 255, s"Hardware version ($hardwareVersion) can be only between 0 and 255.")
+}
 
 object Virtual extends HardwareVersion(0) {
   override def toString = {

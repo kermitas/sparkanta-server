@@ -3,6 +3,7 @@ package as.sparkanta.device.message.deserialize
 import java.io.{ InputStream, DataInputStream }
 import scala.io.SerializationVersionNotSupportedException
 import as.sparkanta.device.message.fromdevice.DeviceIdentification
+import as.sparkanta.device.HardwareVersion
 
 class DeviceIdentificationDeserializer extends Deserializer[DeviceIdentification] {
 
@@ -35,7 +36,7 @@ class DeviceIdentificationDeserializerVersion1 extends Deserializer[DeviceIdenti
     val sparkantaIdentificationString = new String(sparkantaIdentificationStringAsByteArray)
 
     val softwareVersion = is.read
-    val hardwareVersion = is.read
+    val hardwareVersion = HardwareVersion(is.read)
     val deviceUniqueId = new DataInputStream(is).readChar
 
     val deviceUniqueNameLength = is.read

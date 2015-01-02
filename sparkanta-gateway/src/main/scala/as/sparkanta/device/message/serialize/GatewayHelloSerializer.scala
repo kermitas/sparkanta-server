@@ -1,8 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.todevice.GatewayHello
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.{ GatewayHello, DeviceAckType }
 
 class GatewayHelloSerializer extends GatewayHelloSerializerVersion1
 
@@ -14,7 +13,7 @@ class GatewayHelloSerializerVersion1 extends Serializer[GatewayHello] {
 
   import GatewayHelloSerializerVersion1._
 
-  override def serialize(gatewayHello: GatewayHello, ackType: AckType, os: OutputStream, messageNumber: Int): Unit = {
+  override def serialize(gatewayHello: GatewayHello, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
     writeHeader(os, GatewayHello.messageCode, serializationVersion, messageNumber, ackType)
   }
 }

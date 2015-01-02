@@ -1,8 +1,7 @@
 package as.sparkanta.device.message.serialize
 
 import java.io.OutputStream
-import as.sparkanta.device.message.todevice.Ping
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.{ Ping, DeviceAckType }
 
 class PingSerializer extends PingSerializerVersion1
 
@@ -14,7 +13,7 @@ class PingSerializerVersion1 extends Serializer[Ping] {
 
   import PingSerializerVersion1._
 
-  override def serialize(ping: Ping, ackType: AckType, os: OutputStream, messageNumber: Int): Unit = {
+  override def serialize(ping: Ping, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
     writeHeader(os, Ping.messageCode, serializationVersion, messageNumber, ackType)
   }
 }

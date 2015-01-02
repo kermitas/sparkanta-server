@@ -3,14 +3,14 @@ package as.sparkanta.actor2.message
 import scala.util.{ Try, Success, Failure }
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import as.akka.broadcaster.{ Broadcaster, MessageWithSender }
+import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.{ Map, ListBuffer }
 import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object MessageDataAccumulator {
   class AccumulateMessageData(val messageData: ByteString, val id: Long) extends IncomingReplyableMessage
-  abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(accumulateMessageData, accumulateMessageDataSender))
+  abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationSuccessResult(messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationErrorResult(exception: Exception, accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Failure(exception), accumulateMessageData, accumulateMessageDataSender)
   class ClearData(val id: Long) extends IncomingMessage

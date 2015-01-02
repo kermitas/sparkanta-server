@@ -2,8 +2,7 @@ package as.sparkanta.device.message.serialize
 
 import as.sparkanta.device.message.todevice.MessageToDevice
 import java.io.OutputStream
-import as.sparkanta.device.message.todevice.{ Disconnect, Ping, GatewayHello, ServerHello, PinConfiguration, SetDigitalPinValue, SetAnalogPinValue }
-import as.sparkanta.device.AckType
+import as.sparkanta.device.message.todevice.{ DeviceAckType, Disconnect, Ping, GatewayHello, ServerHello, PinConfiguration, SetDigitalPinValue, SetAnalogPinValue }
 
 class Serializers extends Serializer[MessageToDevice] {
 
@@ -15,7 +14,7 @@ class Serializers extends Serializer[MessageToDevice] {
   protected final val setDigitalPinValueSerializer = new SetDigitalPinValueSerializer
   protected final val setAnalogPinValueSerializer = new SetAnalogPinValueSerializer
 
-  override def serialize(messageToDevice: MessageToDevice, ackType: AckType, os: OutputStream, messageNumber: Int) = messageToDevice match {
+  override def serialize(messageToDevice: MessageToDevice, ackType: DeviceAckType, os: OutputStream, messageNumber: Int) = messageToDevice match {
     case disconnect: Disconnect                 => disconnectSerializer.serialize(disconnect, ackType, os, messageNumber)
     case ping: Ping                             => pingSerializer.serialize(ping, ackType, os, messageNumber)
     case gatewayHello: GatewayHello             => gatewayHelloSerializer.serialize(gatewayHello, ackType, os, messageNumber)

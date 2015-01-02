@@ -2,7 +2,7 @@ package as.sparkanta.actor2.message.deserializer
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
-import as.akka.broadcaster.{ MessageWithSender, Broadcaster }
+import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.fromdevice.MessageFormDevice
 import as.sparkanta.device.message.deserialize.Deserializers
@@ -10,7 +10,7 @@ import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Deserializer {
   class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingReplyableMessage
-  abstract class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(deserialize, serializeSender))
+  abstract class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(deserialize, serializeSender)
   class DeserializationSuccessResult(deserializedMessageFromDevice: MessageFormDevice, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Success(deserializedMessageFromDevice), deserialize, serializeSender)
   class DeserializationErrorResult(exception: Exception, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Failure(exception), deserialize, serializeSender)
 }
