@@ -8,9 +8,11 @@ sealed trait AckType extends Serializable {
 
 }
 
-object NoAck extends AckType
+sealed trait NetworkAck extends AckType
 
-class TcpAck(val timeoutInMillis: Long) extends AckType {
+object NoAck extends NetworkAck
+
+class TcpAck(val timeoutInMillis: Long) extends NetworkAck {
 
   override def toString = s"${getClass.getSimpleName}(timeoutInMillis=$timeoutInMillis)"
 

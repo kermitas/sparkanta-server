@@ -14,19 +14,22 @@ import scala.collection.mutable.Map
 object ServerSocket {
 
   class ListenAt(val listenAddress: IdentifiedInetSocketAddress, val openingServerSocketTimeoutInMs: Long, val keepOpenForMs: Long) extends IncomingReplyableMessage
-  class StopListeningAt(val id: Long) extends IncomingReplyableMessage
-
   abstract class ListenAtResult(val wasOpened: Try[Boolean], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
   class ListenAtSuccessfulResult(wasOpened: Boolean, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Success(wasOpened), listenAt, listenAtSender)
   class ListenAtErrorResult(exception: Exception, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Failure(exception), listenAt, listenAtSender)
   class ListeningStarted(listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
-  class ListeningStopped(val exception: Option[Exception], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
 
+  class StopListeningAt(val id: Long) extends IncomingReplyableMessage
   class StopListeningAtResult(val wasListening: Try[Boolean], stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(new MessageWithSender(stopListeningAt, stopListeningAtSender), new MessageWithSender(listenAt, listenAtSender))
   class StopListeningAtSuccessResult(wasListening: Boolean, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Success(wasListening), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class StopListeningAtErrorResult(exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+  class ListeningStopped(val listeningStopType: ListeningStopType, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
 
   class NewConnection(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(new MessageWithSender(listenAt, listenAtSender))
+
+  sealed trait ListeningStopType extends Serializable
+  class StoppedBecauseOfException(val exception: Exception) extends ListeningStopType
+  class StoppedBecauseOfRequest(val stopListeningAt: StopListeningAt, val stopListeningAtSender: ActorRef) extends ListeningStopType
 }
 
 class ServerSocket(
@@ -52,19 +55,21 @@ class ServerSocket(
   }
 
   override def postStop(): Unit = {
-    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${classOf[ServerSocket].getSimpleName} was stopped.")))
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def receive = {
     case a: ListenAt         => startListeningAt(a, sender)
     case a: StopListeningAt  => stopListeningAt(a, sender)
+
     case a: ListeningStarted => listeningStarted(a.request1.message.listenAddress.id, sender)
     case a: ListeningStopped => listeningStopped(a.request1.message.listenAddress.id)
+
     case message             => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
   protected def startListeningAt(listenAt: ListenAt, listenAtSender: ActorRef): Unit = forwardOrExecute(listenAt.listenAddress.id, listenAt, listenAtSender) {
-    val props = Props(new ServerSocketWorker(listenAt, listenAtSender, self, remoteConnectionsUniqueNumerator, amaConfig.broadcaster))
+    val props = Props(new ServerSocketWorker(listenAt, listenAtSender, self, remoteConnectionsUniqueNumerator))
     context.actorOf(props, name = classOf[ServerSocketWorker].getSimpleName + "-" + listenAt.listenAddress.id)
   }
 
@@ -86,7 +91,7 @@ class ServerSocket(
   }
 
   protected def stopListeningAt(stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef): Unit = forwardOrExecute(stopListeningAt.id, stopListeningAt, stopListeningAtSender) {
-    val successStopListeningAtResult = new StopListeningAtSuccessResult(false, stopListeningAt, stopListeningAtSender, null, null) // TODO do something with those nulls
+    val successStopListeningAtResult = new StopListeningAtSuccessResult(false, stopListeningAt, stopListeningAtSender, null, null)
     successStopListeningAtResult.reply(self)
   }
 
