@@ -1,9 +1,9 @@
-package as.sparkanta.actor2.tcp.serversocket
+package as.sparkanta.actor.tcp.serversocket
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor2.tcp.serversocket.ServerSocket.{ ListenAt, StopListeningAt }
+import as.sparkanta.actor.tcp.serversocket.ServerSocket.{ ListenAt, StopListeningAt }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)

@@ -1,11 +1,11 @@
-package as.sparkanta.actor2.fakelistenat
+package as.sparkanta.actor.fakelistenat
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorLogging, Actor }
 import as.sparkanta.ama.config.AmaConfig
 import scala.net.IdentifiedInetSocketAddress
-import as.sparkanta.actor2.tcp.serversocket.ServerSocket
+import as.sparkanta.actor.tcp.serversocket.ServerSocket
 
 class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
 

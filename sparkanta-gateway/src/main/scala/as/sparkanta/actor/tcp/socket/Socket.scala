@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.tcp.socket
+package as.sparkanta.actor.tcp.socket
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, Actor, ActorLogging, Props, OneForOneStrategy, SupervisorStrategy }
@@ -16,13 +16,13 @@ object Socket {
   class ListenAt(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, val maximumQueuedSendDataMessages: Long) extends IncomingReplyableMessage
   abstract class ListenAtResult(val wasListening: Try[Boolean], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
   class ListenAtSuccessResult(wasListening: Boolean, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Success(wasListening), listenAt, listenAtSender)
-  class ListenAtErrorResult(exception: Exception, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Failure(exception), listenAt, listenAtSender)
+  class ListenAtErrorResult(val exception: Exception, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Failure(exception), listenAt, listenAtSender)
   class ListeningStarted(listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   class StopListeningAt(val id: Long) extends IncomingReplyableMessage
   abstract class StopListeningAtResult(val wasListening: Try[Boolean], stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class StopListeningAtSuccessResult(wasListening: Boolean, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Success(wasListening), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
-  class StopListeningAtErrorResult(exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+  class StopListeningAtErrorResult(val exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class ListeningStopped(val listeningStopType: ListeningStopType, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   class SendData(val data: ByteString, val id: Long, val ack: NetworkAck) extends IncomingReplyableMessage { def this(data: Array[Byte], id: Long, ack: NetworkAck) = this(ByteString(data), id, ack) }
@@ -93,7 +93,7 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     case Some(socketWorker) => {
       val e = new Exception(s"Remote address id $id is already known (served by worker actor $socketWorker), could not add it again.")
-      log.error("", e)
+      log.error(e, e.getMessage)
     }
 
     case None => {

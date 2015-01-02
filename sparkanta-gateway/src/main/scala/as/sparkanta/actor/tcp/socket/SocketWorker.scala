@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.tcp.socket
+package as.sparkanta.actor.tcp.socket
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
@@ -139,6 +139,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   protected def ackTimeout(sd: WaitingForTcpAckStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.sendData.ack.asInstanceOf[TcpAck].timeoutInMillis} milliseconds) while waiting for tcp ack.")))
 
   protected def receivedData(data: ByteString, dataSender: ActorRef) = {
+    log.debug(s"Received ${data.size} bytes from ${listenAt.connectionInfo}.")
     val newData = new Socket.NewData(data, listenAt, listenAtSender)
     newData.reply(socketActor)
     stay using stateData

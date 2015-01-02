@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.tcp.serversocket
+package as.sparkanta.actor.tcp.serversocket
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, Actor, ActorLogging, Props, OneForOneStrategy, SupervisorStrategy }
@@ -21,7 +21,7 @@ object ServerSocket {
   class StopListeningAt(val id: Long) extends IncomingReplyableMessage
   class StopListeningAtResult(val wasListening: Try[Boolean], stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class StopListeningAtSuccessResult(wasListening: Boolean, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Success(wasListening), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
-  class StopListeningAtErrorResult(exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+  class StopListeningAtErrorResult(val exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class ListeningStopped(val listeningStopType: ListeningStopType, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   class NewConnection(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
@@ -76,7 +76,7 @@ class ServerSocket(
 
     case Some(serverSocketWorker) => {
       val e = new Exception(s"Listen address id $id is already known (served by worker actor $serverSocketWorker), could not add it again.")
-      log.error("", e)
+      log.error(e, e.getMessage)
     }
 
     case None => {

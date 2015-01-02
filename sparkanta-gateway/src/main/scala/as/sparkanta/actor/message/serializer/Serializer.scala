@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.message.serializer
+package as.sparkanta.actor.message.serializer
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -37,7 +37,7 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     val serializationResult = performSerialization(serialize, serializeSender)
     serializationResult.reply(self)
   } catch {
-    case e: Exception => log.error("Problem during serialization.", e)
+    case e: Exception => log.error(e, "Problem during serialization.")
   }
 
   protected def performSerialization(serialize: Serialize, serializeSender: ActorRef): SerializationResult = try {

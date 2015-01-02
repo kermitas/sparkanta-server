@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.speedtest
+package as.sparkanta.actor.speedtest
 
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender

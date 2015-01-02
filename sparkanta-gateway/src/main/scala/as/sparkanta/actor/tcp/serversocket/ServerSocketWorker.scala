@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.tcp.serversocket
+package as.sparkanta.actor.tcp.serversocket
 
 import scala.language.postfixOps
 import scala.concurrent.duration._

@@ -1,4 +1,4 @@
-package as.sparkanta.actor2.message.deserializer
+package as.sparkanta.actor.message.deserializer
 
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -12,7 +12,7 @@ object Deserializer {
   class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingReplyableMessage
   abstract class DeserializationResult(val deserializedMessageFromDevice: Try[MessageFormDevice], deserialize: Deserialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(deserialize, serializeSender)
   class DeserializationSuccessResult(deserializedMessageFromDevice: MessageFormDevice, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Success(deserializedMessageFromDevice), deserialize, serializeSender)
-  class DeserializationErrorResult(exception: Exception, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Failure(exception), deserialize, serializeSender)
+  class DeserializationErrorResult(val exception: Exception, deserialize: Deserialize, serializeSender: ActorRef) extends DeserializationResult(Failure(exception), deserialize, serializeSender)
 }
 
 class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -37,7 +37,7 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     val deserializationResult = performDeserialization(deserialize, deserializeSender)
     deserializationResult.reply(self)
   } catch {
-    case e: Exception => log.error("Problem during deserialization.", e)
+    case e: Exception => log.error(e, "Problem during deserialization.")
   }
 
   protected def performDeserialization(deserialize: Deserialize, deserializeSender: ActorRef): DeserializationResult = try {

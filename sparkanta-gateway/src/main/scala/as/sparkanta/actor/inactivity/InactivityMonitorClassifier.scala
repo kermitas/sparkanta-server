@@ -1,9 +1,9 @@
-package as.sparkanta.actor2.inactivity
+package as.sparkanta.actor.inactivity
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor2.inactivity.InactivityMonitor.{ StartInactivityMonitor, Active, StopInactivityMonitor }
+import as.sparkanta.actor.inactivity.InactivityMonitor.{ StartInactivityMonitor, Active, StopInactivityMonitor }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)

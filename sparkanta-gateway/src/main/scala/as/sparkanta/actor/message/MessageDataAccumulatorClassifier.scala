@@ -1,22 +1,23 @@
-package as.sparkanta.actor2.message.deserializer
+package as.sparkanta.actor.message
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor2.message.deserializer.Deserializer.Deserialize
+import as.sparkanta.actor.message.MessageDataAccumulator.{ AccumulateMessageData, ClearData }
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class DeserializerClassifier(broadcaster: ActorRef) extends Classifier {
+class MessageDataAccumulatorClassifier(broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
-    case a: Deserialize => {
+    case a: AccumulateMessageData => {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }
 
-    case _ => None
+    case a: ClearData => Some(messageWithSender)
+    case _            => None
   }
 }

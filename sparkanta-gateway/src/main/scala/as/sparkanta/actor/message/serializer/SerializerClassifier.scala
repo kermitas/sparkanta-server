@@ -1,18 +1,18 @@
-package as.sparkanta.actor2.speedtest
+package as.sparkanta.actor.message.serializer
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor2.speedtest.SpeedTest.StartSpeedTest
+import as.sparkanta.actor.message.serializer.Serializer.Serialize
 
 /**
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class SpeedTestClassifier(broadcaster: ActorRef) extends Classifier {
+class SerializerClassifier(broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
-    case a: StartSpeedTest => {
+    case a: Serialize => {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }
