@@ -1,6 +1,7 @@
 package as.sparkanta.actor2.device
 
-import as.akka.broadcaster.{ Classifier, MessageWithSender }
+import as.akka.broadcaster.Classifier
+import akka.util.MessageWithSender
 import as.sparkanta.actor2.tcp.serversocket.ServerSocket
 import as.sparkanta.actor2.tcp.socket.Socket
 import as.sparkanta.actor2.message.MessageDataAccumulator

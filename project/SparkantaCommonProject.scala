@@ -5,15 +5,17 @@ object SparkantaCommonProject {
 
   lazy final val projectName = SparkantaProject.projectName + "-common"
 
-  def apply(version: String, akkaUtils: Project, scalaUtils: Project) =
+  def apply(version: String, scalaUtils: Project) =
     Project(
       id           = projectName,
       base         = file(projectName),
 
-      aggregate    = Seq(akkaUtils, scalaUtils),
-      dependencies = Seq(akkaUtils, scalaUtils),
-      delegates    = Seq(akkaUtils, scalaUtils),
+      aggregate    = Seq(scalaUtils),
+      dependencies = Seq(scalaUtils),
+      delegates    = Seq(scalaUtils),
 
-      settings     = CommonSettings(projectName, version)
+      settings     = CommonSettings(projectName, version) ++
+                     AkkaSettings() ++
+                     AmaSettings()
     )
 }

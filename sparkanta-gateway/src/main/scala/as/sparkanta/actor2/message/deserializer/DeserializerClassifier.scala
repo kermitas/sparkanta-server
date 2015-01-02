@@ -1,7 +1,8 @@
 package as.sparkanta.actor2.message.deserializer
 
 import akka.actor.ActorRef
-import as.akka.broadcaster.{ MessageWithSender, Classifier }
+import as.akka.broadcaster.Classifier
+import akka.util.MessageWithSender
 import as.sparkanta.actor2.message.deserializer.Deserializer.Deserialize
 
 /**

@@ -1,6 +1,7 @@
 package as.sparkanta.actor.shutdown
 
-import as.akka.broadcaster.{ MessageWithSender, Classifier }
+import as.akka.broadcaster.Classifier
+import akka.util.MessageWithSender
 import as.ama.addon.inputstream.InputStreamText
 
 /**

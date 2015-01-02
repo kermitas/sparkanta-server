@@ -5,10 +5,10 @@ object Build extends sbt.Build {
   // --- projects definition
 
   lazy val scalaUtils     = SparkantaScalaUtilsProject(version)
-  lazy val akkaUtils      = SparkantaAkkaUtilsProject(version)
+  //lazy val akkaUtils      = SparkantaAkkaUtilsProject(version)
   lazy val typesafeUtils  = SparkantaTypesafeConfigUtilsProject(version)
 
-  lazy val common         = SparkantaCommonProject(version, akkaUtils, scalaUtils)
+  lazy val common         = SparkantaCommonProject(version, scalaUtils)
   lazy val gateway	      = SparkantaGatewayProject(version, common, typesafeUtils)
   lazy val server     	  = SparkantaServerProject(version, common)
 

@@ -1,7 +1,8 @@
 package as.sparkanta.actor2.inactivity
 
 import akka.actor.ActorRef
-import as.akka.broadcaster.{ Classifier, MessageWithSender }
+import as.akka.broadcaster.Classifier
+import akka.util.MessageWithSender
 import as.sparkanta.actor2.inactivity.InactivityMonitor.{ StartInactivityMonitor, Active, StopInactivityMonitor }
 
 /**
