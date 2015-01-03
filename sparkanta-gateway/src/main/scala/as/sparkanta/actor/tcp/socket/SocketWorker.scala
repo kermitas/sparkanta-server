@@ -8,6 +8,7 @@ import akka.io.Tcp
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import scala.collection.mutable.ListBuffer
 import as.sparkanta.gateway.{ NoAck, TcpAck }
+import akka.util.MessageWithSender
 
 object SocketWorker {
   sealed trait State extends Serializable
@@ -16,7 +17,7 @@ object SocketWorker {
 
   sealed trait StateData extends Serializable
   case object WaitingForDataToSendStateData extends StateData
-  case class WaitingForTcpAckStateData(sendData: Socket.SendData, sendDataSender: ActorRef, ackTimeout: Cancellable) extends StateData
+  case class WaitingForTcpAckStateData(current: MessageWithSender[Socket.SendData], ackTimeout: Cancellable) extends StateData
 
   object AckTimeout extends InternalMessage
   object TcpAck extends Tcp.Event
@@ -27,7 +28,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   import SocketWorker._
   import context.dispatcher
 
-  protected val dataToSend = new ListBuffer[(Socket.SendData, ActorRef)]
+  protected val datasToSend = new ListBuffer[MessageWithSender[Socket.SendData]]
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
@@ -87,7 +88,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
       case a: TcpAck => {
         listenAt.akkaSocketTcpActor ! new Tcp.Write(sendData.data, TcpAck)
         val ackTimeout = context.system.scheduler.scheduleOnce(a.timeoutInMillis millis, self, AckTimeout)
-        goto(WaitingForTcpAck) using new WaitingForTcpAckStateData(sendData, sendDataSender, ackTimeout)
+        goto(WaitingForTcpAck) using new WaitingForTcpAckStateData(new MessageWithSender(sendData, sendDataSender), ackTimeout)
       }
     }
   } else {
@@ -98,12 +99,12 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   }
 
   protected def bufferSendData(sendData: Socket.SendData, sendDataSender: ActorRef, sd: WaitingForTcpAckStateData) = {
-    if (dataToSend.size >= listenAt.maximumQueuedSendDataMessages) {
+    if (datasToSend.size >= listenAt.maximumQueuedSendDataMessages) {
       val exception = new Exception(s"Maximum (${listenAt.maximumQueuedSendDataMessages}) queued ${sendData.getClass.getSimpleName} messages reached.")
       val sendDataErrorResult = new Socket.SendDataErrorResult(exception, sendData, sendDataSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     } else {
-      dataToSend += Tuple2(sendData, sendDataSender)
+      datasToSend += new MessageWithSender(sendData, sendDataSender)
     }
 
     stay using sd
@@ -112,23 +113,23 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   protected def receivedTcpAck(sd: WaitingForTcpAckStateData) = {
     sd.ackTimeout.cancel
 
-    val sendDataSuccessResult = new Socket.SendDataSuccessResult(sd.sendData, sd.sendDataSender, listenAt, listenAtSender)
+    val sendDataSuccessResult = new Socket.SendDataSuccessResult(sd.current.message, sd.current.messageSender, listenAt, listenAtSender)
     sendDataSuccessResult.reply(socketActor)
 
     pickupNextTaskOrGotoWaitingForDataToSend
   }
 
-  protected def pickupNextTaskOrGotoWaitingForDataToSend = if (dataToSend.nonEmpty) {
+  protected def pickupNextTaskOrGotoWaitingForDataToSend = if (datasToSend.nonEmpty) {
 
     def sendNextDataToSend = {
-      val tuple = dataToSend.head
-      dataToSend -= tuple
-      sendData(tuple._1, tuple._2)
+      val messageWithSender = datasToSend.head
+      datasToSend -= messageWithSender
+      sendData(messageWithSender.message, messageWithSender.messageSender)
     }
 
     var nextState = sendNextDataToSend
 
-    while (dataToSend.nonEmpty && nextState.stateName == WaitingForDataToSend) nextState = sendNextDataToSend
+    while (datasToSend.nonEmpty && nextState.stateName == WaitingForDataToSend) nextState = sendNextDataToSend
 
     nextState
 
@@ -136,7 +137,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
     goto(WaitingForDataToSend) using WaitingForDataToSendStateData
   }
 
-  protected def ackTimeout(sd: WaitingForTcpAckStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.sendData.ack.asInstanceOf[TcpAck].timeoutInMillis} milliseconds) while waiting for tcp ack.")))
+  protected def ackTimeout(sd: WaitingForTcpAckStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.current.message.ack.asInstanceOf[TcpAck].timeoutInMillis} milliseconds) while waiting for tcp ack.")))
 
   protected def receivedData(data: ByteString, dataSender: ActorRef) = {
     log.debug(s"Received ${data.size} bytes from ${listenAt.connectionInfo}.")
@@ -191,12 +192,12 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
 
       waitingForTcpAckStateData.ackTimeout.cancel
 
-      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, waitingForTcpAckStateData.sendData, waitingForTcpAckStateData.sendDataSender, listenAt, listenAtSender)
+      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, waitingForTcpAckStateData.current.message, waitingForTcpAckStateData.current.messageSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     }
 
-    dataToSend.foreach { tuple =>
-      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, tuple._1, tuple._2, listenAt, listenAtSender)
+    datasToSend.foreach { messageWithSender =>
+      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, messageWithSender.message, messageWithSender.messageSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     }
 

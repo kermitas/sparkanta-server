@@ -3,7 +3,7 @@ package as.sparkanta.actor.speedtest
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.util.{ Try, Success, Failure }
-import akka.actor.{ ActorLogging, ActorRef, Actor, Props }
+import akka.actor.{ ActorLogging, ActorRef, Actor, Props, OneForOneStrategy, SupervisorStrategy }
 import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object SpeedTest {
@@ -17,6 +17,10 @@ object SpeedTest {
 class SpeedTest(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   import SpeedTest._
+
+  override val supervisorStrategy = OneForOneStrategy() {
+    case _ => SupervisorStrategy.Stop
+  }
 
   override def preStart(): Unit = try {
     amaConfig.broadcaster ! new Broadcaster.Register(self, new SpeedTestClassifier(amaConfig.broadcaster))

@@ -10,11 +10,20 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Me
 
 object MessageDataAccumulator {
 
+  class StartDataAccumulation(val id: Long) extends IncomingReplyableMessage
+  abstract class StartDataAccumulationResult(val exception: Option[Exception], startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(startDataAccumulation, startDataAccumulationSender)
+  class StartDataAccumulationSuccessResult(startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends StartDataAccumulationResult(None, startDataAccumulation, startDataAccumulationSender)
+  class StartDataAccumulationErrorResult(exception: Exception, startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends StartDataAccumulationResult(Some(exception), startDataAccumulation, startDataAccumulationSender)
+
   class AccumulateMessageData(val id: Long, val messageData: ByteString) extends IncomingReplyableMessage
   abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationSuccessResult(messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationErrorResult(val exception: Exception, accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Failure(exception), accumulateMessageData, accumulateMessageDataSender)
-  class ClearData(val id: Long) extends IncomingMessage
+
+  class StopDataAccumulation(val id: Long) extends IncomingReplyableMessage
+  abstract class StopDataAccumulationResult(val exception: Option[Exception], stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(stopDataAccumulation, stopDataAccumulationSender)
+  class StopDataAccumulationSuccessResult(stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends StopDataAccumulationResult(None, stopDataAccumulation, stopDataAccumulationSender)
+  class StopDataAccumulationErrorResult(exception: Exception, stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends StopDataAccumulationResult(Some(exception), stopDataAccumulation, stopDataAccumulationSender)
 
   class Record(var buffer: ByteString)
 }
@@ -34,8 +43,40 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
 
   override def receive = {
     case a: AccumulateMessageData => accumulateMessageDataAndSendResponse(a, sender)
-    case a: ClearData             => map.remove(a.id)
+    case a: StartDataAccumulation => startDataAccumulation(a, sender)
+    case a: StopDataAccumulation  => stopDataAccumulation(a, sender)
     case message                  => log.warning(s"Unhandled $message send by ${sender()}")
+  }
+
+  protected def startDataAccumulation(startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef): Unit = try {
+    if (map.contains(startDataAccumulation.id)) {
+      throw new Exception(s"Id ${startDataAccumulation.id} is already registered.")
+    } else {
+      val record = new Record(ByteString.empty)
+      map.put(startDataAccumulation.id, record)
+      val startDataAccumulationSuccessResult = new StartDataAccumulationSuccessResult(startDataAccumulation, startDataAccumulationSender)
+      startDataAccumulationSuccessResult.reply(self)
+    }
+  } catch {
+    case e: Exception => {
+      val messageDataAccumulationErrorResult = new StartDataAccumulationErrorResult(e, startDataAccumulation, startDataAccumulationSender)
+      messageDataAccumulationErrorResult.reply(self)
+    }
+  }
+
+  protected def stopDataAccumulation(stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef): Unit = try {
+    if (map.contains(stopDataAccumulation.id)) {
+      map.remove(stopDataAccumulation.id)
+      val stopDataAccumulationSuccessResult = new StopDataAccumulationSuccessResult(stopDataAccumulation, stopDataAccumulationSender)
+      stopDataAccumulationSuccessResult.reply(self)
+    } else {
+      throw new Exception(s"Id ${stopDataAccumulation.id} is not registered.")
+    }
+  } catch {
+    case e: Exception => {
+      val stopDataAccumulationErrorResult = new StopDataAccumulationErrorResult(e, stopDataAccumulation, stopDataAccumulationSender)
+      stopDataAccumulationErrorResult.reply(self)
+    }
   }
 
   protected def accumulateMessageDataAndSendResponse(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): Unit = try {
@@ -46,7 +87,11 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
   }
 
   protected def performMessageDataAccumulation(accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef): MessageDataAccumulationResult = try {
-    val record = getOrCreateRecord(accumulateMessageData.id)
+    val record = map.get(accumulateMessageData.id) match {
+      case Some(record) => record
+      case None         => throw new Exception(s"Id ${accumulateMessageData.id} is not registered.")
+    }
+
     record.buffer = record.buffer ++ accumulateMessageData.messageData
 
     log.debug(s"There are ${record.buffer.size} accumulated bytes after accumulating new ${accumulateMessageData.messageData.size} bytes for id ${accumulateMessageData.id}.")
@@ -56,16 +101,6 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
     new MessageDataAccumulationSuccessResult(accumulatedMessageData, accumulateMessageData, accumulateMessageDataSender)
   } catch {
     case e: Exception => new MessageDataAccumulationErrorResult(e, accumulateMessageData, accumulateMessageDataSender)
-  }
-
-  protected def getOrCreateRecord(id: Long): Record = map.get(id) match {
-    case Some(record) => record
-
-    case None => {
-      val record = new Record(ByteString.empty)
-      map.put(id, record)
-      record
-    }
   }
 
   protected def analyzeRecord(record: Record, id: Long): Seq[Array[Byte]] = {
@@ -88,7 +123,6 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
         record.buffer = messageDataAndRest._2
 
         bufferSize = record.buffer.size
-        //incomingMessageSize = if(bufferSize> 0 ) record.buffer(0) else 0
       }
 
       result
