@@ -1,5 +1,7 @@
 package as.sparkanta.actor.inactivity
 
+import as.ama.addon.lifecycle.ShutdownSystem
+
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, ActorLogging, Actor, Cancellable }
@@ -33,6 +35,10 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
+  }
+
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def receive = {

@@ -19,8 +19,8 @@ object Device {
   class SendMessageErrorResult(exception: Exception, sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(Some(exception), sendMessage, sendMessageSender)
 
   class DisconnectDevice(val id: Long, val cause: Exception) extends IncomingMessage
-  object DisconnectAllDevices extends IncomingMessage
+  class DisconnectAllDevices(val cause: Exception) extends IncomingMessage
 
-  class DisconnectedOnDisconnectAllRequestException(id: Long) extends Exception(s"Device of remote address id $id was disconnected because of ${DisconnectAllDevices.getClass.getSimpleName}.")
+  class DisconnectedOnDisconnectAllRequestException(id: Long) extends Exception(s"Device of remote address id $id was disconnected because of ${classOf[DisconnectAllDevices].getSimpleName}.")
 }
 

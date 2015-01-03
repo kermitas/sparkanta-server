@@ -1,5 +1,7 @@
 package as.sparkanta.actor.message.deserializer
 
+import as.ama.addon.lifecycle.ShutdownSystem
+
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster
@@ -26,6 +28,10 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
+  }
+
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def receive = {

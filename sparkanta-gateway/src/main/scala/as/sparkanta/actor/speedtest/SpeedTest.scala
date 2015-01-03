@@ -1,6 +1,7 @@
 package as.sparkanta.actor.speedtest
 
 import as.akka.broadcaster.Broadcaster
+import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.ama.config.AmaConfig
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorLogging, ActorRef, Actor, Props, OneForOneStrategy, SupervisorStrategy }
@@ -11,7 +12,7 @@ object SpeedTest {
 
   abstract class SpeedTestResult(val pingPongsCount: Try[Long], startSpeedTest: StartSpeedTest, startSpeedTestSender: ActorRef) extends OutgoingReplyOn1Message(startSpeedTest, startSpeedTestSender)
   class SpeedTestSuccessResult(pingPongsCount: Long, startSpeedTest: StartSpeedTest, startSpeedTestSender: ActorRef) extends SpeedTestResult(Success(pingPongsCount), startSpeedTest, startSpeedTestSender)
-  class SpeedTestErrorResult(exception: Exception, startSpeedTest: StartSpeedTest, startSpeedTestSender: ActorRef) extends SpeedTestResult(Failure(exception), startSpeedTest, startSpeedTestSender)
+  class SpeedTestErrorResult(val exception: Exception, startSpeedTest: StartSpeedTest, startSpeedTestSender: ActorRef) extends SpeedTestResult(Failure(exception), startSpeedTest, startSpeedTestSender)
 }
 
 class SpeedTest(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -20,6 +21,10 @@ class SpeedTest(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   override val supervisorStrategy = OneForOneStrategy() {
     case _ => SupervisorStrategy.Stop
+  }
+
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def preStart(): Unit = try {

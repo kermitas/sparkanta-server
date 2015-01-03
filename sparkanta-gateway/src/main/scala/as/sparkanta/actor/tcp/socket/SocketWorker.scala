@@ -28,7 +28,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   import SocketWorker._
   import context.dispatcher
 
-  protected val datasToSend = new ListBuffer[MessageWithSender[Socket.SendData]]
+  protected val buffer = new ListBuffer[MessageWithSender[Socket.SendData]]
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
@@ -99,12 +99,12 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   }
 
   protected def bufferSendData(sendData: Socket.SendData, sendDataSender: ActorRef, sd: WaitingForTcpAckStateData) = {
-    if (datasToSend.size >= listenAt.maximumQueuedSendDataMessages) {
+    if (buffer.size >= listenAt.maximumQueuedSendDataMessages) {
       val exception = new Exception(s"Maximum (${listenAt.maximumQueuedSendDataMessages}) queued ${sendData.getClass.getSimpleName} messages reached.")
       val sendDataErrorResult = new Socket.SendDataErrorResult(exception, sendData, sendDataSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     } else {
-      datasToSend += new MessageWithSender(sendData, sendDataSender)
+      buffer += new MessageWithSender(sendData, sendDataSender)
     }
 
     stay using sd
@@ -119,17 +119,17 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
     pickupNextTaskOrGotoWaitingForDataToSend
   }
 
-  protected def pickupNextTaskOrGotoWaitingForDataToSend = if (datasToSend.nonEmpty) {
+  protected def pickupNextTaskOrGotoWaitingForDataToSend = if (buffer.nonEmpty) {
 
     def sendNextDataToSend = {
-      val messageWithSender = datasToSend.head
-      datasToSend -= messageWithSender
+      val messageWithSender = buffer.head
+      buffer -= messageWithSender
       sendData(messageWithSender.message, messageWithSender.messageSender)
     }
 
     var nextState = sendNextDataToSend
 
-    while (datasToSend.nonEmpty && nextState.stateName == WaitingForDataToSend) nextState = sendNextDataToSend
+    while (buffer.nonEmpty && nextState.stateName == WaitingForDataToSend) nextState = sendNextDataToSend
 
     nextState
 
@@ -196,7 +196,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
       sendDataErrorResult.reply(socketActor)
     }
 
-    datasToSend.foreach { messageWithSender =>
+    buffer.foreach { messageWithSender =>
       val sendDataErrorResult = new Socket.SendDataErrorResult(exception, messageWithSender.message, messageWithSender.messageSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     }

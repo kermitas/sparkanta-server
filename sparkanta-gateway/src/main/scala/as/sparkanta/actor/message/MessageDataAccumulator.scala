@@ -1,5 +1,7 @@
 package as.sparkanta.actor.message
 
+import as.ama.addon.lifecycle.ShutdownSystem
+
 import scala.util.{ Try, Success, Failure }
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -39,6 +41,10 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
+  }
+
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def receive = {

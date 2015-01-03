@@ -20,7 +20,7 @@ class DeviceWorkerClassifier(id: Long, broadcaster: ActorRef) extends Classifier
 
     case a: DeviceSpec.DisconnectDevice if a.id == id => Some(messageWithSender)
 
-    case DeviceSpec.DisconnectAllDevices => Some(messageWithSender)
+    case a: DeviceSpec.DisconnectAllDevices => Some(messageWithSender)
 
     case _ => None
   }

@@ -1,5 +1,7 @@
 package as.sparkanta.actor.message.serializer
 
+import as.ama.addon.lifecycle.ShutdownSystem
+
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster
@@ -12,7 +14,7 @@ object Serializer {
   class Serialize(val messageToDevice: MessageToDevice, val ack: DeviceAckType) extends IncomingReplyableMessage
   abstract class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(serialize, serializeSender)
   class SerializationSuccessResult(serializedMessageToDevice: Array[Byte], serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Success(serializedMessageToDevice), serialize, serializeSender)
-  class SerializationErrorResult(exception: Exception, serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Failure(exception), serialize, serializeSender)
+  class SerializationErrorResult(val exception: Exception, serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Failure(exception), serialize, serializeSender)
 }
 
 class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -26,6 +28,10 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     amaConfig.sendInitializationResult()
   } catch {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
+  }
+
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
   }
 
   override def receive = {

@@ -1,7 +1,8 @@
 package as.sparkanta.actor.device
 
-import akka.actor.{ ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
+import akka.actor.{ ActorLogging, Actor, ActorRef, Props, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
+import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.actor.tcp.socket.Socket
@@ -22,7 +23,7 @@ object Device {
   lazy final val inactivityTimeAfterMs = 3 * 1000
 
   lazy final val waitingForDeviceIdentificationTimeoutInMs = 2 * 1000
-  lazy final val speedTestTimeInMs: Option[Long] = Some(1 * 1000)
+  lazy final val speedTestTimeAndTimeoutInMs: Option[(Long, Long)] = Some(Tuple2(1 * 1000, 1 * 1000 + 200))
 
   lazy final val ping = new Ping
 }
@@ -42,6 +43,10 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case e: Exception => amaConfig.sendInitializationResult(new Exception(s"Problem while installing ${getClass.getSimpleName} actor.", e))
   }
 
+  override def postStop(): Unit = {
+    amaConfig.broadcaster ! new ShutdownSystem(Left(new Exception(s"Shutting down JVM because actor ${getClass.getSimpleName} was stopped.")))
+  }
+
   override def receive = {
 
     // ---------------
@@ -53,14 +58,14 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     // ---------------
 
-    case a: MessageDataAccumulator.StartDataAccumulationResult => {
+    case a: MessageDataAccumulator.StartDataAccumulationResult if a.request1.message.isInstanceOf[StartDataAccumulationWithNewConnection] => {
 
       val newConnection = a.request1.message.asInstanceOf[StartDataAccumulationWithNewConnection].newConnection
 
       a match {
         case a: MessageDataAccumulator.StartDataAccumulationSuccessResult => {
 
-          val props = Props(new DeviceWorker(newConnection.connectionInfo, newConnection.akkaSocketTcpActor, amaConfig.broadcaster, waitingForDeviceIdentificationTimeoutInMs, speedTestTimeInMs, self))
+          val props = Props(new DeviceWorker(newConnection.connectionInfo, newConnection.akkaSocketTcpActor, amaConfig.broadcaster, waitingForDeviceIdentificationTimeoutInMs, speedTestTimeAndTimeoutInMs, self, maximumQueuedSendDataMessages))
           context.actorOf(props, name = classOf[DeviceWorker].getSimpleName + "-" + newConnection.connectionInfo.remote.id)
 
           amaConfig.broadcaster ! new Socket.ListenAt(newConnection.connectionInfo, newConnection.akkaSocketTcpActor, maximumQueuedSendDataMessages)
@@ -161,7 +166,19 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
     // ---------------
 
     case a: DeviceSpec.SendMessage => {
-      amaConfig.broadcaster ! new SerializeWithSendMessage(a)
+      amaConfig.broadcaster ! new SerializeWithSendMessage(a, sender)
+    }
+
+    // ---------------
+
+    case a: Serializer.SerializationErrorResult if a.request1.message.isInstanceOf[SerializeWithSendMessage] => {
+      val serializeWithSendMessage = a.request1.message.asInstanceOf[SerializeWithSendMessage]
+
+      val sendMessageErrorResult = new DeviceSpec.SendMessageErrorResult(a.exception, serializeWithSendMessage.sendMessage, a.request1.messageSender)
+      sendMessageErrorResult.reply(self)
+
+      log.debug(s"There were problem during serialization of message to device for device of remote address id ${serializeWithSendMessage.sendMessage.id}, killing.")
+      amaConfig.broadcaster ! new Socket.StopListeningAt(serializeWithSendMessage.sendMessage.id)
     }
 
     // ---------------
