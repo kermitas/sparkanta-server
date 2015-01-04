@@ -13,6 +13,9 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, InternalMessage, O
 object InactivityMonitor {
 
   class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingReplyableMessage
+
+  // TODO add success and error results
+
   class Active(val id: Long) extends IncomingMessage
   class StopInactivityMonitor(val id: Long) extends IncomingMessage
   class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
@@ -21,7 +24,7 @@ object InactivityMonitor {
   class WarningTimeout(val record: Record) extends InternalMessage
   class InactivityTimeout(val record: Record) extends InternalMessage
 
-  class Record(var warningTimer: Option[Cancellable], var inactivityTimer: Option[Cancellable], val startInactivityMonitor: StartInactivityMonitor, val startInactivityMonitorSender: ActorRef, var lastActiveTime: Long)
+  class Record(var warningTimer: Option[Cancellable], var inactivityTimer: Option[Cancellable], var startInactivityMonitor: StartInactivityMonitor, var startInactivityMonitorSender: ActorRef, var lastActiveTime: Long)
 }
 
 class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -56,6 +59,9 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     val recordCreator = () => new Record(None, None, startInactivityMonitor, startInactivityMonitorSender, System.currentTimeMillis)
     val record = getOrCreateRecord(startInactivityMonitor.id, recordCreator)
+
+    record.startInactivityMonitor = startInactivityMonitor
+    record.startInactivityMonitorSender = startInactivityMonitorSender
 
     setTimers(record)
   }

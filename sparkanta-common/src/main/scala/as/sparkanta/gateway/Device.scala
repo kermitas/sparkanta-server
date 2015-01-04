@@ -8,8 +8,7 @@ import as.sparkanta.device.DeviceInfo
 import scala.net.IdentifiedConnectionInfo
 
 object Device {
-
-  class Start(connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, val maximumQueuedMessagesToSend: Long) extends IncomingReplyableMessage
+  class Start(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, val maximumQueuedMessagesToSend: Long) extends IncomingReplyableMessage
   abstract class StartResult(val optionalException: Option[Exception], start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
   class StartSuccessResult(start: Start, startSender: ActorRef) extends StartResult(None, start, startSender)
   class StartErrorResult(val exception: Exception, start: Start, startSender: ActorRef) extends StartResult(Some(exception), start, startSender)

@@ -65,8 +65,8 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case a: ListenAt         => startListeningAt(a, sender)
     case a: StopListeningAt  => stopListeningAt(a, sender)
 
-    case a: ListeningStarted => listeningStarted(a.request1.message.connectionInfo.remote.id, sender)
-    case a: ListeningStopped => listeningStopped(a.request1.message.connectionInfo.remote.id)
+    case a: ListeningStarted => listeningStarted(a, sender)
+    case a: ListeningStopped => listeningStopped(a)
 
     case message             => log.warning(s"Unhandled $message send by ${sender()}")
   }
@@ -89,6 +89,9 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
     sendDataErrorResult.reply(self)
   }
 
+  protected def listeningStarted(listeningStartedMessage: ListeningStarted, socketWorker: ActorRef): Unit =
+    listeningStarted(listeningStartedMessage.request1.message.connectionInfo.remote.id, socketWorker)
+
   protected def listeningStarted(id: Long, socketWorker: ActorRef): Unit = map.get(id) match {
 
     case Some(socketWorker) => {
@@ -101,6 +104,9 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
       log.debug(s"Remote address id $id was added (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
     }
   }
+
+  protected def listeningStopped(listeningStoppedMessage: ListeningStopped): Unit =
+    listeningStopped(listeningStoppedMessage.request1.message.connectionInfo.remote.id)
 
   protected def listeningStopped(id: Long): Unit = map.remove(id).map { socketWorker =>
     log.debug(s"Remote address id $id was removed (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
