@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import scala.language.postfixOps
@@ -274,3 +275,4 @@ class DeviceWorker(
   protected def sendDeviceIsDown(deviceInfo: DeviceInfo, exception: Exception): Unit =
     broadcaster ! new DeviceSpec.DeviceIsDown(deviceInfo, exception, deviceInfo.timeInSystemInMillis)
 }
+*/ 

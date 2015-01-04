@@ -147,7 +147,7 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   }
 
   protected def stopListeningAt(stopListeningAt: Socket.StopListeningAt, stopListeningAtSender: ActorRef) = if (stopListeningAt.id == listenAt.connectionInfo.remote.id) {
-    stop(FSM.Failure(new Socket.StoppedByLocalSideRequest(stopListeningAt, sender)))
+    stop(FSM.Failure(new Socket.StoppedBecauseOfLocalSideRequest(stopListeningAt, sender)))
   } else {
     val e = new Exception(s"Received stop listening id ${stopListeningAt.id} does not match ${listenAt.connectionInfo.remote.id}.")
     val stopListeningAtErrorResult = new Socket.StopListeningAtErrorResult(e, stopListeningAt, sender, listenAt, listenAtSender)
@@ -160,12 +160,12 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
     val listeningStopType: Socket.ListeningStopType = reason match {
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        new Socket.StoppedByLocalSideException(new Exception(s"${getClass.getSimpleName} actor was stopped normally."))
+        new Socket.StoppedBecauseOfLocalSideException(new Exception(s"${getClass.getSimpleName} actor was stopped normally."))
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        new Socket.StoppedByLocalSideException(new Exception(s"${getClass.getSimpleName} actor was shutdown."))
+        new Socket.StoppedBecauseOfLocalSideException(new Exception(s"${getClass.getSimpleName} actor was shutdown."))
       }
 
       case FSM.Failure(cause) => {
@@ -173,16 +173,16 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
 
         cause match {
           case a: Socket.ListeningStopType => a
-          case e: Exception                => new Socket.StoppedByLocalSideException(e)
-          case u                           => new Socket.StoppedByLocalSideException(new Exception(s"Unknown stop cause of type ${u.getClass.getSimpleName}, $u."))
+          case e: Exception                => new Socket.StoppedBecauseOfLocalSideException(e)
+          case u                           => new Socket.StoppedBecauseOfLocalSideException(new Exception(s"Unknown stop cause of type ${u.getClass.getSimpleName}, $u."))
         }
       }
     }
 
     val exception = listeningStopType match {
-      case a: Socket.StoppedByLocalSideException => a.exception
-      case a: Socket.StoppedByLocalSideRequest   => new Exception(s"Connection closed by local side ${a.stopListeningAt.getClass.getSimpleName} request.")
-      case Socket.StoppedByRemoteSide            => new Exception("Remote side closed connection.")
+      case a: Socket.StoppedBecauseOfLocalSideException => a.exception
+      case a: Socket.StoppedBecauseOfLocalSideRequest   => new Exception(s"Connection closed by local side ${a.stopListeningAt.getClass.getSimpleName} request.")
+      case Socket.StoppedByRemoteSide                   => new Exception("Remote side closed connection.")
     }
 
     listenAt.akkaSocketTcpActor ! Tcp.Close

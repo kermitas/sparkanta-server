@@ -13,19 +13,19 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Me
 object MessageDataAccumulator {
 
   class StartDataAccumulation(val id: Long) extends IncomingReplyableMessage
-  abstract class StartDataAccumulationResult(val exception: Option[Exception], startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(startDataAccumulation, startDataAccumulationSender)
+  abstract class StartDataAccumulationResult(val optionalException: Option[Exception], startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(startDataAccumulation, startDataAccumulationSender)
   class StartDataAccumulationSuccessResult(startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends StartDataAccumulationResult(None, startDataAccumulation, startDataAccumulationSender)
-  class StartDataAccumulationErrorResult(exception: Exception, startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends StartDataAccumulationResult(Some(exception), startDataAccumulation, startDataAccumulationSender)
+  class StartDataAccumulationErrorResult(val exception: Exception, startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef) extends StartDataAccumulationResult(Some(exception), startDataAccumulation, startDataAccumulationSender)
 
   class AccumulateMessageData(val id: Long, val messageData: ByteString) extends IncomingReplyableMessage
-  abstract class MessageDataAccumulationResult(val messageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(accumulateMessageData, accumulateMessageDataSender)
-  class MessageDataAccumulationSuccessResult(messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
+  abstract class MessageDataAccumulationResult(val tryMessageData: Try[Seq[Array[Byte]]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends OutgoingReplyOn1Message(accumulateMessageData, accumulateMessageDataSender)
+  class MessageDataAccumulationSuccessResult(val messageData: Seq[Array[Byte]], accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Success(messageData), accumulateMessageData, accumulateMessageDataSender)
   class MessageDataAccumulationErrorResult(val exception: Exception, accumulateMessageData: AccumulateMessageData, accumulateMessageDataSender: ActorRef) extends MessageDataAccumulationResult(Failure(exception), accumulateMessageData, accumulateMessageDataSender)
 
   class StopDataAccumulation(val id: Long) extends IncomingReplyableMessage
-  abstract class StopDataAccumulationResult(val exception: Option[Exception], stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(stopDataAccumulation, stopDataAccumulationSender)
+  abstract class StopDataAccumulationResult(val optionalException: Option[Exception], stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends OutgoingReplyOn1Message(stopDataAccumulation, stopDataAccumulationSender)
   class StopDataAccumulationSuccessResult(stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends StopDataAccumulationResult(None, stopDataAccumulation, stopDataAccumulationSender)
-  class StopDataAccumulationErrorResult(exception: Exception, stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends StopDataAccumulationResult(Some(exception), stopDataAccumulation, stopDataAccumulationSender)
+  class StopDataAccumulationErrorResult(val exception: Exception, stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef) extends StopDataAccumulationResult(Some(exception), stopDataAccumulation, stopDataAccumulationSender)
 
   class Record(var buffer: ByteString)
 }

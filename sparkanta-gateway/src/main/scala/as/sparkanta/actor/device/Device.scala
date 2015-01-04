@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import akka.actor.{ ActorLogging, Actor, ActorRef, Props, OneForOneStrategy, SupervisorStrategy }
@@ -212,3 +213,4 @@ class StartDataAccumulationWithNewConnection(val newConnection: ServerSocket.New
 class DeserializeWithId(val id: Long, serializedMessageFromDevice: Array[Byte]) extends Deserializer.Deserialize(serializedMessageFromDevice)
 
 class SerializeWithSendMessage(val sendMessage: DeviceSpec.SendMessage) extends Serializer.Serialize(sendMessage.messageToDevice, if (sendMessage.ack.isInstanceOf[DeviceAck]) sendMessage.ack.asInstanceOf[DeviceAck].deviceAck else DeviceNoAck)
+*/ 

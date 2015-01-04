@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import as.akka.broadcaster.Classifier
@@ -14,3 +15,4 @@ class DeviceMessageSenderClassifier extends Classifier {
     case _                          => None
   }
 }
+*/ 

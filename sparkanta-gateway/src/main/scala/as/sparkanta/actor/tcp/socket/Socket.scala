@@ -14,29 +14,29 @@ import scala.collection.mutable.Map
 object Socket {
 
   class ListenAt(val connectionInfo: IdentifiedConnectionInfo, val akkaSocketTcpActor: ActorRef, val maximumQueuedSendDataMessages: Long) extends IncomingReplyableMessage
-  abstract class ListenAtResult(val wasListening: Try[Boolean], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
-  class ListenAtSuccessResult(wasListening: Boolean, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Success(wasListening), listenAt, listenAtSender)
+  abstract class ListenAtResult(val tryWasListening: Try[Boolean], listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
+  class ListenAtSuccessResult(val wasListening: Boolean, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Success(wasListening), listenAt, listenAtSender)
   class ListenAtErrorResult(val exception: Exception, listenAt: ListenAt, listenAtSender: ActorRef) extends ListenAtResult(Failure(exception), listenAt, listenAtSender)
   class ListeningStarted(listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   class StopListeningAt(val id: Long) extends IncomingReplyableMessage
-  abstract class StopListeningAtResult(val wasListening: Try[Boolean], stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
-  class StopListeningAtSuccessResult(wasListening: Boolean, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Success(wasListening), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+  abstract class StopListeningAtResult(val tryWasListening: Try[Boolean], stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
+  class StopListeningAtSuccessResult(val wasListening: Boolean, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Success(wasListening), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class StopListeningAtErrorResult(val exception: Exception, stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends StopListeningAtResult(Failure(exception), stopListeningAt, stopListeningAtSender, listenAt, listenAtSender)
   class ListeningStopped(val listeningStopType: ListeningStopType, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   class SendData(val data: ByteString, val id: Long, val ack: NetworkAck) extends IncomingReplyableMessage { def this(data: Array[Byte], id: Long, ack: NetworkAck) = this(ByteString(data), id, ack) }
-  abstract class SendDataResult(val exception: Option[Exception], sendData: SendData, sendDataSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(sendData, sendDataSender, listenAt, listenAtSender)
+  abstract class SendDataResult(val optionalException: Option[Exception], sendData: SendData, sendDataSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn2Message(sendData, sendDataSender, listenAt, listenAtSender)
   class SendDataSuccessResult(sendData: SendData, sendDataSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends SendDataResult(None, sendData, sendDataSender, listenAt, listenAtSender)
-  class SendDataErrorResult(exception: Exception, sendData: SendData, sendDataSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends SendDataResult(Some(exception), sendData, sendDataSender, listenAt, listenAtSender)
+  class SendDataErrorResult(val exception: Exception, sendData: SendData, sendDataSender: ActorRef, listenAt: ListenAt, listenAtSender: ActorRef) extends SendDataResult(Some(exception), sendData, sendDataSender, listenAt, listenAtSender)
 
   class NewData(val data: ByteString, listenAt: ListenAt, listenAtSender: ActorRef) extends OutgoingReplyOn1Message(listenAt, listenAtSender)
 
   sealed trait ListeningStopType extends Serializable
   object StoppedByRemoteSide extends ListeningStopType
   sealed trait StoppedByLocalSide extends ListeningStopType
-  class StoppedByLocalSideException(val exception: Exception) extends StoppedByLocalSide
-  class StoppedByLocalSideRequest(val stopListeningAt: StopListeningAt, val stopListeningAtSender: ActorRef) extends StoppedByLocalSide
+  class StoppedBecauseOfLocalSideException(val exception: Exception) extends StoppedByLocalSide
+  class StoppedBecauseOfLocalSideRequest(val stopListeningAt: StopListeningAt, val stopListeningAtSender: ActorRef) extends StoppedByLocalSide
 }
 
 class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import akka.actor.ActorRef
@@ -27,3 +28,4 @@ class DeviceMessageSenderWorkerClassifier(id: Long, broadcaster: ActorRef) exten
     case _ => None
   }
 }
+*/ 

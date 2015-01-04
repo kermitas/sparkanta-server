@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import akka.actor.{ ActorLogging, Actor, Props }
@@ -35,3 +36,4 @@ class DeviceMessageSender(amaConfig: AmaConfig) extends Actor with ActorLogging 
     context.actorOf(props, name = classOf[DeviceMessageSenderWorker].getSimpleName + "-" + id)
   }
 }
+*/ 

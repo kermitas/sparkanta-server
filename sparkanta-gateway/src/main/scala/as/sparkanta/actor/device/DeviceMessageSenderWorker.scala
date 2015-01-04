@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device
 
 import scala.language.postfixOps
@@ -371,3 +372,4 @@ class DeviceMessageSenderWorker(
   }
   */
 }
+*/ 
