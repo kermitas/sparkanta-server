@@ -57,7 +57,7 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     case Some(deviceWorker) => {
       val exception = new Exception(s"Remote address id $id is already known (served by worker actor $deviceWorker), could not add it again.")
-      amaConfig.broadcaster ! new DeviceSpec.DisconnectDevice(id, exception)
+      amaConfig.broadcaster ! new DeviceSpec.StopDevice(id, exception)
     }
 
     case None => putToMap(id, deviceWorker)

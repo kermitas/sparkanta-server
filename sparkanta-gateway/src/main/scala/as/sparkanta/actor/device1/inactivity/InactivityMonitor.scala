@@ -55,7 +55,7 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   protected def startInactivityMonitorError(id: Long, exception: Exception) {
     val e = new Exception("Problem while starting inactivity monitor.", exception)
-    amaConfig.broadcaster ! new Device.DisconnectDevice(id, e)
+    amaConfig.broadcaster ! new Device.StopDevice(id, e)
   }
 
   protected def identifiedDeviceDown(identifiedDeviceDownMessage: Device.IdentifiedDeviceDown): Unit =
@@ -73,7 +73,7 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   protected def inactivityDetected(id: Long, inactivityTimeInMs: Long): Unit = {
     val exception = new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds) by ${inactivityTimeInMs - inactivityTimeAfterMs} milliseconds.")
-    amaConfig.broadcaster ! new Device.DisconnectDevice(id, exception)
+    amaConfig.broadcaster ! new Device.StopDevice(id, exception)
   }
 
   protected def newMessage(newIncomingMessage: Device.NewMessage): Unit = newMessage(newIncomingMessage.deviceInfo.connectionInfo.remote.id)

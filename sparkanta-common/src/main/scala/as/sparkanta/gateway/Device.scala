@@ -14,14 +14,16 @@ object Device {
   class StartErrorResult(val exception: Exception, start: Start, startSender: ActorRef) extends StartResult(Some(exception), start, startSender)
   class Started(start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
 
-  class Stop(id: Long) extends IncomingReplyableMessage
+  class Stop(optionalId: Option[Long], val cause: Exception) extends IncomingReplyableMessage
+  class StopDevice(val id: Long, cause: Exception) extends Stop(Some(id), cause)
+  class StopAllDevices(cause: Exception) extends Stop(None, cause)
   abstract class StopResult(val optionalException: Option[Exception], stop: Stop, stopSender: ActorRef) extends OutgoingReplyOn1Message(stop, stopSender)
   class StopSuccessResult(stop: Stop, stopSender: ActorRef) extends StopResult(None, stop, stopSender)
   class StopErrorResult(val exception: Exception, stop: Stop, stopSender: ActorRef) extends StopResult(Some(exception), stop, stopSender)
-  class Stopped(val deviceStopType: DeviceStopType, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
+  class Stopped(val deviceStopType: StopType, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
 
   class IdentifiedDeviceUp(val deviceInfo: DeviceInfo, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
-  class IdentifiedDeviceDown(val deviceInfo: DeviceInfo, val deviceStopType: DeviceStopType, val timeInSystemInMs: Long, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
+  class IdentifiedDeviceDown(val deviceInfo: DeviceInfo, val deviceStopType: StopType, val timeInSystemInMs: Long, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
 
   class NewMessage(val deviceInfo: DeviceInfo, val messageFromDevice: MessageFromDevice) extends OutgoingMessage with ForwardToRestServer
 
@@ -30,12 +32,8 @@ object Device {
   class SendMessageSuccessResult(sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(None, sendMessage, sendMessageSender)
   class SendMessageErrorResult(val exception: Exception, sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(Some(exception), sendMessage, sendMessageSender)
 
-  sealed trait DeviceStopType extends Serializable
-  class DeviceStoppedBecauseOfException(val exception: Exception) extends DeviceStopType
-  class DeviceStoppedBecauseOfDisconnectDevice(val disconnectDevice: DisconnectDevice) extends DeviceStopType
-  class DeviceStoppedBecauseOfDisconnectAllDevices(val disconnectAllDevices: DisconnectAllDevices) extends DeviceStopType
-
-  class DisconnectDevice(val id: Long, val cause: Exception) extends IncomingMessage
-  class DisconnectAllDevices(val cause: Exception) extends IncomingMessage
+  sealed trait StopType extends Serializable
+  class StoppedBecauseOfException(val exception: Exception) extends StopType
+  class StoppedBecauseOfRequest(val stop: Stop, val stopSender: ActorRef) extends StopType
 }
 
