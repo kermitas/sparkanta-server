@@ -12,13 +12,13 @@ object Device {
   abstract class StartResult(val optionalException: Option[Exception], start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
   class StartSuccessResult(start: Start, startSender: ActorRef) extends StartResult(None, start, startSender)
   class StartErrorResult(val exception: Exception, start: Start, startSender: ActorRef) extends StartResult(Some(exception), start, startSender)
-  class DeviceStarted(start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
+  class Started(start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
 
   class Stop(id: Long) extends IncomingReplyableMessage
   abstract class StopResult(val optionalException: Option[Exception], stop: Stop, stopSender: ActorRef) extends OutgoingReplyOn1Message(stop, stopSender)
   class StopSuccessResult(stop: Stop, stopSender: ActorRef) extends StopResult(None, stop, stopSender)
   class StopErrorResult(val exception: Exception, stop: Stop, stopSender: ActorRef) extends StopResult(Some(exception), stop, stopSender)
-  class DeviceStopped(val deviceStopType: DeviceStopType, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
+  class Stopped(val deviceStopType: DeviceStopType, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender)
 
   class IdentifiedDeviceUp(val deviceInfo: DeviceInfo, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
   class IdentifiedDeviceDown(val deviceInfo: DeviceInfo, val deviceStopType: DeviceStopType, val timeInSystemInMs: Long, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
