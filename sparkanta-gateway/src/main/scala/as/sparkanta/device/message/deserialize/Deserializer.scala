@@ -1,9 +1,9 @@
 package as.sparkanta.device.message.deserialize
 
 import java.io.{ InputStream, ByteArrayInputStream }
-import as.sparkanta.device.message.fromdevice.MessageFormDevice
+import as.sparkanta.device.message.fromdevice.MessageFromDevice
 
-trait Deserializer[+T <: MessageFormDevice] {
+trait Deserializer[+T <: MessageFromDevice] {
 
   var messageNumber = 0
 

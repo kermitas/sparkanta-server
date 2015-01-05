@@ -13,7 +13,7 @@ import scala.collection.mutable.Map
 import scala.net.IdentifiedConnectionInfo
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.actor.message.deserializer.{ Deserializer => GeneralDeserializer }
-import as.sparkanta.device.message.fromdevice.MessageFormDevice
+import as.sparkanta.device.message.fromdevice.MessageFromDevice
 
 class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
@@ -42,6 +42,7 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case a: Device.StartErrorResult => deviceStartError(a)
     case a: Device.Stopped => deviceStopped(a)
     case a: Device.IdentifiedDeviceUp => identifiedDeviceUp(a)
+
     case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -53,7 +54,11 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
       amaConfig.broadcaster ! new MessageDataAccumulator.StartDataAccumulation(newConnection.connectionInfo.remote.id)
     }
   } catch {
-    case e: Exception => throw e // TODO ??
+    case e: Exception => {
+      val exception = new Exception(s"Problem during setup work for device of remote address id ${newConnection.connectionInfo.remote.id}.", e)
+      log.error(exception, exception.getMessage)
+      amaConfig.broadcaster ! new Device.DisconnectDevice(newConnection.connectionInfo.remote.id, exception)
+    }
   }
 
   protected def startDataAccumulationError(startDataAccumulationErrorResult: MessageDataAccumulator.StartDataAccumulationErrorResult): Unit =
@@ -119,7 +124,7 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def deserializationSuccess(deserializationSuccessResult: GeneralDeserializer.DeserializationSuccessResult): Unit =
     deserializationSuccess(deserializationSuccessResult.request1.message.asInstanceOf[DeserializeWithId].id, deserializationSuccessResult.deserializedMessageFromDevice)
 
-  protected def deserializationSuccess(id: Long, messageFromDevice: MessageFormDevice): Unit = map.get(id) match {
+  protected def deserializationSuccess(id: Long, messageFromDevice: MessageFromDevice): Unit = map.get(id) match {
     case Some(deviceInfo) => amaConfig.broadcaster ! new Device.NewMessage(deviceInfo, messageFromDevice)
 
     case None => {

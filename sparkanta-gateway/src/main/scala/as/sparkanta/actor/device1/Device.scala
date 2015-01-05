@@ -60,16 +60,20 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
       amaConfig.broadcaster ! new DeviceSpec.DisconnectDevice(id, exception)
     }
 
-    case None => {
-      map.put(id, deviceWorker)
-      log.debug(s"Remote address id $id was added (worker actor $deviceWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
-    }
+    case None => putToMap(id, deviceWorker)
   }
 
   protected def deviceStopped(deviceStoppedMessage: DeviceSpec.Stopped): Unit =
     deviceStopped(deviceStoppedMessage.request1.message.connectionInfo.remote.id)
 
-  protected def deviceStopped(id: Long): Unit = map.remove(id).map { deviceWorker =>
-    log.debug(s"Remote address id $id was removed (worker actor $deviceWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
+  protected def deviceStopped(id: Long): Unit = removeFromMap(id)
+
+  protected def putToMap(id: Long, deviceWorker: ActorRef): Unit = {
+    map.put(id, deviceWorker)
+    log.debug(s"Remote address id $id was added (worker actor $deviceWorker), currently there are ${map.size} devices in map (ids: ${map.keySet.mkString(",")}).")
+  }
+
+  protected def removeFromMap(id: Long): Unit = map.remove(id).map { deviceWorker =>
+    log.debug(s"Remote address id $id was removed (worker actor $deviceWorker), currently there are ${map.size} devices in map (ids: ${map.keySet.mkString(",")}).")
   }
 }

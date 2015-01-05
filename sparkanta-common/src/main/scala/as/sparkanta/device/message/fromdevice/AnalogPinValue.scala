@@ -6,7 +6,7 @@ object AnalogPinValue {
   lazy final val messageCode: Int = 9
 }
 
-class AnalogPinValue(val pin: AnalogPin, val pinValue: Char) extends MessageFormDevice {
+class AnalogPinValue(val pin: AnalogPin, val pinValue: Char) extends MessageFromDevice {
 
   override def toString = s"${getClass.getSimpleName}(pin=$pin,pinValue=${pinValue.toInt})"
 

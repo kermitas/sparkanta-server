@@ -12,4 +12,4 @@ class DeviceIdentification(
   hardwareVersion:               HardwareVersion,
   deviceUniqueId:                Int,
   deviceUniqueName:              String
-) extends DeviceIdentificationSpec(sparkantaIdentificationString, softwareVersion, hardwareVersion, deviceUniqueId, deviceUniqueName) with MessageFormDeviceThatShouldNotBeForwardedToRestServer
+) extends DeviceIdentificationSpec(sparkantaIdentificationString, softwareVersion, hardwareVersion, deviceUniqueId, deviceUniqueName) with MessageFromDeviceThatShouldNotBeForwardedToRestServer

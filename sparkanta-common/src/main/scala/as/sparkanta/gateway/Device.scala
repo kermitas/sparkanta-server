@@ -3,7 +3,7 @@ package as.sparkanta.gateway
 import akka.actor.ActorRef
 import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message, OutgoingMessage, IncomingMessage }
 import as.sparkanta.device.message.todevice.MessageToDevice
-import as.sparkanta.device.message.fromdevice.MessageFormDevice
+import as.sparkanta.device.message.fromdevice.MessageFromDevice
 import as.sparkanta.device.DeviceInfo
 import scala.net.IdentifiedConnectionInfo
 
@@ -23,7 +23,7 @@ object Device {
   class IdentifiedDeviceUp(val deviceInfo: DeviceInfo, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
   class IdentifiedDeviceDown(val deviceInfo: DeviceInfo, val deviceStopType: DeviceStopType, val timeInSystemInMs: Long, start: Start, startSender: ActorRef) extends OutgoingReplyOn1Message(start, startSender) with ForwardToRestServer
 
-  class NewMessage(val deviceInfo: DeviceInfo, val messageFromDevice: MessageFormDevice) extends OutgoingMessage with ForwardToRestServer
+  class NewMessage(val deviceInfo: DeviceInfo, val messageFromDevice: MessageFromDevice) extends OutgoingMessage with ForwardToRestServer
 
   class SendMessage(val id: Long, val messageToDevice: MessageToDevice, val ack: AckType) extends IncomingReplyableMessage
   abstract class SendMessageResult(val optionalException: Option[Exception], sendMessage: SendMessage, sendMessageSender: ActorRef) extends OutgoingReplyOn1Message(sendMessage, sendMessageSender)
