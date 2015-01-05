@@ -1,7 +1,5 @@
 package as.sparkanta.actor.message.deserializer
 
-import as.ama.addon.lifecycle.ShutdownSystem
-
 import scala.util.{ Try, Success, Failure }
 import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster
@@ -9,6 +7,7 @@ import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.device.message.fromdevice.MessageFormDevice
 import as.sparkanta.device.message.deserialize.Deserializers
 import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
+import as.ama.addon.lifecycle.ShutdownSystem
 
 object Deserializer {
   class Deserialize(val serializedMessageFromDevice: Array[Byte]) extends IncomingReplyableMessage
