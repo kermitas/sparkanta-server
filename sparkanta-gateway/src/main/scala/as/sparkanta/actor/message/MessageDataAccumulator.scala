@@ -56,10 +56,10 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
 
   protected def startDataAccumulation(startDataAccumulation: StartDataAccumulation, startDataAccumulationSender: ActorRef): Unit = try {
     if (map.contains(startDataAccumulation.id)) {
-      throw new Exception(s"Id ${startDataAccumulation.id} is already registered.")
+      throw new Exception(s"Id ${startDataAccumulation.id} is already registered, could not register new.")
     } else {
       val record = new Record(ByteString.empty)
-      map.put(startDataAccumulation.id, record)
+      putToMap(startDataAccumulation.id, record)
       val startDataAccumulationSuccessResult = new StartDataAccumulationSuccessResult(startDataAccumulation, startDataAccumulationSender)
       startDataAccumulationSuccessResult.reply(self)
     }
@@ -72,7 +72,7 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
 
   protected def stopDataAccumulation(stopDataAccumulation: StopDataAccumulation, stopDataAccumulationSender: ActorRef): Unit = try {
     if (map.contains(stopDataAccumulation.id)) {
-      map.remove(stopDataAccumulation.id)
+      removeFromMap(stopDataAccumulation.id)
       val stopDataAccumulationSuccessResult = new StopDataAccumulationSuccessResult(stopDataAccumulation, stopDataAccumulationSender)
       stopDataAccumulationSuccessResult.reply(self)
     } else {
@@ -136,5 +136,14 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
       Seq.empty
 
     }
+  }
+
+  protected def putToMap(id: Long, record: Record): Unit = {
+    map.put(id, record)
+    log.debug(s"Id $id was added, currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
+  }
+
+  protected def removeFromMap(id: Long): Unit = map.remove(id).map { _ =>
+    log.debug(s"Id $id was removed, currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
   }
 }

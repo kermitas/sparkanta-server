@@ -99,18 +99,13 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
       log.error(exception, exception.getMessage)
     }
 
-    case None => {
-      map.put(id, socketWorker)
-      log.debug(s"Remote address id $id was added (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
-    }
+    case None => putToMap(id, socketWorker)
   }
 
   protected def listeningStopped(listeningStoppedMessage: ListeningStopped): Unit =
     listeningStopped(listeningStoppedMessage.request1.message.connectionInfo.remote.id)
 
-  protected def listeningStopped(id: Long): Unit = map.remove(id).map { socketWorker =>
-    log.debug(s"Remote address id $id was removed (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
-  }
+  protected def listeningStopped(id: Long): Unit = removeFromMap(id)
 
   protected def stopListeningAt(stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef): Unit = forwardOrExecute(stopListeningAt.id, stopListeningAt, stopListeningAtSender) {
     val successStopListeningAtResult = new StopListeningAtSuccessResult(false, stopListeningAt, stopListeningAtSender, null, null)
@@ -120,5 +115,14 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def forwardOrExecute(id: Long, message: Any, messageSender: ActorRef)(f: => Unit): Unit = map.get(id) match {
     case Some(socketWorker) => socketWorker.tell(message, messageSender)
     case None               => f
+  }
+
+  protected def putToMap(id: Long, socketWorker: ActorRef): Unit = {
+    map.put(id, socketWorker)
+    log.debug(s"Remote address id $id was added (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
+  }
+
+  protected def removeFromMap(id: Long): Unit = map.remove(id).map { socketWorker =>
+    log.debug(s"Remote address id $id was removed (worker actor $socketWorker), currently there are ${map.size} opened sockets (ids: ${map.keySet.mkString(",")}).")
   }
 }

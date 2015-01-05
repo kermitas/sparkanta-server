@@ -79,15 +79,10 @@ class ServerSocket(
       log.error(exception, exception.getMessage)
     }
 
-    case None => {
-      map.put(id, serverSocketWorker)
-      log.debug(s"Listen address id $id was added (worker actor $serverSocketWorker), currently there are ${map.size} opened server sockets (ids: ${map.keySet.mkString(",")}).")
-    }
+    case None => putToMap(id, serverSocketWorker)
   }
 
-  protected def listeningStopped(id: Long): Unit = map.remove(id).map { serverSocketWorker =>
-    log.debug(s"Listen address id $id was removed (worker actor $serverSocketWorker), currently there are ${map.size} opened server sockets (ids: ${map.keySet.mkString(",")}).")
-  }
+  protected def listeningStopped(id: Long): Unit = removeFromMap(id)
 
   protected def stopListeningAt(stopListeningAt: StopListeningAt, stopListeningAtSender: ActorRef): Unit = forwardOrExecute(stopListeningAt.id, stopListeningAt, stopListeningAtSender) {
     val successStopListeningAtResult = new StopListeningAtSuccessResult(false, stopListeningAt, stopListeningAtSender, null, null)
@@ -97,5 +92,14 @@ class ServerSocket(
   protected def forwardOrExecute(id: Long, message: Any, messageSender: ActorRef)(f: => Unit): Unit = map.get(id) match {
     case Some(serverSocketWorker) => serverSocketWorker.tell(message, messageSender)
     case None                     => f
+  }
+
+  protected def putToMap(id: Long, serverSocketWorker: ActorRef): Unit = {
+    map.put(id, serverSocketWorker)
+    log.debug(s"Listen address id $id was added (worker actor $serverSocketWorker), currently there are ${map.size} opened server sockets (ids: ${map.keySet.mkString(",")}).")
+  }
+
+  protected def removeFromMap(id: Long): Unit = map.remove(id).map { serverSocketWorker =>
+    log.debug(s"Listen address id $id was removed (worker actor $serverSocketWorker), currently there are ${map.size} opened server sockets (ids: ${map.keySet.mkString(",")}).")
   }
 }

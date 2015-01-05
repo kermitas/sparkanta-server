@@ -56,26 +56,26 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case message                   => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
-  protected def startInactivityMonitor(startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) = map.get(startInactivityMonitor.id) match {
-    case Some(record) => {
-      val exception = new Exception(s"Id ${startInactivityMonitor.id} is already registered, could not register new.")
-      val startInactivityMonitorErrorResult = new StartInactivityMonitorErrorResult(exception, startInactivityMonitor, startInactivityMonitorSender)
-      startInactivityMonitorErrorResult.reply(self)
-    }
-
-    case None => {
+  protected def startInactivityMonitor(startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) = try {
+    if (map.contains(startInactivityMonitor.id)) {
+      throw new Exception(s"Id ${startInactivityMonitor.id} is already registered, could not register new.")
+    } else {
       val record = new Record(None, None, startInactivityMonitor, startInactivityMonitorSender, System.currentTimeMillis)
-      map.put(startInactivityMonitor.id, record)
+      putToMap(startInactivityMonitor.id, record)
       setTimers(record)
-
       val startInactivityMonitorSuccessResult = new StartInactivityMonitorSuccessResult(startInactivityMonitor, startInactivityMonitorSender)
       startInactivityMonitorSuccessResult.reply(self)
+    }
+  } catch {
+    case e: Exception => {
+      val startInactivityMonitorErrorResult = new StartInactivityMonitorErrorResult(e, startInactivityMonitor, startInactivityMonitorSender)
+      startInactivityMonitorErrorResult.reply(self)
     }
   }
 
   protected def stopInactivityMonitor(id: Long): Unit = map.get(id).map { record =>
     cancelTimers(record)
-    map.remove(id)
+    removeFromMap(id)
   }
 
   protected def active(id: Long): Unit = map.get(id).map { record =>
@@ -112,5 +112,14 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     inactivityDetected.reply(self)
 
     stopInactivityMonitor(record.startInactivityMonitor.id)
+  }
+
+  protected def putToMap(id: Long, record: Record): Unit = {
+    map.put(id, record)
+    log.debug(s"Id $id was added, currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
+  }
+
+  protected def removeFromMap(id: Long): Unit = map.remove(id).map { _ =>
+    log.debug(s"Id $id was removed, currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
   }
 }
