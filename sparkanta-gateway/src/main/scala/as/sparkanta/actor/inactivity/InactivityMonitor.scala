@@ -13,18 +13,21 @@ import akka.util.{ IncomingMessage, IncomingReplyableMessage, InternalMessage, O
 object InactivityMonitor {
 
   class StartInactivityMonitor(val id: Long, val warningTimeAfterMs: Long, val inactivityTimeAfterMs: Long) extends IncomingReplyableMessage
-
-  // TODO add success and error results
+  abstract class StartInactivityMonitorResult(val optionalException: Option[Exception], startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
+  class StartInactivityMonitorSuccessResult(startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends StartInactivityMonitorResult(None, startInactivityMonitor, startInactivityMonitorSender)
+  class StartInactivityMonitorErrorResult(val exception: Exception, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends StartInactivityMonitorResult(Some(exception), startInactivityMonitor, startInactivityMonitorSender)
 
   class Active(val id: Long) extends IncomingMessage
-  class StopInactivityMonitor(val id: Long) extends IncomingMessage
   class InactivityWarning(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
   class InactivityDetected(val inactivityTimeInMs: Long, startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) extends OutgoingReplyOn1Message(startInactivityMonitor, startInactivityMonitorSender)
+
+  class StopInactivityMonitor(val id: Long) extends IncomingMessage
+  // TODO should send back also result of stopping?
 
   class WarningTimeout(val record: Record) extends InternalMessage
   class InactivityTimeout(val record: Record) extends InternalMessage
 
-  class Record(var warningTimer: Option[Cancellable], var inactivityTimer: Option[Cancellable], var startInactivityMonitor: StartInactivityMonitor, var startInactivityMonitorSender: ActorRef, var lastActiveTime: Long)
+  class Record(var warningTimer: Option[Cancellable], var inactivityTimer: Option[Cancellable], val startInactivityMonitor: StartInactivityMonitor, val startInactivityMonitorSender: ActorRef, var lastActiveTime: Long)
 }
 
 class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -53,26 +56,20 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case message                   => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
-  protected def startInactivityMonitor(startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) {
-
-    stopInactivityMonitor(startInactivityMonitor.id)
-
-    val recordCreator = () => new Record(None, None, startInactivityMonitor, startInactivityMonitorSender, System.currentTimeMillis)
-    val record = getOrCreateRecord(startInactivityMonitor.id, recordCreator)
-
-    record.startInactivityMonitor = startInactivityMonitor
-    record.startInactivityMonitorSender = startInactivityMonitorSender
-
-    setTimers(record)
-  }
-
-  protected def getOrCreateRecord(id: Long, recordCreator: () => Record): Record = map.get(id) match {
-    case Some(record) => record
+  protected def startInactivityMonitor(startInactivityMonitor: StartInactivityMonitor, startInactivityMonitorSender: ActorRef) = map.get(startInactivityMonitor.id) match {
+    case Some(record) => {
+      val exception = new Exception(s"Id ${startInactivityMonitor.id} is already registered, could not register new.")
+      val startInactivityMonitorErrorResult = new StartInactivityMonitorErrorResult(exception, startInactivityMonitor, startInactivityMonitorSender)
+      startInactivityMonitorErrorResult.reply(self)
+    }
 
     case None => {
-      val record = recordCreator()
-      map.put(id, record)
-      record
+      val record = new Record(None, None, startInactivityMonitor, startInactivityMonitorSender, System.currentTimeMillis)
+      map.put(startInactivityMonitor.id, record)
+      setTimers(record)
+
+      val startInactivityMonitorSuccessResult = new StartInactivityMonitorSuccessResult(startInactivityMonitor, startInactivityMonitorSender)
+      startInactivityMonitorSuccessResult.reply(self)
     }
   }
 
