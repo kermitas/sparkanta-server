@@ -92,8 +92,8 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
       }
     }
   } else {
-    val e = new Exception(s"Send data id ${sendData.id} does not match ${listenAt.connectionInfo.remote.id}.")
-    val sendDataErrorResult = new Socket.SendDataErrorResult(e, sendData, sendDataSender, listenAt, listenAtSender)
+    val exception = new Exception(s"Send data id ${sendData.id} does not match ${listenAt.connectionInfo.remote.id}.")
+    val sendDataErrorResult = new Socket.SendDataErrorResult(exception, sendData, sendDataSender, listenAt, listenAtSender)
     sendDataErrorResult.reply(socketActor)
     goto(WaitingForDataToSend) using WaitingForDataToSendStateData
   }
@@ -149,8 +149,8 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
   protected def stopListeningAt(stopListeningAt: Socket.StopListeningAt, stopListeningAtSender: ActorRef) = if (stopListeningAt.id == listenAt.connectionInfo.remote.id) {
     stop(FSM.Failure(new Socket.StoppedBecauseOfLocalSideRequest(stopListeningAt, sender)))
   } else {
-    val e = new Exception(s"Received stop listening id ${stopListeningAt.id} does not match ${listenAt.connectionInfo.remote.id}.")
-    val stopListeningAtErrorResult = new Socket.StopListeningAtErrorResult(e, stopListeningAt, sender, listenAt, listenAtSender)
+    val exception = new Exception(s"Received stop listening id ${stopListeningAt.id} does not match ${listenAt.connectionInfo.remote.id}.")
+    val stopListeningAtErrorResult = new Socket.StopListeningAtErrorResult(exception, stopListeningAt, sender, listenAt, listenAtSender)
     stopListeningAtErrorResult.reply(socketActor)
     stay using stateData
   }

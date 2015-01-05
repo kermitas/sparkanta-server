@@ -84,8 +84,8 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   protected def sendData(sendData: SendData, sendDataSender: ActorRef): Unit = forwardOrExecute(sendData.id, sendData, sendDataSender) {
-    val e = new Exception(s"There is no socket of remote address id ${sendData.id}.")
-    val sendDataErrorResult = new SendDataErrorResult(e, sendData, sendDataSender, null, null)
+    val exception = new Exception(s"There is no socket of remote address id ${sendData.id}.")
+    val sendDataErrorResult = new SendDataErrorResult(exception, sendData, sendDataSender, null, null)
     sendDataErrorResult.reply(self)
   }
 
@@ -95,8 +95,8 @@ class Socket(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def listeningStarted(id: Long, socketWorker: ActorRef): Unit = map.get(id) match {
 
     case Some(socketWorker) => {
-      val e = new Exception(s"Remote address id $id is already known (served by worker actor $socketWorker), could not add it again.")
-      log.error(e, e.getMessage)
+      val exception = new Exception(s"Remote address id $id is already known (served by worker actor $socketWorker), could not add it again.")
+      log.error(exception, exception.getMessage)
     }
 
     case None => {

@@ -75,8 +75,8 @@ class ServerSocket(
   protected def listeningStarted(id: Long, serverSocketWorker: ActorRef): Unit = map.get(id) match {
 
     case Some(serverSocketWorker) => {
-      val e = new Exception(s"Listen address id $id is already known (served by worker actor $serverSocketWorker), could not add it again.")
-      log.error(e, e.getMessage)
+      val exception = new Exception(s"Listen address id $id is already known (served by worker actor $serverSocketWorker), could not add it again.")
+      log.error(exception, exception.getMessage)
     }
 
     case None => {

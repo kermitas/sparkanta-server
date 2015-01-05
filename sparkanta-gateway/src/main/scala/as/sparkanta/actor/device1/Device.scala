@@ -60,8 +60,8 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def deviceStarted(id: Long, deviceWorker: ActorRef): Unit = map.get(id) match {
 
     case Some(deviceWorker) => {
-      val e = new Exception(s"Remote address id $id is already known (served by worker actor $deviceWorker), could not add it again.")
-      log.error(e, e.getMessage)
+      val exception = new Exception(s"Remote address id $id is already known (served by worker actor $deviceWorker), could not add it again.")
+      log.error(exception, exception.getMessage)
     }
 
     case None => {
