@@ -8,6 +8,8 @@ object SetDigitalPinValue {
 
 class SetDigitalPinValue(val pin: DigitalPin, val pinValue: DigitalPinValue) extends MessageToDevice {
 
+  override def messageCode = SetDigitalPinValue.messageCode
+
   override def toString = s"${getClass.getSimpleName}(pin=$pin,pinValue=$pinValue)"
 
 }

@@ -33,7 +33,9 @@ object Device {
   class SendMessageErrorResult(val exception: Exception, sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(Some(exception), sendMessage, sendMessageSender)
 
   sealed trait StopType extends Serializable
-  class StoppedBecauseOfException(val exception: Exception) extends StopType
-  class StoppedBecauseOfRequest(val stop: Stop, val stopSender: ActorRef) extends StopType
+  object StoppedByRemoteSide extends StopType
+  sealed trait StoppedByLocalSide extends StopType
+  class StoppedBecauseOfLocalSideException(val exception: Exception) extends StoppedByLocalSide
+  class StoppedBecauseOfLocalSideRequest(val stop: Stop, val stopSender: ActorRef) extends StoppedByLocalSide
 }
 

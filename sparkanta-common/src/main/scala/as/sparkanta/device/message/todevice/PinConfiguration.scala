@@ -26,5 +26,7 @@ class PinConfiguration(
 
 ) extends MessageToDevice {
 
+  override def messageCode = PinConfiguration.messageCode
+
   override def toString = s"${getClass.getSimpleName}"
 }

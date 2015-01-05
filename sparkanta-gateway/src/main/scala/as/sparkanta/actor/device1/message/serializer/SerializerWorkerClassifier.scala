@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.message.serialize
+package as.sparkanta.actor.device1.message.serializer
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
@@ -13,7 +13,7 @@ import as.sparkanta.device.message.fromdevice.Ack
 class SerializerWorkerClassifier(id: Long, broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
-    case a: Device.SendMessage => {
+    case a: Device.SendMessage if a.id == id => {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }
@@ -21,9 +21,9 @@ class SerializerWorkerClassifier(id: Long, broadcaster: ActorRef) extends Classi
     case a: Device.NewMessage if a.deviceInfo.connectionInfo.remote.id == id && a.messageFromDevice.isInstanceOf[Ack] =>
       Some(new MessageWithSender(a.messageFromDevice, messageWithSender.messageSender))
 
-    case _: Device.StartSuccessResult => Some(messageWithSender)
-    case _: Device.StartErrorResult   => Some(messageWithSender)
-    case _: Device.Stopped            => Some(messageWithSender)
-    case _                            => None
+    case a: Device.StartSuccessResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
+    case a: Device.StartErrorResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
+    case a: Device.Stopped if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
+    case _ => None
   }
 }

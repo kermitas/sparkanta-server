@@ -6,6 +6,8 @@ object ServerHello {
 
 class ServerHello extends MessageToDevice {
 
+  override def messageCode = ServerHello.messageCode
+
   override def toString = s"${getClass.getSimpleName}"
 
 }

@@ -12,8 +12,8 @@ import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object Serializer {
   class Serialize(val messageToDevice: MessageToDevice, val ack: DeviceAckType) extends IncomingReplyableMessage
-  abstract class SerializationResult(val serializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(serialize, serializeSender)
-  class SerializationSuccessResult(serializedMessageToDevice: Array[Byte], serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Success(serializedMessageToDevice), serialize, serializeSender)
+  abstract class SerializationResult(val trySerializedMessageToDevice: Try[Array[Byte]], serialize: Serialize, serializeSender: ActorRef) extends OutgoingReplyOn1Message(serialize, serializeSender)
+  class SerializationSuccessResult(val serializedMessageToDevice: Array[Byte], serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Success(serializedMessageToDevice), serialize, serializeSender)
   class SerializationErrorResult(val exception: Exception, serialize: Serialize, serializeSender: ActorRef) extends SerializationResult(Failure(exception), serialize, serializeSender)
 }
 

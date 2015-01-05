@@ -14,6 +14,9 @@ object DeviceWorker {
   case object BStateData extends StateData
 
   object Initialize extends InternalMessage
+
+  //class StopRequestedException(val stop: DeviceSpec.Stop, val stopSender: ActorRef) extends Exception
+  class StopRequestedException(val stop: DeviceSpec.Stop, val stopSender: ActorRef) extends Exception
 }
 
 class DeviceWorker(start: DeviceSpec.Start, startSender: ActorRef, broadcaster: ActorRef, deviceActor: ActorRef) extends FSM[DeviceWorker.State, DeviceWorker.StateData] with FSMSuccessOrStop[DeviceWorker.State, DeviceWorker.StateData] {
@@ -49,18 +52,33 @@ class DeviceWorker(start: DeviceSpec.Start, startSender: ActorRef, broadcaster: 
   self ! Initialize
 
   protected def terminate(reason: FSM.Reason, currentState: DeviceWorker.State, stateData: DeviceWorker.StateData): Unit = {
-    reason match {
+    val exception = reason match {
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
+        None
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
+        Some(new Exception(s"${getClass.getSimpleName} actor was shutdown."))
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
+
+        cause match {
+          case e: Exception => Some(e)
+          case u            => Some(new Exception(s"Unknown stop cause of type ${u.getClass.getSimpleName}, $u."))
+        }
       }
     }
+
+    /*
+    val stopType = exception match {
+      case Some(e) =>
+      case None    => new Exception("Stopped")
+    }
+    val stopped = new DeviceSpec.Stopped(start, startSender)
+    */
   }
 }

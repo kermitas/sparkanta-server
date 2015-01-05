@@ -10,6 +10,8 @@ class SetAnalogPinValue(val pin: AnalogPin, val pinValue: Int) extends MessageTo
 
   require(pinValue >= 0 && pinValue <= 255, s"Pin value ($pinValue) can be only between 0 and 255.")
 
+  override def messageCode = SetAnalogPinValue.messageCode
+
   override def toString = s"${getClass.getSimpleName}(pin=$pin,pinValue=${pinValue.toInt})"
 
 }

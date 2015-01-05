@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.message.serialize
+package as.sparkanta.actor.device1.message.serializer
 
 import akka.actor.{ ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster

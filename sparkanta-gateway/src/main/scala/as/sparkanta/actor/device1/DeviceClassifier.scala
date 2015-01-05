@@ -18,10 +18,10 @@ class DeviceClassifier(broadcaster: ActorRef) extends Classifier {
       Some(messageWithSender)
     }
 
-    case a: DeviceSpec.Stop => {
+    /*case a: DeviceSpec.Stop => {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
-    }
+    }*/
 
     case _ => None
   }

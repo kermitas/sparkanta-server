@@ -6,6 +6,8 @@ object GatewayHello {
 
 class GatewayHello extends MessageToDevice {
 
+  override def messageCode = GatewayHello.messageCode
+
   override def toString = s"${getClass.getSimpleName}"
 
 }

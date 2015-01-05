@@ -6,6 +6,8 @@ object Ping {
 
 class Ping extends MessageToDevice {
 
+  override def messageCode = Ping.messageCode
+
   override def toString = s"${getClass.getSimpleName}"
 
 }

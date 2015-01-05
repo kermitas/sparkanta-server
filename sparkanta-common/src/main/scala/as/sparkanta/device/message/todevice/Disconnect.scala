@@ -8,6 +8,8 @@ class Disconnect(val delayBeforeNextConnectionAttemptInSeconds: Int) extends Mes
 
   require(delayBeforeNextConnectionAttemptInSeconds >= 0 && delayBeforeNextConnectionAttemptInSeconds <= 255, s"Delay before next connection attempt ($delayBeforeNextConnectionAttemptInSeconds) can be only between 0 and 255.")
 
+  override def messageCode = Disconnect.messageCode
+
   override def toString = s"${getClass.getSimpleName}(delayBeforeNextConnectionAttemptInSeconds=$delayBeforeNextConnectionAttemptInSeconds)"
 
 }

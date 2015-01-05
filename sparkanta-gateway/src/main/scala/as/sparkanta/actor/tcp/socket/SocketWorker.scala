@@ -187,17 +187,17 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
 
     listenAt.akkaSocketTcpActor ! Tcp.Close
 
+    buffer.foreach { messageWithSender =>
+      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, messageWithSender.message, messageWithSender.messageSender, listenAt, listenAtSender)
+      sendDataErrorResult.reply(socketActor)
+    }
+
     if (stateData.isInstanceOf[WaitingForTcpAckStateData]) {
       val waitingForTcpAckStateData = stateData.asInstanceOf[WaitingForTcpAckStateData]
 
       waitingForTcpAckStateData.ackTimeout.cancel
 
       val sendDataErrorResult = new Socket.SendDataErrorResult(exception, waitingForTcpAckStateData.current.message, waitingForTcpAckStateData.current.messageSender, listenAt, listenAtSender)
-      sendDataErrorResult.reply(socketActor)
-    }
-
-    buffer.foreach { messageWithSender =>
-      val sendDataErrorResult = new Socket.SendDataErrorResult(exception, messageWithSender.message, messageWithSender.messageSender, listenAt, listenAtSender)
       sendDataErrorResult.reply(socketActor)
     }
 

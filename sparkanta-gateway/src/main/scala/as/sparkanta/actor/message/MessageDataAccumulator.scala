@@ -8,7 +8,7 @@ import akka.actor.{ ActorRef, ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.{ Map, ListBuffer }
-import akka.util.{ IncomingMessage, IncomingReplyableMessage, OutgoingReplyOn1Message }
+import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
 
 object MessageDataAccumulator {
 
@@ -134,7 +134,6 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
       result
     } else {
       Seq.empty
-
     }
   }
 

@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.message.serialize
+package as.sparkanta.actor.device1.message.serializer
 
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
