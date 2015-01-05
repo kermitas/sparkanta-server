@@ -5,7 +5,7 @@ import scala.net.IdentifiedConnectionInfo
 class DeviceInfo(
   val connectionInfo:           IdentifiedConnectionInfo,
   val deviceIdentification:     DeviceIdentification,
-  val pingPongsCountInTimeInMs: Option[(Long, Long)]     = None
+  val pingPongsCountInTimeInMs: Option[(Long, Long)]
 ) extends Serializable {
 
   def timeInSystemInMillis: Long = System.currentTimeMillis - connectionInfo.startTimeInMs

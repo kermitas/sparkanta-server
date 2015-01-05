@@ -9,6 +9,8 @@ import as.sparkanta.gateway.{ Device => DeviceSpec }
 
 object DeviceStarter {
   lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config
+  lazy final val deviceIdentificationTimeoutInMs = 2 * 1000 // TODO move to config
+  lazy final val pingPongSpeedTestTimeInMs: Option[Long] = Some(1 * 1000) // TODO move to config
 }
 
 class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
@@ -27,7 +29,7 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case a: ServerSocket.NewConnection    => amaConfig.broadcaster ! new DeviceSpec.Start(a.connectionInfo, a.akkaSocketTcpActor, maximumQueuedSendDataMessages)
+    case a: ServerSocket.NewConnection    => amaConfig.broadcaster ! new DeviceSpec.Start(a.connectionInfo, a.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
     case a: DeviceSpec.StartErrorResult   => log.error(a.exception, "")
     case _: DeviceSpec.StartSuccessResult =>
     case _: DeviceSpec.Started            =>

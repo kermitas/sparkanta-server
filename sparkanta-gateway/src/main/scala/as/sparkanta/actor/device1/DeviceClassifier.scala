@@ -3,7 +3,6 @@ package as.sparkanta.actor.device1
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.gateway.{ Device => DeviceSpec }
 
 /**
@@ -17,11 +16,6 @@ class DeviceClassifier(broadcaster: ActorRef) extends Classifier {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }
-
-    /*case a: DeviceSpec.Stop => {
-      a.replyAlsoOn = Some(Seq(broadcaster))
-      Some(messageWithSender)
-    }*/
 
     case _ => None
   }
