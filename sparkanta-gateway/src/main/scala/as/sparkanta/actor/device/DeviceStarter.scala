@@ -9,15 +9,9 @@ import as.sparkanta.gateway.{ Device => DeviceSpec }
 import as.sparkanta.actor.device.message.serializer.Serializer
 import as.sparkanta.actor.device.message.deserializer.Deserializer
 
-object DeviceStarter {
-  lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config
-  lazy final val deviceIdentificationTimeoutInMs = 2 * 1000 // TODO move to config
-  lazy final val pingPongSpeedTestTimeInMs: Option[Long] = Some(1 * 1000) // TODO move to config
-}
+class DeviceStarter(amaConfig: AmaConfig, config: DeviceStarterConfig) extends Actor with ActorLogging {
 
-class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
-
-  import DeviceStarter._
+  def this(amaConfig: AmaConfig) = this(amaConfig, DeviceStarterConfig.fromTopKey(amaConfig.config))
 
   override def preStart(): Unit = try {
     amaConfig.broadcaster ! new Broadcaster.Register(self, new DeviceStarterClassifier)
@@ -32,12 +26,14 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   override def receive = {
     case a: ServerSocket.NewConnection      => newConnection(a)
-    case a: DeviceSpec.StartErrorResult     => log.error(a.exception, a.exception.getMessage)
+    case a: DeviceSpec.StartErrorResult     => log.error(a.exception, s"Could not start device for connection ${a.request1.message.connectionInfo}.")
+
     case _: DeviceSpec.StartSuccessResult   => // do nothing
     case _: DeviceSpec.Started              => // do nothing
     case _: DeviceSpec.Stopped              => // do nothing
     case _: DeviceSpec.IdentifiedDeviceUp   => // do nothing
     case _: DeviceSpec.IdentifiedDeviceDown => // do nothing
+
     case message                            => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -45,9 +41,9 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     Deserializer.startActor(context, newConnectionMessage.connectionInfo, amaConfig.broadcaster, self)
 
-    Serializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, maximumQueuedSendDataMessages)
+    Serializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, config.maximumQueuedSendDataMessages)
 
-    amaConfig.broadcaster ! new DeviceSpec.Start(newConnectionMessage.connectionInfo, newConnectionMessage.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
+    amaConfig.broadcaster ! new DeviceSpec.Start(newConnectionMessage.connectionInfo, newConnectionMessage.akkaSocketTcpActor, config.maximumQueuedSendDataMessages, config.deviceIdentificationTimeoutInMs, config.pingPongSpeedTestTimeInMs)
 
   } catch {
     case e: Exception => {

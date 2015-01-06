@@ -10,13 +10,12 @@ import as.sparkanta.device.message.todevice.Ping
 import as.sparkanta.gateway.NoAck
 
 object InactivityMonitor {
-  lazy final val warningTimeAfterMs = 2 * 1000 // TODO move to config
-  lazy final val inactivityTimeAfterMs = 3 * 1000 // TODO move to config
-
   lazy final val ping = new Ping
 }
 
-class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
+class InactivityMonitor(amaConfig: AmaConfig, config: InactivityMonitorConfig) extends Actor with ActorLogging {
+
+  def this(amaConfig: AmaConfig) = this(amaConfig, InactivityMonitorConfig.fromTopKey(amaConfig.config))
 
   import InactivityMonitor._
 
@@ -48,7 +47,7 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     identifiedDeviceUp(identifiedDeviceUpMessage.deviceInfo.connectionInfo.remote.id)
 
   protected def identifiedDeviceUp(id: Long): Unit = {
-    amaConfig.broadcaster ! new InactivityMonitorSpec.StartInactivityMonitor(id, warningTimeAfterMs, inactivityTimeAfterMs)
+    amaConfig.broadcaster ! new InactivityMonitorSpec.StartInactivityMonitor(id, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
   }
 
   protected def startInactivityMonitorError(startInactivityMonitorErrorResult: InactivityMonitorSpec.StartInactivityMonitorErrorResult): Unit =
@@ -72,13 +71,16 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def inactivityWarning(inactivityWarningMessage: InactivityMonitorSpec.InactivityWarning): Unit =
     inactivityWarning(inactivityWarningMessage.request1.message.id)
 
-  protected def inactivityWarning(id: Long): Unit = amaConfig.broadcaster ! new Device.SendMessage(id, ping, NoAck)
+  protected def inactivityWarning(id: Long): Unit = {
+    log.debug(s"Device of remote address id $id is inactive for more than ${config.warningTimeAfterMs} milliseconds), sending ${ping.getClass.getSimpleName}.")
+    amaConfig.broadcaster ! new Device.SendMessage(id, ping, NoAck)
+  }
 
   protected def inactivityDetected(inactivityDetectedMessage: InactivityMonitorSpec.InactivityDetected): Unit =
     inactivityDetected(inactivityDetectedMessage.request1.message.id, inactivityDetectedMessage.inactivityTimeInMs)
 
   protected def inactivityDetected(id: Long, inactivityTimeInMs: Long): Unit = {
-    val exception = new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds) by ${inactivityTimeInMs - inactivityTimeAfterMs} milliseconds.")
+    val exception = new Exception(s"Device of remote address id $id exceeded inactivity timeout (${config.inactivityTimeAfterMs} milliseconds) by ${inactivityTimeInMs - config.inactivityTimeAfterMs} milliseconds.")
     amaConfig.broadcaster ! new Device.StopDevice(id, exception)
   }
 
