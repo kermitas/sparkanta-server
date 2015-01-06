@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.message.deserializer
+package as.sparkanta.actor.device.message.deserializer
 
 import akka.actor.{ ActorRef, ActorLogging, Actor, ActorRefFactory, Props }
 import akka.util.ByteString

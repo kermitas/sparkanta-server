@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1
+package as.sparkanta.actor.device
 
 import scala.language.postfixOps
 import scala.concurrent.duration._

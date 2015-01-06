@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.blinker
+package as.sparkanta.actor.device.blinker
 
 import akka.actor.{ ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster

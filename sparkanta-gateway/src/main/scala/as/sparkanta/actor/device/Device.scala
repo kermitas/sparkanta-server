@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1
+package as.sparkanta.actor.device
 
 import akka.actor.{ ActorRef, ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster

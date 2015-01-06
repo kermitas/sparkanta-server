@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.blinker
+package as.sparkanta.actor.device.blinker
 
 import scala.language.postfixOps
 import scala.concurrent.duration._

@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.inactivity
+package as.sparkanta.actor.device.inactivity
 
 import akka.actor.{ ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster

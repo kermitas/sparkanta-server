@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1
+package as.sparkanta.actor.device
 
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender

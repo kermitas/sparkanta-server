@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1
+package as.sparkanta.actor.device
 
 import akka.actor.{ ActorLogging, Actor }
 import as.akka.broadcaster.Broadcaster
@@ -6,8 +6,8 @@ import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.{ Device => DeviceSpec }
-import as.sparkanta.actor.device1.message.serializer.DeviceSerializer
-import as.sparkanta.actor.device1.message.deserializer.DeviceDeserializer
+import as.sparkanta.actor.device.message.serializer.DeviceSerializer
+import as.sparkanta.actor.device.message.deserializer.DeviceDeserializer
 
 object DeviceStarter {
   lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config

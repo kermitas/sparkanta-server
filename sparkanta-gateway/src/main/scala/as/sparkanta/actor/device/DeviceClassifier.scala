@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1
+package as.sparkanta.actor.device
 
 import akka.actor.ActorRef
 import as.akka.broadcaster.Classifier

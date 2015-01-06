@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device1.message.serializer
+package as.sparkanta.actor.device.message.serializer
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
