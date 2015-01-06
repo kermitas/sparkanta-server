@@ -13,13 +13,13 @@ import as.sparkanta.device.message.fromdevice.DeviceIdentification
 class DeviceWorkerClassifier(id: Long, broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
+    case a: DeviceSpec.NewMessage if a.deviceInfo.connectionInfo.remote.id == id && a.messageFromDevice.isInstanceOf[DeviceIdentification] =>
+      Some(new MessageWithSender(a.messageFromDevice, messageWithSender.messageSender))
+
     case a: DeviceSpec.Stop if a.optionalId.isEmpty || a.optionalId.get == id => {
       a.replyAlsoOn = Some(Seq(broadcaster))
       Some(messageWithSender)
     }
-
-    case a: DeviceSpec.NewMessage if a.deviceInfo.connectionInfo.remote.id == id && a.messageFromDevice.isInstanceOf[DeviceIdentification] =>
-      Some(new MessageWithSender(a.messageFromDevice, messageWithSender.messageSender))
 
     case _ => None
   }

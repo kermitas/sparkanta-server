@@ -112,8 +112,6 @@ class DeviceWorker(
         val started = new DeviceSpec.Started(start, startSender)
 
         startSuccessResult.reply(deviceActor)
-
-        deviceActor ! started
         started.reply(deviceActor)
 
         stay using stateData
@@ -168,7 +166,13 @@ class DeviceWorker(
 
   protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + extraTimeForWaitingOnSpeedTestResultInMs} milliseconds) timeout reached.")))
 
-  protected def stopRequest(stopMessage: DeviceSpec.Stop, stopSender: ActorRef) = stop(FSM.Failure(new StoppedByStopRequestedException(stopMessage, stopSender)))
+  protected def stopRequest(stopMessage: DeviceSpec.Stop, stopSender: ActorRef) = {
+
+    val stopSuccessResult = new DeviceSpec.StopSuccessResult(stopMessage, stopSender)
+    stopSuccessResult.reply(deviceActor)
+
+    stop(FSM.Failure(new StoppedByStopRequestedException(stopMessage, stopSender)))
+  }
 
   protected def speedTestResult(speedTestResultMessage: SpeedTest.SpeedTestResult, sd: WaitingForSpeedTestResultStateData) = {
     sd.timeout.cancel
@@ -224,7 +228,6 @@ class DeviceWorker(
     }
 
     val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
-    deviceActor ! stopped
     stopped.reply(deviceActor)
   }
 }
