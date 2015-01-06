@@ -14,7 +14,7 @@ class DisconnectSerializerVersion1 extends Serializer[Disconnect] {
   import DisconnectSerializerVersion1._
 
   override def serialize(disconnect: Disconnect, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, Disconnect.messageCode, serializationVersion, messageNumber, ackType)
+    writeHeader(os, disconnect.messageCode, serializationVersion, messageNumber, ackType)
 
     os.write(disconnect.delayBeforeNextConnectionAttemptInSeconds)
   }

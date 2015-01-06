@@ -14,7 +14,7 @@ class SetAnalogPinValueSerializerVersion1 extends Serializer[SetAnalogPinValue] 
   import SetAnalogPinValueSerializerVersion1._
 
   override def serialize(setAnalogPinValue: SetAnalogPinValue, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, SetAnalogPinValue.messageCode, serializationVersion, messageNumber, ackType)
+    writeHeader(os, setAnalogPinValue.messageCode, serializationVersion, messageNumber, ackType)
 
     os.write(setAnalogPinValue.pin.pinNumber)
     os.write(setAnalogPinValue.pinValue)

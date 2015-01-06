@@ -15,7 +15,7 @@ class PinConfigurationSerializerVersion1 extends Serializer[PinConfiguration] {
   import ServerHelloSerializerVersion1._
 
   override def serialize(pinConfiguration: PinConfiguration, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, PinConfiguration.messageCode, serializationVersion, messageNumber, ackType)
+    writeHeader(os, pinConfiguration.messageCode, serializationVersion, messageNumber, ackType)
 
     val daos = new DataOutputStream(os)
 

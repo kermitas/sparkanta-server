@@ -14,7 +14,7 @@ class SetDigitalPinValueSerializerVersion1 extends Serializer[SetDigitalPinValue
   import SetDigitalPinValueSerializerVersion1._
 
   override def serialize(setDigitalPinValue: SetDigitalPinValue, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, SetDigitalPinValue.messageCode, serializationVersion, messageNumber, ackType)
+    writeHeader(os, setDigitalPinValue.messageCode, serializationVersion, messageNumber, ackType)
 
     os.write(setDigitalPinValue.pin.pinNumber)
     os.write(setDigitalPinValue.pinValue.pinValue)

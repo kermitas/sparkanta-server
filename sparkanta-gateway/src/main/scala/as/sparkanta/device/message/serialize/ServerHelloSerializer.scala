@@ -14,6 +14,6 @@ class ServerHelloSerializerVersion1 extends Serializer[ServerHello] {
   import ServerHelloSerializerVersion1._
 
   override def serialize(serverHello: ServerHello, ackType: DeviceAckType, os: OutputStream, messageNumber: Int): Unit = {
-    writeHeader(os, ServerHello.messageCode, serializationVersion, messageNumber, ackType)
+    writeHeader(os, serverHello.messageCode, serializationVersion, messageNumber, ackType)
   }
 }
