@@ -2,7 +2,7 @@ package as.sparkanta.actor.device
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
-import akka.actor.{ ActorRef, FSM, Cancellable }
+import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy, Terminated, ActorRefFactory, Props }
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import as.sparkanta.gateway.{ Device => DeviceSpec }
 import as.sparkanta.device.{ DeviceIdentification, DeviceInfo }
@@ -32,6 +32,20 @@ object DeviceWorker {
 
   class StoppedByStopRequestedException(val stop: DeviceSpec.Stop, val stopSender: ActorRef) extends Exception
   class StoppedByStoppedSockedException(val listeningStopType: Socket.ListeningStopType) extends Exception
+
+  def startActor(
+    actorRefFactory: ActorRefFactory,
+    start:           DeviceSpec.Start,
+    startSender:     ActorRef,
+    broadcaster:     ActorRef,
+    deviceActor:     ActorRef,
+    config:          DeviceWorkerConfig
+  ): ActorRef = {
+    val props = Props(new DeviceWorker(start, startSender, broadcaster, deviceActor, config))
+    val actor = actorRefFactory.actorOf(props, name = classOf[DeviceWorker].getSimpleName + "-" + start.connectionInfo.remote.id)
+    broadcaster ! new Broadcaster.Register(actor, new DeviceWorkerClassifier(start.connectionInfo.remote.id, broadcaster))
+    actor
+  }
 }
 
 class DeviceWorker(
@@ -44,6 +58,10 @@ class DeviceWorker(
 
   import DeviceWorker._
   import context.dispatcher
+
+  override val supervisorStrategy = OneForOneStrategy() {
+    case _ => SupervisorStrategy.Stop
+  }
 
   {
     val timeout = context.system.scheduler.scheduleOnce(start.deviceIdentificationTimeoutInMs millis, self, DeviceIdentificationTimeout)
@@ -76,6 +94,7 @@ class DeviceWorker(
     case Event(_: Socket.ListeningStarted, _) => stay using stateData // nothing to do
     case Event(a: Socket.ListeningStopped, _) => successOrStopWithFailure { socketListeningStopped(a) }
     case Event(a: DeviceSpec.Stop, _)         => successOrStopWithFailure { stopRequest(a, sender) }
+    case Event(Terminated(diedActor), _)      => successOrStopWithFailure { watchedActorWasTerminated(diedActor) }
 
     case Event(unknownMessage, stateData) => {
       log.warning(s"Received unknown message '$unknownMessage' in state $stateName (state data $stateData)")
@@ -89,10 +108,6 @@ class DeviceWorker(
 
   initialize
   self ! Initialize
-
-  override def preStart(): Unit = {
-    broadcaster ! new Broadcaster.Register(self, new DeviceWorkerClassifier(start.connectionInfo.remote.id, broadcaster))
-  }
 
   protected def init = try {
     broadcaster ! new Socket.ListenAt(start.connectionInfo, start.akkaSocketTcpActor, start.maximumQueuedMessagesToSend)
@@ -150,7 +165,8 @@ class DeviceWorker(
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
 
-    InactivityMonitor.startActor(context, deviceInfo.connectionInfo.remote.id, broadcaster, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
+    val inactivityMonitor = InactivityMonitor.startActor(context, deviceInfo.connectionInfo.remote.id, broadcaster, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
+    context.watch(inactivityMonitor)
 
     log.info(s"!!!!!!!!!!!!!! Device $deviceInfo successfully initialized and up. !!!!!!!!!!!!!!!!!")
 
@@ -190,6 +206,9 @@ class DeviceWorker(
 
   protected def sendMessageError(sendMessageErrorResult: DeviceSpec.SendMessageErrorResult) =
     stop(FSM.Failure(new Exception(s"Stopping because of problem with sending message.", sendMessageErrorResult.exception)))
+
+  protected def watchedActorWasTerminated(diedActor: ActorRef) =
+    stop(FSM.Failure(new Exception(s"Stopping because watched actor $diedActor died.")))
 
   protected def terminate(reason: FSM.Reason, currentState: DeviceWorker.State, stateData: DeviceWorker.StateData): Unit = {
     //val exception = 

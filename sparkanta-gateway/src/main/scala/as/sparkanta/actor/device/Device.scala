@@ -1,6 +1,6 @@
 package as.sparkanta.actor.device
 
-import akka.actor.{ ActorRef, ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
+import akka.actor.{ ActorRef, ActorLogging, Actor, OneForOneStrategy, SupervisorStrategy }
 import as.akka.broadcaster.Broadcaster
 import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.ama.config.AmaConfig
@@ -29,8 +29,7 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   protected def start(start: DeviceSpec.Start, startSender: ActorRef): Unit = try {
-    val props = Props(new DeviceWorker(start, startSender, amaConfig.broadcaster, self, DeviceWorkerConfig.fromTopKey(amaConfig.config)))
-    context.actorOf(props, classOf[DeviceWorker].getSimpleName + "-" + start.connectionInfo.remote.id)
+    DeviceWorker.startActor(context, start, startSender, amaConfig.broadcaster, self, DeviceWorkerConfig.fromTopKey(amaConfig.config))
   } catch {
     case e: Exception => {
       val startErrorResult = new DeviceSpec.StartErrorResult(e, start, startSender)
