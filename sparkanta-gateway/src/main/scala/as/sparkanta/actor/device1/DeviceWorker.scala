@@ -104,8 +104,6 @@ class DeviceWorker(
   }
 
   protected def socketListenAtResult(listenAtResultMessage: Socket.ListenAtResult, sd: WaitingForDeviceIdentificationStateData) = try {
-    sd.timeout.cancel
-
     listenAtResultMessage match {
       case listenAtSuccessResult: Socket.ListenAtSuccessResult => {
         val startSuccessResult = new DeviceSpec.StartSuccessResult(start, startSender)
@@ -119,10 +117,14 @@ class DeviceWorker(
         stay using stateData
       }
 
-      case listenAtErrorResult: Socket.ListenAtErrorResult => stop(FSM.Failure(listenAtErrorResult.exception))
+      case listenAtErrorResult: Socket.ListenAtErrorResult => {
+        sd.timeout.cancel
+        stop(FSM.Failure(listenAtErrorResult.exception))
+      }
     }
   } catch {
     case e: Exception => {
+      sd.timeout.cancel
       val startErrorResult = new DeviceSpec.StartErrorResult(e, start, startSender)
       startErrorResult.reply(deviceActor)
       stop(FSM.Failure(e))
@@ -147,6 +149,8 @@ class DeviceWorker(
 
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
+
+    // TODO send to device GatewayHello
 
     val identifiedDeviceUp = new DeviceSpec.IdentifiedDeviceUp(deviceInfo, start, startSender)
     identifiedDeviceUp.reply(deviceActor)

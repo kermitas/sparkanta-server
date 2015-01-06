@@ -30,7 +30,7 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   override def receive = {
     case a: ServerSocket.NewConnection    => amaConfig.broadcaster ! new DeviceSpec.Start(a.connectionInfo, a.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
-    case a: DeviceSpec.StartErrorResult   => log.error(a.exception, "")
+    case a: DeviceSpec.StartErrorResult   => log.error(a.exception, a.exception.getMessage)
     case _: DeviceSpec.StartSuccessResult =>
     case _: DeviceSpec.Started            =>
     case _: DeviceSpec.Stopped            =>
