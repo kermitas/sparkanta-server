@@ -13,6 +13,89 @@ class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLog
 
   protected val ack = new DeviceAck(500, ReceivedAck)
   //protected val ack = new TcpAck(500)
+  //protected val high = new Device.SendMessage(id, new SetDigitalPinValue(D7, High), ack)
+  //protected val low = new Device.SendMessage(id, new SetDigitalPinValue(D7, Low), ack)
+  //protected var isLow = true
+  protected var messagesCount = 0L
+  protected var setting = true
+
+  protected final val pins = Array(D0, D1, D2, D3, D4, D5, D6, D7)
+  protected var pinNumber = 0
+
+  override def preStart(): Unit = {
+    broadcaster ! new Broadcaster.Register(self, new BlinkerWorkerClassifier(id))
+
+    context.system.scheduler.schedule(1000 millis, 1000 millis, self, true)(context.dispatcher)
+
+    val pinReadTimeInMs = 2000
+
+    val pinConfiguration = new PinConfiguration(
+      new DigitalPinConfig(D0, new DigitalOutput(Low)),
+      new DigitalPinConfig(D1, new DigitalOutput(Low)),
+      new DigitalPinConfig(D2, new DigitalOutput(Low)),
+      new DigitalPinConfig(D3, new DigitalOutput(Low)),
+      new DigitalPinConfig(D4, new DigitalOutput(Low)),
+      new DigitalPinConfig(D5, new DigitalOutput(Low)),
+      new DigitalPinConfig(D6, new DigitalOutput(Low)),
+      new DigitalPinConfig(D7, new DigitalOutput(Low)),
+      new AnalogPinConfig(A0, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A1, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A2, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A3, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A4, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A5, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A6, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue)),
+      new AnalogPinConfig(A7, new AnalogInput((pinReadTimeInMs + 0).toChar, EachAnalogProbeValue))
+    )
+
+    broadcaster ! new Device.SendMessage(id, pinConfiguration, NoAck)
+    broadcaster ! new Device.SendMessage(id, new SetDigitalPinValue(pins(pinNumber), High), ack)
+  }
+
+  override def receive = {
+
+    case a: Device.SendMessageSuccessResult => {
+
+      messagesCount += 1
+
+      if (setting) {
+        broadcaster ! new Device.SendMessage(id, new SetDigitalPinValue(pins(pinNumber), Low), ack)
+      } else {
+        pinNumber += 1
+        if (pinNumber >= pins.length) pinNumber = 0
+
+        broadcaster ! new Device.SendMessage(id, new SetDigitalPinValue(pins(pinNumber), High), ack)
+      }
+
+      setting = !setting
+    }
+
+    case true => {
+      log.info(s"**************************** Messages in last second: $messagesCount")
+      messagesCount = 0
+    }
+
+    case a: Device.SendMessageErrorResult => {
+      log.error(a.exception, "Stopping because of sending message problem.")
+      broadcaster ! new Device.StopDevice(id, a.exception)
+      context.stop(self)
+    }
+
+    case a: Device.IdentifiedDeviceDown => {
+      log.debug("Stopping because device stopped.")
+      context.stop(self)
+    }
+
+    case message => log.warning(s"Unhandled $message send by ${sender()}")
+  }
+
+}
+
+/*
+class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLogging {
+
+  protected val ack = new DeviceAck(500, ReceivedAck)
+  //protected val ack = new TcpAck(500)
   protected val high = new Device.SendMessage(id, new SetDigitalPinValue(D7, High), ack)
   protected val low = new Device.SendMessage(id, new SetDigitalPinValue(D7, Low), ack)
   protected var isLow = true
@@ -83,3 +166,4 @@ class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLog
   }
 
 }
+*/ 
