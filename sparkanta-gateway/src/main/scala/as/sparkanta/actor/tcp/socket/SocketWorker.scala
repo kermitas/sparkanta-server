@@ -9,6 +9,7 @@ import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import scala.collection.mutable.ListBuffer
 import as.sparkanta.gateway.{ NoAck, TcpAck }
 import akka.util.MessageWithSender
+import java.io.ByteArrayOutputStream
 
 object SocketWorker {
   sealed trait State extends Serializable
@@ -23,12 +24,17 @@ object SocketWorker {
   object TcpAck extends Tcp.Event
 }
 
-class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketActor: ActorRef) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
+class SocketWorker(
+  listenAt:       Socket.ListenAt,
+  listenAtSender: ActorRef,
+  socketActor:    ActorRef
+) extends FSM[SocketWorker.State, SocketWorker.StateData] with FSMSuccessOrStop[SocketWorker.State, SocketWorker.StateData] {
 
   import SocketWorker._
   import context.dispatcher
 
   protected val buffer = new ListBuffer[MessageWithSender[Socket.SendData]]
+  protected val baos = new ByteArrayOutputStream(300)
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
@@ -77,16 +83,18 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
 
   protected def sendData(sendData: Socket.SendData, sendDataSender: ActorRef) = if (sendData.id == listenAt.connectionInfo.remote.id) {
 
+    val dataToSend = ByteString(prepareMessageLengthHeader(sendData.data.length)) ++ sendData.data
+
     sendData.ack match {
       case NoAck => {
-        listenAt.akkaSocketTcpActor ! new Tcp.Write(sendData.data, Tcp.NoAck)
+        listenAt.akkaSocketTcpActor ! new Tcp.Write(dataToSend, Tcp.NoAck)
         val sendDataSuccessResult = new Socket.SendDataSuccessResult(sendData, sendDataSender, listenAt, listenAtSender)
         sendDataSuccessResult.reply(socketActor)
         goto(WaitingForDataToSend) using WaitingForDataToSendStateData
       }
 
       case a: TcpAck => {
-        listenAt.akkaSocketTcpActor ! new Tcp.Write(sendData.data, TcpAck)
+        listenAt.akkaSocketTcpActor ! new Tcp.Write(dataToSend, TcpAck)
         val ackTimeout = context.system.scheduler.scheduleOnce(a.timeoutInMillis millis, self, AckTimeout)
         goto(WaitingForTcpAck) using new WaitingForTcpAckStateData(new MessageWithSender(sendData, sendDataSender), ackTimeout)
       }
@@ -96,6 +104,14 @@ class SocketWorker(listenAt: Socket.ListenAt, listenAtSender: ActorRef, socketAc
     val sendDataErrorResult = new Socket.SendDataErrorResult(exception, sendData, sendDataSender, listenAt, listenAtSender)
     sendDataErrorResult.reply(socketActor)
     goto(WaitingForDataToSend) using WaitingForDataToSendStateData
+  }
+
+  protected def prepareMessageLengthHeader(countOfBytesToSend: Int): Array[Byte] = if (countOfBytesToSend <= 255) {
+    baos.reset
+    baos.write(countOfBytesToSend)
+    baos.toByteArray
+  } else {
+    throw new IllegalArgumentException(s"Passed array length can be maximally 255 bytes long (currently it is $countOfBytesToSend).")
   }
 
   protected def bufferSendData(sendData: Socket.SendData, sendDataSender: ActorRef, sd: WaitingForTcpAckStateData) = {

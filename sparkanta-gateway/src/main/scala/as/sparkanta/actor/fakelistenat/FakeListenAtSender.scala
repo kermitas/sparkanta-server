@@ -11,7 +11,7 @@ class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
   import context.dispatcher
 
-  protected val listenAt = new ServerSocket.ListenAt(new IdentifiedInetSocketAddress(0, "localhost", 8080), 5 * 1000, 60 * 1000)
+  protected val listenAt = new ServerSocket.ListenAt(new IdentifiedInetSocketAddress(0, "192.168.2.25", 8080), 5 * 1000, 60 * 1000)
 
   override def preStart(): Unit = try {
     context.system.scheduler.schedule(2 seconds, 55 seconds, self, true)
@@ -21,10 +21,10 @@ class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case true                           => amaConfig.broadcaster ! listenAt
-    case a: ServerSocket.ListenAtResult => log.debug(s"Received listen at result $a.")
+    case true                             => amaConfig.broadcaster ! listenAt
+    case a: ServerSocket.ListenAtResult   => log.debug(s"Received listen at result $a.")
     case a: ServerSocket.ListeningStarted => log.debug(s"Received listening started $a.")
-    case message                        => log.warning(s"Unhandled $message send by ${sender()}")
+    case message                          => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
 }

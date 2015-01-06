@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device1.message.serializer
 
 import as.akka.broadcaster.Classifier
@@ -13,4 +14,4 @@ class SerializerClassifier extends Classifier {
     case _: ServerSocket.NewConnection => Some(messageWithSender)
     case _                             => None
   }
-}
+}*/ 

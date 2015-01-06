@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device1.message.serializer
 
 import akka.actor.{ ActorLogging, Actor, Props, OneForOneStrategy, SupervisorStrategy }
@@ -49,3 +50,4 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     }
   }
 }
+*/ 

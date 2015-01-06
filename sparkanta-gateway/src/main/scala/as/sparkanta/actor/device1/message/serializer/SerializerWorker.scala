@@ -2,7 +2,7 @@ package as.sparkanta.actor.device1.message.serializer
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
-import akka.actor.{ ActorRef, Cancellable, FSM }
+import akka.actor.{ ActorRef, Cancellable, FSM, ActorRefFactory, Props }
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import as.sparkanta.gateway.{ Device, DeviceAck, NoAck, TcpAck }
 import as.sparkanta.device.message.todevice.{ NoAck => DeviceNoAck }
@@ -32,6 +32,13 @@ object SerializerWorker {
 
   class SerializeWithSendMessage(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef)
     extends GeneralSerializer.Serialize(sendMessage.messageToDevice, if (sendMessage.ack.isInstanceOf[DeviceAck]) sendMessage.ack.asInstanceOf[DeviceAck].deviceAck else DeviceNoAck)
+
+  def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long): ActorRef = {
+    val props = Props(new SerializerWorker(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
+    val actor = actorRefFactory.actorOf(props, name = classOf[SerializerWorker].getSimpleName + "-" + id)
+    broadcaster ! new Broadcaster.Register(actor, new SerializerWorkerClassifier(id, broadcaster))
+    actor
+  }
 }
 
 class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRef, maximumQueuedSendDataMessages: Long)
@@ -87,9 +94,9 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   initialize
 
-  override def preStart(): Unit = {
+  /*override def preStart(): Unit = {
     broadcaster ! new Broadcaster.Register(self, new SerializerWorkerClassifier(id, broadcaster))
-  }
+  }*/
 
   protected def sendMessage(sendMessage: Device.SendMessage, sendMessageSender: ActorRef) = {
     broadcaster ! new SerializeWithSendMessage(sendMessage, sendMessageSender)

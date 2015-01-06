@@ -116,7 +116,7 @@ class MessageDataAccumulator(amaConfig: AmaConfig) extends Actor with ActorLoggi
     if (bufferSize > 0) {
       val result = new ListBuffer[Array[Byte]]
 
-      log.debug(s"Message for id $id will have ${record.buffer(0)} bytes (${record.buffer(0) + 1 - bufferSize} bytes needs to be collected to have full message).")
+      log.debug(s"Message of id $id will have ${record.buffer(0)} bytes (${record.buffer(0) + 1 - bufferSize} bytes needs to be collected to have full message).")
 
       while (bufferSize > 0 && bufferSize >= record.buffer(0) + 1) {
         val messageLength = record.buffer(0)

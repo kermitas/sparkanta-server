@@ -1,7 +1,5 @@
 package as.sparkanta.actor.device1
 
-import as.sparkanta.actor.tcp.socket.Socket
-
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, FSM, Cancellable }
@@ -11,10 +9,13 @@ import as.sparkanta.device.{ DeviceIdentification, DeviceInfo }
 import as.sparkanta.device.message.fromdevice.{ DeviceIdentification => DeviceIdentificationMessage }
 import as.sparkanta.actor.speedtest.SpeedTest
 import as.akka.broadcaster.Broadcaster
+import as.sparkanta.actor.tcp.socket.Socket
+import as.sparkanta.device.message.todevice.{ GatewayHello, ServerHello }
+import as.sparkanta.gateway.NoAck
 
 object DeviceWorker {
 
-  lazy final val extraTimeForSpeedTestResultInMs = 250 // TODO move to config
+  lazy final val extraTimeForWaitingOnSpeedTestResultInMs = 250 // TODO move to config
 
   sealed trait State extends Serializable
   case object WaitingForDeviceIdentification extends State
@@ -139,7 +140,7 @@ class DeviceWorker(
     start.pingPongSpeedTestTimeInMs match {
       case Some(pingPongSpeedTestTimeInMs) => {
         broadcaster ! new SpeedTest.StartSpeedTest(start.connectionInfo.remote.id, pingPongSpeedTestTimeInMs)
-        val timeout = context.system.scheduler.scheduleOnce(pingPongSpeedTestTimeInMs + extraTimeForSpeedTestResultInMs millis, self, SpeedTestTimeout)
+        val timeout = context.system.scheduler.scheduleOnce(pingPongSpeedTestTimeInMs + extraTimeForWaitingOnSpeedTestResultInMs millis, self, SpeedTestTimeout)
         goto(WaitingForSpeedTestResult) using new WaitingForSpeedTestResultStateData(deviceIdentificationMessage, timeout)
       }
 
@@ -150,7 +151,11 @@ class DeviceWorker(
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
 
-    // TODO send to device GatewayHello
+    log.debug(s"Device $deviceInfo successfully initialized.")
+
+    broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new GatewayHello, NoAck)
+
+    broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new ServerHello, NoAck) // TODO ServerHello should be send by the server, not gateway
 
     val identifiedDeviceUp = new DeviceSpec.IdentifiedDeviceUp(deviceInfo, start, startSender)
     identifiedDeviceUp.reply(deviceActor)
@@ -160,7 +165,7 @@ class DeviceWorker(
 
   protected def deviceIdentificationTimeout = stop(FSM.Failure(new Exception(s"Device identification (${start.deviceIdentificationTimeoutInMs} milliseconds) timeout reached.")))
 
-  protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + extraTimeForSpeedTestResultInMs} milliseconds) timeout reached.")))
+  protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + extraTimeForWaitingOnSpeedTestResultInMs} milliseconds) timeout reached.")))
 
   protected def stopRequest(stopMessage: DeviceSpec.Stop, stopSender: ActorRef) = stop(FSM.Failure(new StoppedByStopRequestedException(stopMessage, stopSender)))
 

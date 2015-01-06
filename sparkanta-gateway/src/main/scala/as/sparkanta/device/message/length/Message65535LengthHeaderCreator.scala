@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.device.message.length
 
 import java.io.{ ByteArrayOutputStream, ByteArrayInputStream, DataOutputStream, DataInputStream }
@@ -14,3 +15,4 @@ class Message65535LengthHeaderCreator extends MessageLengthHeaderCreator(2) {
     baos.toByteArray
   }
 }
+*/ 

@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.device.message.length
 
 /**
@@ -24,3 +25,4 @@ abstract class MessageLengthHeaderCreator( final val messageHeaderLength: Int) {
   protected def safePrepareMessageLengthHeader(countOfBytesToSend: Int): Array[Byte]
 }
 
+*/ 

@@ -6,6 +6,7 @@ import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.{ Device => DeviceSpec }
+import as.sparkanta.actor.device1.message.serializer.SerializerWorker
 
 object DeviceStarter {
   lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config
@@ -29,11 +30,25 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case a: ServerSocket.NewConnection    => amaConfig.broadcaster ! new DeviceSpec.Start(a.connectionInfo, a.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
+    case a: ServerSocket.NewConnection    => newConnection(a)
     case a: DeviceSpec.StartErrorResult   => log.error(a.exception, a.exception.getMessage)
     case _: DeviceSpec.StartSuccessResult =>
     case _: DeviceSpec.Started            =>
     case _: DeviceSpec.Stopped            =>
     case message                          => log.warning(s"Unhandled $message send by ${sender()}")
+  }
+
+  protected def newConnection(newConnectionMessage: ServerSocket.NewConnection): Unit = try {
+
+    SerializerWorker.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, maximumQueuedSendDataMessages)
+
+    amaConfig.broadcaster ! new DeviceSpec.Start(newConnectionMessage.connectionInfo, newConnectionMessage.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
+
+  } catch {
+    case e: Exception => {
+      val exception = new Exception(s"Problem during setup work for device of remote address id ${newConnectionMessage.connectionInfo.remote.id}.", e)
+      log.error(exception, exception.getMessage)
+      amaConfig.broadcaster ! new DeviceSpec.StopDevice(newConnectionMessage.connectionInfo.remote.id, exception)
+    }
   }
 }
