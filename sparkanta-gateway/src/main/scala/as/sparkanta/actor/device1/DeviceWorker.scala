@@ -63,11 +63,12 @@ class DeviceWorker(
   }
 
   when(Identified) {
-    case Event(true, _) => stay using stateData // nothing to do in this state
+    case Event(_: DeviceSpec.SendMessageSuccessResult, _) => stay using stateData // do nothing
+    case Event(a: DeviceSpec.SendMessageErrorResult, _)   => successOrStopWithFailure { sendMessageError(a) }
   }
 
   onTransition {
-    case fromState -> toState => log.info(s"State change from $fromState to $toState")
+    case fromState -> toState => log.debug(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {
@@ -180,6 +181,9 @@ class DeviceWorker(
 
   protected def socketListeningStopped(listeningStopped: Socket.ListeningStopped) =
     stop(FSM.Failure(new StoppedByStoppedSockedException(listeningStopped.listeningStopType)))
+
+  protected def sendMessageError(sendMessageErrorResult: DeviceSpec.SendMessageErrorResult) =
+    stop(FSM.Failure(new Exception(s"Stopping because of problem with sending message.", sendMessageErrorResult.exception)))
 
   protected def terminate(reason: FSM.Reason, currentState: DeviceWorker.State, stateData: DeviceWorker.StateData): Unit = {
     //val exception = 

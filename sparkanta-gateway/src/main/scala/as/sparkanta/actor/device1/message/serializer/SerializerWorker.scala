@@ -14,7 +14,7 @@ import as.sparkanta.actor.tcp.socket.Socket
 
 object SerializerWorker {
 
-  lazy final val waitingForSendDataResultTimeoutInMsIfNotSet = 5 * 1000
+  lazy final val waitingForSendDataResultTimeoutInMsIfNoAck = 2 * 1000
 
   sealed trait State extends Serializable
   case object WaitingForDataToSend extends State
@@ -53,8 +53,8 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   when(WaitingForDataToSend) {
     case Event(a: GeneralSerializer.SerializationSuccessResult, _) => successOrStopWithFailure { serializationSuccess(a) }
-    case Event(_: Socket.SendDataSuccessResult, sd)                => stay using sd
-    case Event(a: Socket.SendDataErrorResult, _)                   => successOrStopWithFailure { sendDataError(a) }
+    //case Event(_: Socket.SendDataSuccessResult, sd)                => stay using sd
+    //case Event(a: Socket.SendDataErrorResult, _)                   => successOrStopWithFailure { sendDataError(a) }
   }
 
   when(WaitingForSendDataResult) {
@@ -73,7 +73,7 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   }
 
   onTransition {
-    case fromState -> toState => log.info(s"State change from $fromState to $toState")
+    case fromState -> toState => log.debug(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {
@@ -133,10 +133,17 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   protected def sendMessage(serializedMessageToDevice: Array[Byte], sendMessageMessage: Device.SendMessage, sendMessageSender: ActorRef): State = sendMessageMessage.ack match {
     case NoAck => {
+      /*
       broadcaster ! new Socket.SendData(serializedMessageToDevice, id, NoAck)
       val sendMessageSuccessResult = new Device.SendMessageSuccessResult(sendMessageMessage, sendMessageSender)
       sendMessageSuccessResult.reply(deviceActor)
       goto(WaitingForDataToSend) using WaitingForDataToSendStateData
+      */
+
+      broadcaster ! new Socket.SendData(serializedMessageToDevice, id, NoAck)
+      val timeout = context.system.scheduler.scheduleOnce(waitingForSendDataResultTimeoutInMsIfNoAck millis, self, Timeout)
+      val record = new Record(sendMessageMessage, sendMessageSender, serializedMessageToDevice)
+      goto(WaitingForSendDataResult) using new WaitingForSendDataResultStateData(record, timeout, waitingForSendDataResultTimeoutInMsIfNoAck)
     }
 
     case tcpAck: TcpAck => {
@@ -154,7 +161,7 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
     }
   }
 
-  protected def timeout(sd: WaitingForSendDataResultStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.timeoutInMs} milliseconds) while waiting for tcp ack reached.")))
+  protected def timeout(sd: WaitingForSendDataResultStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.timeoutInMs} milliseconds) while waiting for send data confirmation reached.")))
 
   protected def timeout(sd: WaitingForDeviceAckStateData) = stop(FSM.Failure(new Exception(s"Timeout (${sd.timeoutInMs} milliseconds) while waiting for device ack reached.")))
 
@@ -194,7 +201,8 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
     pickUpNextTaskOrGoToInitialState
   } else {
-    stay using sd
+    //stay using sd
+    stop(FSM.Failure(new Exception(s"Received ack message code ${ack.ackedMessageCode} does not match ${sd.current.sendMessage.messageToDevice.messageCode} (that is required).")))
   }
 
   protected def pickUpNextTaskOrGoToInitialState = if (buffer.nonEmpty) {

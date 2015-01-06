@@ -24,6 +24,7 @@ class FakeListenAtSender(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case true                             => amaConfig.broadcaster ! listenAt
     case a: ServerSocket.ListenAtResult   => log.debug(s"Received listen at result $a.")
     case a: ServerSocket.ListeningStarted => log.debug(s"Received listening started $a.")
+    case a: ServerSocket.NewConnection    => // do nothing
     case message                          => log.warning(s"Unhandled $message send by ${sender()}")
   }
 

@@ -51,7 +51,7 @@ class ServerSocketWorker(
   }
 
   onTransition {
-    case fromState -> toState => log.info(s"State change from $fromState to $toState")
+    case fromState -> toState => log.debug(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {
@@ -72,7 +72,7 @@ class ServerSocketWorker(
   }
 
   protected def boundSuccessfully(akkaServerSocketTcpActor: ActorRef) = {
-    log.debug(s"Successfully bound to ${listenAt.listenAddress}, setting close timeout for ${listenAt.keepOpenForMs} milliseconds.")
+    log.info(s"Successfully bound to ${listenAt.listenAddress}, setting close timeout for ${listenAt.keepOpenForMs} milliseconds.")
 
     val keepOpenedServerSocketTimeout = context.system.scheduler.scheduleOnce(listenAt.keepOpenForMs millis, self, KeepOpenedServerSocketTimeout)
 
@@ -132,7 +132,7 @@ class ServerSocketWorker(
     newIncomingConnection(new IdentifiedConnectionInfo(remoteAddress, listenAt.listenAddress), akkaSocketTcpActor, sd)
 
   protected def newIncomingConnection(connectionInfo: IdentifiedConnectionInfo, akkaSocketTcpActor: ActorRef, sd: BoundStateData): State = {
-    log.debug(s"New incoming connection $connectionInfo.")
+    log.info(s"New incoming connection $connectionInfo.")
     val newConnection = new ServerSocket.NewConnection(connectionInfo, akkaSocketTcpActor, listenAt, listenAtSender)
     newConnection.reply(serverSocketActor)
     stay using sd

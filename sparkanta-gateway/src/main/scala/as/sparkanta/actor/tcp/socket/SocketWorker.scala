@@ -34,7 +34,7 @@ class SocketWorker(
   import context.dispatcher
 
   protected val buffer = new ListBuffer[MessageWithSender[Socket.SendData]]
-  protected val baos = new ByteArrayOutputStream(300)
+  protected val baos = new ByteArrayOutputStream(5)
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
@@ -49,7 +49,7 @@ class SocketWorker(
   }
 
   onTransition {
-    case fromState -> toState => log.info(s"State change from $fromState to $toState")
+    case fromState -> toState => log.debug(s"State change from $fromState to $toState")
   }
 
   whenUnhandled {
