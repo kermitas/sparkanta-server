@@ -5,13 +5,12 @@ import scala.concurrent.duration._
 import akka.actor.{ ActorRef, Cancellable, FSM, ActorRefFactory, Props }
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import as.sparkanta.gateway.{ Device, DeviceAck, NoAck, TcpAck }
-import as.sparkanta.device.message.todevice.{ NoAck => DeviceNoAck, MessageToDevice }
-//import as.sparkanta.actor.message.serializer.Serializer
+import as.sparkanta.device.message.todevice.{ NoAck => DeviceNoAck }
 import scala.collection.mutable.ListBuffer
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.device.message.fromdevice.Ack
 import as.sparkanta.actor.tcp.socket.Socket
-import as.sparkanta.device.message.serialize.{ Serializers, Serializer => SerializerClass }
+import as.sparkanta.device.message.serialize.Serializers
 
 object DeviceSerializer {
 
@@ -30,9 +29,6 @@ object DeviceSerializer {
   object Timeout extends InternalMessage
 
   class Record(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef)
-
-  //class SerializeWithSendMessage(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef, serializer: SerializerClass[MessageToDevice])
-  //extends Serializer.Serialize(sendMessage.messageToDevice, if (sendMessage.ack.isInstanceOf[DeviceAck]) sendMessage.ack.asInstanceOf[DeviceAck].deviceAck else DeviceNoAck, serializer)
 
   def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long): ActorRef = {
     val props = Props(new DeviceSerializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
@@ -54,13 +50,11 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 
   when(WaitingForDataToSend) {
-    //case Event(a: Serializer.SerializationSuccessResult, _) => successOrStopWithFailure { serializationSuccess(a) }
     case Event(a: Device.SendMessage, _) => successOrStopWithFailure { sendMessage(a, sender) }
   }
 
   when(WaitingForSendDataResult) {
     case Event(_: Socket.SendDataSuccessResult, sd: WaitingForSendDataResultStateData) => successOrStopWithFailure { sendDataSuccess(sd) }
-    //case Event(a: Serializer.SerializationSuccessResult, _)                            => successOrStopWithFailure { bufferSerializationSuccess(a) }
     case Event(a: Device.SendMessage, _) => successOrStopWithFailure { bufferSerializationSuccess(a, sender) }
     case Event(a: Socket.SendDataErrorResult, _) => successOrStopWithFailure { sendDataError(a) }
     case Event(Timeout, sd: WaitingForSendDataResultStateData) => successOrStopWithFailure { timeout(sd) }
@@ -69,7 +63,6 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   when(WaitingForDeviceAck) {
     case Event(a: Ack, sd: WaitingForDeviceAckStateData)  => successOrStopWithFailure { deviceAck(a, sd) }
     case Event(_: Socket.SendDataSuccessResult, sd)       => stay using stateData
-    //case Event(a: Serializer.SerializationSuccessResult, _) => successOrStopWithFailure { bufferSerializationSuccess(a) }
     case Event(a: Device.SendMessage, _)                  => successOrStopWithFailure { bufferSerializationSuccess(a, sender) }
     case Event(a: Socket.SendDataErrorResult, _)          => successOrStopWithFailure { sendDataError(a) }
     case Event(Timeout, sd: WaitingForDeviceAckStateData) => successOrStopWithFailure { timeout(sd) }
@@ -81,7 +74,6 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   whenUnhandled {
     case Event(a: Device.SendMessage, _)        => successOrStopWithFailure { sendMessage(a, sender) }
-    //case Event(a: Serializer.SerializationErrorResult, _) => successOrStopWithFailure { serializationError(a) }
     case Event(a: Device.StartErrorResult, _)   => successOrStopWithFailure { deviceStartError }
     case Event(a: Device.StartSuccessResult, _) => successOrStopWithFailure { deviceStartSuccess(sender) }
     case Event(a: Device.Stopped, _)            => successOrStopWithFailure { deviceStopped }
@@ -112,24 +104,6 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
     }
   }
 
-  /*
-  protected def sendMessage(sendMessage: Device.SendMessage, sendMessageSender: ActorRef) = {
-    broadcaster ! new SerializeWithSendMessage(sendMessage, sendMessageSender, serializers)
-    stay using stateData
-  }
-
-  protected def serializationError(serializationErrorResult: Serializer.SerializationErrorResult): State =
-    serializationError(serializationErrorResult.exception, serializationErrorResult.request1.message.asInstanceOf[SerializeWithSendMessage])
-
-  protected def serializationError(exception: Exception, serializeWithSendMessage: SerializeWithSendMessage): State =
-    serializationError(exception, serializeWithSendMessage.sendMessage, serializeWithSendMessage.sendMessageSender)
-
-  protected def serializationError(exception: Exception, sendMessage: Device.SendMessage, sendMessageSender: ActorRef): State = {
-    buffer += new Record(sendMessage, sendMessageSender, Array.empty)
-    val e = new Exception("Message to device serialization problem.", exception)
-    stop(FSM.Failure(e))
-  }*/
-
   protected def deviceStartError = stop(FSM.Normal)
 
   protected def deviceStartSuccess(startSuccessResultSender: ActorRef) = {
@@ -138,17 +112,6 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   }
 
   protected def deviceStopped = stop(FSM.Normal)
-
-  /*
-  protected def serializationSuccess(serializationSuccessResult: Serializer.SerializationSuccessResult): State =
-    serializationSuccess(serializationSuccessResult.serializedMessageToDevice, serializationSuccessResult.request1.message.asInstanceOf[SerializeWithSendMessage])
-
-  protected def serializationSuccess(serializedMessageToDevice: Array[Byte], serializeWithSendMessage: SerializeWithSendMessage): State =
-    serializationSuccess(serializedMessageToDevice, serializeWithSendMessage.sendMessage, serializeWithSendMessage.sendMessageSender)
-
-  protected def serializationSuccess(serializedMessageToDevice: Array[Byte], sendMessageMessage: Device.SendMessage, sendMessageSender: ActorRef): State =
-    sendMessage(serializedMessageToDevice, sendMessageMessage, sendMessageSender)
-  */
 
   protected def sendMessage(serializedMessageToDevice: Array[Byte], sendMessageMessage: Device.SendMessage, sendMessageSender: ActorRef): State = sendMessageMessage.ack match {
     case NoAck => {
@@ -186,23 +149,6 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
       stay using stateData
     }
   }
-
-  /*
-  protected def bufferSerializationSuccess(serializationSuccessResult: Serializer.SerializationSuccessResult): State =
-    bufferSerializationSuccess(serializationSuccessResult.serializedMessageToDevice, serializationSuccessResult.request1.message.asInstanceOf[SerializeWithSendMessage])
-
-  protected def bufferSerializationSuccess(serializedMessageToDevice: Array[Byte], serializeWithSendMessage: SerializeWithSendMessage): State =
-    bufferSerializationSuccess(serializedMessageToDevice, serializeWithSendMessage.sendMessage, serializeWithSendMessage.sendMessageSender)
-
-  protected def bufferSerializationSuccess(serializedMessageToDevice: Array[Byte], sendMessageMessage: Device.SendMessage, sendMessageSender: ActorRef): State = {
-    buffer += new Record(sendMessageMessage, sendMessageSender, serializedMessageToDevice)
-
-    if (buffer.size >= maximumQueuedSendDataMessages) {
-      stop(FSM.Failure(s"Maximum ($maximumQueuedSendDataMessages) buffered messages count reached."))
-    } else {
-      stay using stateData
-    }
-  }*/
 
   protected def sendDataError(sendDataErrorResult: Socket.SendDataErrorResult) =
     stop(FSM.Failure(new Exception("Problem with sending data to device.", sendDataErrorResult.exception)))

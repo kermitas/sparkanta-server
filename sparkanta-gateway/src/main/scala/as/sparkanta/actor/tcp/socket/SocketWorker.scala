@@ -34,7 +34,7 @@ class SocketWorker(
   import context.dispatcher
 
   protected val buffer = new ListBuffer[MessageWithSender[Socket.SendData]]
-  protected val baos = new ByteArrayOutputStream(5)
+  protected val baos = new ByteArrayOutputStream(1)
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
 

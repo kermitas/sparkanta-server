@@ -5,7 +5,7 @@ import java.io.{ ByteArrayOutputStream, OutputStream }
 
 trait Serializer[T <: MessageToDevice] {
 
-  protected val baos = new ByteArrayOutputStream(300)
+  protected val baos = new ByteArrayOutputStream(260)
   protected var messageNumber = 0
 
   def serialize(messageToDevice: T, ackType: DeviceAckType = NoAck): Array[Byte] = {

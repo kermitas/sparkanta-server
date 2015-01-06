@@ -1,7 +1,5 @@
 package as.sparkanta.actor.message
 
-import as.ama.addon.lifecycle.ShutdownSystem
-
 import scala.util.{ Try, Success, Failure }
 import akka.util.ByteString
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -9,6 +7,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.ama.config.AmaConfig
 import scala.collection.mutable.{ Map, ListBuffer }
 import akka.util.{ IncomingReplyableMessage, OutgoingReplyOn1Message }
+import as.ama.addon.lifecycle.ShutdownSystem
 
 object MessageDataAccumulator {
 
