@@ -135,7 +135,7 @@ class DeviceWorker(
   protected def deviceIdentification(deviceIdentificationMessage: DeviceIdentificationMessage, sd: WaitingForDeviceIdentificationStateData) = {
     sd.timeout.cancel
 
-    // TODO see if device of this unique id (and name?? <- probably unique name will be removed at all) is not currently online
+    // TODO somehow check if device of this unique id is not currently online
 
     start.pingPongSpeedTestTimeInMs match {
       case Some(pingPongSpeedTestTimeInMs) => {
@@ -151,7 +151,7 @@ class DeviceWorker(
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
 
-    log.debug(s"Device $deviceInfo successfully initialized.")
+    log.info(s"!!!!!!!!!!!!!!Device $deviceInfo successfully initialized!!!!!!!!!!!!!!!!!")
 
     broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new GatewayHello, NoAck)
 

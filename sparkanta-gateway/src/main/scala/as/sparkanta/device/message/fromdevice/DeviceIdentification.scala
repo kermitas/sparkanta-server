@@ -7,9 +7,7 @@ object DeviceIdentification {
 }
 
 class DeviceIdentification(
-  sparkantaIdentificationString: String,
-  softwareVersion:               Int,
-  hardwareVersion:               HardwareVersion,
-  deviceUniqueId:                Int,
-  deviceUniqueName:              String
-) extends DeviceIdentificationSpec(sparkantaIdentificationString, softwareVersion, hardwareVersion, deviceUniqueId, deviceUniqueName) with MessageFromDeviceThatShouldNotBeForwardedToRestServer
+  softwareVersion: Int,
+  hardwareVersion: HardwareVersion,
+  deviceUniqueId:  Int
+) extends DeviceIdentificationSpec(softwareVersion, hardwareVersion, deviceUniqueId) with MessageFromDeviceThatShouldNotBeForwardedToRestServer

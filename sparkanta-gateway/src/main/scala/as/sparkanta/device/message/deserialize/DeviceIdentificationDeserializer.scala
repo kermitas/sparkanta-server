@@ -30,20 +30,10 @@ class DeviceIdentificationDeserializerVersion1 extends Deserializer[DeviceIdenti
 
     validateMessageNumber(is.read, expectedMessageNumber)
 
-    val sparkantaIdentificationStringLength = is.read
-    val sparkantaIdentificationStringAsByteArray = new Array[Byte](sparkantaIdentificationStringLength)
-    is.read(sparkantaIdentificationStringAsByteArray)
-    val sparkantaIdentificationString = new String(sparkantaIdentificationStringAsByteArray)
-
     val softwareVersion = is.read
     val hardwareVersion = HardwareVersion(is.read)
     val deviceUniqueId = new DataInputStream(is).readChar
 
-    val deviceUniqueNameLength = is.read
-    val deviceUniqueNameAsByteArray = new Array[Byte](deviceUniqueNameLength)
-    is.read(deviceUniqueNameAsByteArray)
-    val deviceUniqueName = new String(deviceUniqueNameAsByteArray)
-
-    new DeviceIdentification(sparkantaIdentificationString, softwareVersion, hardwareVersion, deviceUniqueId, deviceUniqueName)
+    new DeviceIdentification(softwareVersion, hardwareVersion, deviceUniqueId)
   }
 }
