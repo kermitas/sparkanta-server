@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.serializer
 
 import scala.util.{ Try, Success, Failure }
@@ -53,3 +54,4 @@ class Serializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case e: Exception => new SerializationErrorResult(e, serialize, serializeSender)
   }
 }
+*/ 
