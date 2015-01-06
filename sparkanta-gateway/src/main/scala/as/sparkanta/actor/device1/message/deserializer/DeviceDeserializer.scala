@@ -12,7 +12,7 @@ import as.sparkanta.gateway.Device
 //import scala.collection.mutable.Map
 import scala.net.IdentifiedConnectionInfo
 import as.sparkanta.actor.tcp.socket.Socket
-import as.sparkanta.actor.message.deserializer.Deserializer
+//import as.sparkanta.actor.message.deserializer.Deserializer
 //import as.sparkanta.device.message.fromdevice.MessageFromDevice
 import as.sparkanta.device.message.deserialize.Deserializers
 
@@ -55,9 +55,9 @@ class DeviceDeserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var 
   override def receive = {
     case a: Socket.NewData => newData(a)
     case a: MessageDataAccumulator.MessageDataAccumulationSuccessResult => messageDataAccumulationSuccess(a)
-    case a: Deserializer.DeserializationSuccessResult => deserializationSuccess(a)
+    //case a: Deserializer.DeserializationSuccessResult => deserializationSuccess(a)
     case a: MessageDataAccumulator.MessageDataAccumulationErrorResult => messageDataAccumulationError(a)
-    case a: Deserializer.DeserializationErrorResult => deserializationError(a)
+    //case a: Deserializer.DeserializationErrorResult => deserializationError(a)
     //case a: ServerSocket.NewConnection => newConnection(a)
     case a: MessageDataAccumulator.StartDataAccumulationSuccessResult => // do nothing
     case a: MessageDataAccumulator.StartDataAccumulationErrorResult => startDataAccumulationError(a)
@@ -163,8 +163,17 @@ class DeviceDeserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var 
     stop(new Exception("Problem during message data accumulation.", exception))
   }
 
-  protected def messageDataAccumulationSuccess(messageDataAccumulationSuccessResult: MessageDataAccumulator.MessageDataAccumulationSuccessResult): Unit =
-    messageDataAccumulationSuccessResult.messageData.foreach { broadcaster ! new Deserializer.Deserialize(_, deserializers) }
+  protected def messageDataAccumulationSuccess(messageDataAccumulationSuccessResult: MessageDataAccumulator.MessageDataAccumulationSuccessResult): Unit = try {
+    messageDataAccumulationSuccessResult.messageData.foreach { serializedMessageFromDevice =>
+      val deserializedMessageFromDevice = deserializers.deserialize(serializedMessageFromDevice)
+      broadcaster.tell(new Device.NewMessage(deviceInfo, deserializedMessageFromDevice), deviceActor)
+    }
+  } catch {
+    case e: Exception => stop(new Exception("Problem during message deserialization.", e))
+  }
+
+  /*
+  //messageDataAccumulationSuccessResult.messageData.foreach { broadcaster ! new Deserializer.Deserialize(_, deserializers) }
 
   protected def deserializationError(deserializationErrorResult: Deserializer.DeserializationErrorResult): Unit =
     stop(new Exception("Problem during message deserialization.", deserializationErrorResult.exception))
@@ -196,6 +205,7 @@ class DeviceDeserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var 
       }
     }*/
   //}
+  */
 
   protected def stop: Unit = stop(None)
 

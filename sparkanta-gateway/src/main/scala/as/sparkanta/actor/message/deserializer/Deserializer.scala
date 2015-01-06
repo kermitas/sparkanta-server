@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.deserializer
 
 import scala.util.{ Try, Success, Failure }
@@ -53,3 +54,4 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case e: Exception => new DeserializationErrorResult(e, deserialize, deserializeSender)
   }
 }
+*/ 

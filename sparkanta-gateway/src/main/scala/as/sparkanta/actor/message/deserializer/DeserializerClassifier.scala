@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.message.deserializer
 
 import akka.actor.ActorRef
@@ -20,3 +21,4 @@ class DeserializerClassifier(broadcaster: ActorRef) extends Classifier {
     case _ => None
   }
 }
+*/ 

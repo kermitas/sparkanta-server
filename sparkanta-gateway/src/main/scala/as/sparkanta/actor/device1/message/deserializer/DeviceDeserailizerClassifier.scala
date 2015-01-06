@@ -2,7 +2,6 @@ package as.sparkanta.actor.device1.message.deserializer
 
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender
-import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.gateway.Device
 
