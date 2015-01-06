@@ -6,7 +6,7 @@ import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.{ Device => DeviceSpec }
-import as.sparkanta.actor.device.message.serializer.DeviceSerializer
+import as.sparkanta.actor.device.message.serializer.Serializer
 import as.sparkanta.actor.device.message.deserializer.Deserializer
 
 object DeviceStarter {
@@ -45,7 +45,7 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
 
     Deserializer.startActor(context, newConnectionMessage.connectionInfo, amaConfig.broadcaster, self)
 
-    DeviceSerializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, maximumQueuedSendDataMessages)
+    Serializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, maximumQueuedSendDataMessages)
 
     amaConfig.broadcaster ! new DeviceSpec.Start(newConnectionMessage.connectionInfo, newConnectionMessage.akkaSocketTcpActor, maximumQueuedSendDataMessages, deviceIdentificationTimeoutInMs, pingPongSpeedTestTimeInMs)
 

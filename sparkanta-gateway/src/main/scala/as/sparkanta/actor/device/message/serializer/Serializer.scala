@@ -12,7 +12,7 @@ import as.sparkanta.device.message.fromdevice.Ack
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.serialize.Serializers
 
-object DeviceSerializer {
+object Serializer {
 
   lazy final val waitingForSendDataResultTimeoutInMsIfNoAck = 2 * 1000
 
@@ -31,17 +31,17 @@ object DeviceSerializer {
   class Record(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef)
 
   def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long): ActorRef = {
-    val props = Props(new DeviceSerializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
-    val actor = actorRefFactory.actorOf(props, name = classOf[DeviceSerializer].getSimpleName + "-" + id)
-    broadcaster ! new Broadcaster.Register(actor, new DeviceSerializerClassifier(id, broadcaster))
+    val props = Props(new Serializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
+    val actor = actorRefFactory.actorOf(props, name = classOf[Serializer].getSimpleName + "-" + id)
+    broadcaster ! new Broadcaster.Register(actor, new SerializerClassifier(id, broadcaster))
     actor
   }
 }
 
-class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRef, maximumQueuedSendDataMessages: Long)
-  extends FSM[DeviceSerializer.State, DeviceSerializer.StateData] with FSMSuccessOrStop[DeviceSerializer.State, DeviceSerializer.StateData] {
+class Serializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRef, maximumQueuedSendDataMessages: Long)
+  extends FSM[Serializer.State, Serializer.StateData] with FSMSuccessOrStop[Serializer.State, Serializer.StateData] {
 
-  import DeviceSerializer._
+  import Serializer._
   import context.dispatcher
 
   protected val serializers = new Serializers
@@ -192,7 +192,7 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
     goto(WaitingForDataToSend) using WaitingForDataToSendStateData
   }
 
-  protected def terminate(reason: FSM.Reason, currentState: DeviceSerializer.State, stateData: DeviceSerializer.StateData): Unit = {
+  protected def terminate(reason: FSM.Reason, currentState: Serializer.State, stateData: Serializer.StateData): Unit = {
 
     val exception = reason match {
       case FSM.Normal => {
