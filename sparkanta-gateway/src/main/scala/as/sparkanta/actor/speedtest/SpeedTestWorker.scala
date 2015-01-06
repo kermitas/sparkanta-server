@@ -34,6 +34,8 @@ class SpeedTestWorker(startSpeedTest: SpeedTest.StartSpeedTest, startSpeedTestSe
       sendPing
     }
 
+    case a: Device.SendMessageSuccessResult => // do nothing
+
     case a: Device.SendMessageErrorResult => {
       timeout.cancel
       val speedTestErrorResult = new SpeedTest.SpeedTestErrorResult(a.optionalException.get, startSpeedTest, startSpeedTestSender)

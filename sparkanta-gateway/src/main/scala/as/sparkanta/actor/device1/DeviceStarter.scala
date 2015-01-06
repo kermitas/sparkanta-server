@@ -30,12 +30,14 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case a: ServerSocket.NewConnection    => newConnection(a)
-    case a: DeviceSpec.StartErrorResult   => log.error(a.exception, a.exception.getMessage)
-    case _: DeviceSpec.StartSuccessResult =>
-    case _: DeviceSpec.Started            =>
-    case _: DeviceSpec.Stopped            =>
-    case message                          => log.warning(s"Unhandled $message send by ${sender()}")
+    case a: ServerSocket.NewConnection      => newConnection(a)
+    case a: DeviceSpec.StartErrorResult     => log.error(a.exception, a.exception.getMessage)
+    case _: DeviceSpec.StartSuccessResult   => // do nothing
+    case _: DeviceSpec.Started              => // do nothing
+    case _: DeviceSpec.Stopped              => // do nothing
+    case _: DeviceSpec.IdentifiedDeviceUp   => // do nothing
+    case _: DeviceSpec.IdentifiedDeviceDown => // do nothing
+    case message                            => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
   protected def newConnection(newConnectionMessage: ServerSocket.NewConnection): Unit = try {

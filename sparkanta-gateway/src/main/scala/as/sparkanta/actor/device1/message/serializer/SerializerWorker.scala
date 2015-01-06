@@ -53,6 +53,8 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   when(WaitingForDataToSend) {
     case Event(a: GeneralSerializer.SerializationSuccessResult, _) => successOrStopWithFailure { serializationSuccess(a) }
+    case Event(_: Socket.SendDataSuccessResult, sd)                => stay using sd
+    case Event(a: Socket.SendDataErrorResult, _)                   => successOrStopWithFailure { sendDataError(a) }
   }
 
   when(WaitingForSendDataResult) {
@@ -64,7 +66,7 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
 
   when(WaitingForDeviceAck) {
     case Event(a: Ack, sd: WaitingForDeviceAckStateData)           => successOrStopWithFailure { deviceAck(a, sd) }
-    case Event(_: Socket.SendDataSuccessResult, _)                 => successOrStopWithFailure { stay using stateData }
+    case Event(_: Socket.SendDataSuccessResult, sd)                => stay using stateData
     case Event(a: GeneralSerializer.SerializationSuccessResult, _) => successOrStopWithFailure { bufferSerializationSuccess(a) }
     case Event(a: Socket.SendDataErrorResult, _)                   => successOrStopWithFailure { sendDataError(a) }
     case Event(Timeout, sd: WaitingForDeviceAckStateData)          => successOrStopWithFailure { timeout(sd) }
@@ -93,10 +95,6 @@ class SerializerWorker(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   }
 
   initialize
-
-  /*override def preStart(): Unit = {
-    broadcaster ! new Broadcaster.Register(self, new SerializerWorkerClassifier(id, broadcaster))
-  }*/
 
   protected def sendMessage(sendMessage: Device.SendMessage, sendMessageSender: ActorRef) = {
     broadcaster ! new SerializeWithSendMessage(sendMessage, sendMessageSender)

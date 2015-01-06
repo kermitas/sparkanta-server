@@ -39,7 +39,8 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     case a: InactivityMonitorSpec.InactivityDetected => inactivityDetected(a)
     case a: InactivityMonitorSpec.StartInactivityMonitorSuccessResult => // do nothing
     case a: InactivityMonitorSpec.StartInactivityMonitorErrorResult => startInactivityMonitorError(a)
-
+    case a: Device.SendMessageSuccessResult => // do nothing
+    case a: Device.SendMessageErrorResult => sendMessageError(a)
     case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -56,6 +57,11 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
   protected def startInactivityMonitorError(id: Long, exception: Exception) {
     val e = new Exception("Problem while starting inactivity monitor.", exception)
     amaConfig.broadcaster ! new Device.StopDevice(id, e)
+  }
+
+  protected def sendMessageError(sendMessageErrorResult: Device.SendMessageErrorResult): Unit = {
+    val e = new Exception(s"Problem while sending $ping to device of remote address id ${sendMessageErrorResult.request1.message.id}.", sendMessageErrorResult.exception)
+    amaConfig.broadcaster ! new Device.StopDevice(sendMessageErrorResult.request1.message.id, e)
   }
 
   protected def identifiedDeviceDown(identifiedDeviceDownMessage: Device.IdentifiedDeviceDown): Unit =

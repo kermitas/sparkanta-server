@@ -151,7 +151,7 @@ class DeviceWorker(
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
 
-    log.info(s"!!!!!!!!!!!!!!Device $deviceInfo successfully initialized!!!!!!!!!!!!!!!!!")
+    log.info(s"!!!!!!!!!!!!!! Device $deviceInfo successfully initialized and up. !!!!!!!!!!!!!!!!!")
 
     broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new GatewayHello, NoAck)
 
@@ -211,8 +211,12 @@ class DeviceWorker(
     if (stateData.isInstanceOf[IdentifiedStateData]) {
       val identifiedStateData = stateData.asInstanceOf[IdentifiedStateData]
 
+      log.info(s"!!!!!!!!!!!!!! Identified device ${identifiedStateData.deviceInfo} down.!!!!!!!!!!!!!!!!!")
+
       val identifiedDeviceDown = new DeviceSpec.IdentifiedDeviceDown(identifiedStateData.deviceInfo, stopType, identifiedStateData.deviceInfo.timeInSystemInMillis, start, startSender)
       identifiedDeviceDown.reply(deviceActor)
+    } else {
+      log.info(s"!!!!!!!!!!!!!! Not identified device ${start.connectionInfo} down.!!!!!!!!!!!!!!!!!")
     }
 
     val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
