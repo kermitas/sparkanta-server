@@ -5,12 +5,13 @@ import scala.concurrent.duration._
 import akka.actor.{ ActorRef, Cancellable, FSM, ActorRefFactory, Props }
 import akka.util.{ FSMSuccessOrStop, InternalMessage }
 import as.sparkanta.gateway.{ Device, DeviceAck, NoAck, TcpAck }
-import as.sparkanta.device.message.todevice.{ NoAck => DeviceNoAck }
+import as.sparkanta.device.message.todevice.{ NoAck => DeviceNoAck, MessageToDevice }
 import as.sparkanta.actor.message.serializer.Serializer
 import scala.collection.mutable.ListBuffer
 import as.akka.broadcaster.Broadcaster
 import as.sparkanta.device.message.fromdevice.Ack
 import as.sparkanta.actor.tcp.socket.Socket
+import as.sparkanta.device.message.serialize.{ Serializers, Serializer => SerializerClass }
 
 object DeviceSerializer {
 
@@ -30,8 +31,8 @@ object DeviceSerializer {
 
   class Record(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef, val serializedMessage: Array[Byte])
 
-  class SerializeWithSendMessage(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef)
-    extends Serializer.Serialize(sendMessage.messageToDevice, if (sendMessage.ack.isInstanceOf[DeviceAck]) sendMessage.ack.asInstanceOf[DeviceAck].deviceAck else DeviceNoAck)
+  class SerializeWithSendMessage(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef, serializer: SerializerClass[MessageToDevice])
+    extends Serializer.Serialize(sendMessage.messageToDevice, if (sendMessage.ack.isInstanceOf[DeviceAck]) sendMessage.ack.asInstanceOf[DeviceAck].deviceAck else DeviceNoAck, serializer)
 
   def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long): ActorRef = {
     val props = Props(new DeviceSerializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
@@ -47,6 +48,7 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   import DeviceSerializer._
   import context.dispatcher
 
+  protected val serializers = new Serializers
   protected val buffer = new ListBuffer[Record]
 
   startWith(WaitingForDataToSend, WaitingForDataToSendStateData)
@@ -95,7 +97,7 @@ class DeviceSerializer(id: Long, broadcaster: ActorRef, var deviceActor: ActorRe
   initialize
 
   protected def sendMessage(sendMessage: Device.SendMessage, sendMessageSender: ActorRef) = {
-    broadcaster ! new SerializeWithSendMessage(sendMessage, sendMessageSender)
+    broadcaster ! new SerializeWithSendMessage(sendMessage, sendMessageSender, serializers)
     stay using stateData
   }
 

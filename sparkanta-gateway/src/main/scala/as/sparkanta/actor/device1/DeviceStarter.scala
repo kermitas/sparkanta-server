@@ -7,6 +7,7 @@ import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.{ Device => DeviceSpec }
 import as.sparkanta.actor.device1.message.serializer.DeviceSerializer
+import as.sparkanta.actor.device1.message.deserializer.DeviceDeserializer
 
 object DeviceStarter {
   lazy final val maximumQueuedSendDataMessages = 50 // TODO move to config
@@ -41,6 +42,8 @@ class DeviceStarter(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   protected def newConnection(newConnectionMessage: ServerSocket.NewConnection): Unit = try {
+
+    DeviceDeserializer.startActor(context, newConnectionMessage.connectionInfo, amaConfig.broadcaster, self)
 
     DeviceSerializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, maximumQueuedSendDataMessages)
 

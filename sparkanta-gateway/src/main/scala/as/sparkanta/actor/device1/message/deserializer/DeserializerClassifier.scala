@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device1.message.deserializer
 
 import as.akka.broadcaster.Classifier
@@ -21,3 +22,4 @@ class DeserializerClassifier extends Classifier {
     case _                             => None
   }
 }
+*/ 

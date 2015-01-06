@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device1.message.deserializer
 
 import akka.actor.{ ActorRef, ActorLogging, Actor }
@@ -166,3 +167,4 @@ class Deserializer(amaConfig: AmaConfig) extends Actor with ActorLogging {
     log.debug(s"Remote address id $id was removed (device info ${record.deviceInfo}), currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
   }
 }
+*/ 
