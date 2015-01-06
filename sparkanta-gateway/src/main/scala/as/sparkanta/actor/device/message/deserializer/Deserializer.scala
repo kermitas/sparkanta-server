@@ -10,21 +10,21 @@ import scala.net.IdentifiedConnectionInfo
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.deserialize.Deserializers
 
-object DeviceDeserializer {
+object Deserializer {
 
   class SemiInitializedDeviceInfo(connectionInfo: IdentifiedConnectionInfo) extends DeviceInfo(connectionInfo, null, None) {
     override def toString = s"${getClass.getSimpleName}(connectionInfo=$connectionInfo)"
   }
 
   def startActor(actorRefFactory: ActorRefFactory, connectionInfo: IdentifiedConnectionInfo, broadcaster: ActorRef, deviceActor: ActorRef): ActorRef = {
-    val props = Props(new DeviceDeserializer(new SemiInitializedDeviceInfo(connectionInfo), broadcaster, deviceActor))
-    val actor = actorRefFactory.actorOf(props, name = classOf[DeviceDeserializer].getSimpleName + "-" + connectionInfo.remote.id)
-    broadcaster ! new Broadcaster.Register(actor, new DeviceDeserailizerClassifier(connectionInfo.remote.id))
+    val props = Props(new Deserializer(new SemiInitializedDeviceInfo(connectionInfo), broadcaster, deviceActor))
+    val actor = actorRefFactory.actorOf(props, name = classOf[Deserializer].getSimpleName + "-" + connectionInfo.remote.id)
+    broadcaster ! new Broadcaster.Register(actor, new DeserailizerClassifier(connectionInfo.remote.id))
     actor
   }
 }
 
-class DeviceDeserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var deviceActor: ActorRef) extends Actor with ActorLogging {
+class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var deviceActor: ActorRef) extends Actor with ActorLogging {
 
   protected val deserializers = new Deserializers
   protected var messageAccumulatorStarted = false
