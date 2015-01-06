@@ -10,7 +10,7 @@ import as.sparkanta.device.message.fromdevice.Ack
  * This classifier will be used by broadcaster to test if we are interested (or not)
  * in this message.
  */
-class SerializerWorkerClassifier(id: Long, broadcaster: ActorRef) extends Classifier {
+class DeviceSerializerClassifier(id: Long, broadcaster: ActorRef) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
 
     case a: Device.SendMessage if a.id == id => {
