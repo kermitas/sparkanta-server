@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device.inactivity1
+package as.sparkanta.actor.device.inactivity
 
 import as.akka.broadcaster.Classifier
 import akka.util.MessageWithSender

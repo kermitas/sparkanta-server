@@ -12,7 +12,7 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.todevice.{ GatewayHello, ServerHello }
 import as.sparkanta.gateway.NoAck
-import as.sparkanta.actor.device.inactivity1.InactivityMonitor
+import as.sparkanta.actor.device.inactivity.InactivityMonitor
 
 object DeviceWorker {
 
@@ -150,13 +150,13 @@ class DeviceWorker(
   protected def gotoInitialized(deviceIdentification: DeviceIdentification, pingPongsCountInTimeInMs: Option[(Long, Long)]) = {
     val deviceInfo = new DeviceInfo(start.connectionInfo, deviceIdentification, pingPongsCountInTimeInMs)
 
+    InactivityMonitor.startActor(context, deviceInfo.connectionInfo.remote.id, broadcaster, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
+
     log.info(s"!!!!!!!!!!!!!! Device $deviceInfo successfully initialized and up. !!!!!!!!!!!!!!!!!")
 
     broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new GatewayHello, NoAck)
 
     broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new ServerHello, NoAck) // TODO ServerHello should be send by the server, not gateway
-
-    InactivityMonitor.startActor(context, deviceInfo.connectionInfo.remote.id, broadcaster, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
 
     val identifiedDeviceUp = new DeviceSpec.IdentifiedDeviceUp(deviceInfo, start, startSender)
     identifiedDeviceUp.reply(deviceActor)

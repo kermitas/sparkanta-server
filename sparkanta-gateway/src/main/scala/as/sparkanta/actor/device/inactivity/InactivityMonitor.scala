@@ -1,4 +1,4 @@
-package as.sparkanta.actor.device.inactivity1
+package as.sparkanta.actor.device.inactivity
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
