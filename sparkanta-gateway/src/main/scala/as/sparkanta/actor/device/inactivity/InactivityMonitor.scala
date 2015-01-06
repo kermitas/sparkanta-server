@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device.inactivity
 
 import akka.actor.{ ActorLogging, Actor }
@@ -88,3 +89,4 @@ class InactivityMonitor(amaConfig: AmaConfig, config: InactivityMonitorConfig) e
 
   protected def newMessage(id: Long): Unit = amaConfig.broadcaster ! new InactivityMonitorSpec.Active(id)
 }
+*/ 

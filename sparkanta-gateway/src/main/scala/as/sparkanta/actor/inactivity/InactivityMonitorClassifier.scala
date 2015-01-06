@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.inactivity
 
 import akka.actor.ActorRef
@@ -22,3 +23,4 @@ class InactivityMonitorClassifier(broadcaster: ActorRef) extends Classifier {
     case _                        => None
   }
 }
+*/ 

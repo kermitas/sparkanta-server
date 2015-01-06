@@ -12,10 +12,9 @@ import as.akka.broadcaster.Broadcaster
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.todevice.{ GatewayHello, ServerHello }
 import as.sparkanta.gateway.NoAck
+import as.sparkanta.actor.device.inactivity1.InactivityMonitor
 
 object DeviceWorker {
-
-  lazy final val extraTimeForWaitingOnSpeedTestResultInMs = 250 // TODO move to config
 
   sealed trait State extends Serializable
   case object WaitingForDeviceIdentification extends State
@@ -39,7 +38,8 @@ class DeviceWorker(
   start:       DeviceSpec.Start,
   startSender: ActorRef,
   broadcaster: ActorRef,
-  deviceActor: ActorRef
+  deviceActor: ActorRef,
+  config:      DeviceWorkerConfig
 ) extends FSM[DeviceWorker.State, DeviceWorker.StateData] with FSMSuccessOrStop[DeviceWorker.State, DeviceWorker.StateData] {
 
   import DeviceWorker._
@@ -139,7 +139,7 @@ class DeviceWorker(
     start.pingPongSpeedTestTimeInMs match {
       case Some(pingPongSpeedTestTimeInMs) => {
         broadcaster ! new SpeedTest.StartSpeedTest(start.connectionInfo.remote.id, pingPongSpeedTestTimeInMs)
-        val timeout = context.system.scheduler.scheduleOnce(pingPongSpeedTestTimeInMs + extraTimeForWaitingOnSpeedTestResultInMs millis, self, SpeedTestTimeout)
+        val timeout = context.system.scheduler.scheduleOnce(pingPongSpeedTestTimeInMs + config.extraTimeForWaitingOnSpeedTestResultInMs millis, self, SpeedTestTimeout)
         goto(WaitingForSpeedTestResult) using new WaitingForSpeedTestResultStateData(deviceIdentificationMessage, timeout)
       }
 
@@ -156,6 +156,8 @@ class DeviceWorker(
 
     broadcaster ! new DeviceSpec.SendMessage(start.connectionInfo.remote.id, new ServerHello, NoAck) // TODO ServerHello should be send by the server, not gateway
 
+    InactivityMonitor.startActor(context, deviceInfo.connectionInfo.remote.id, broadcaster, config.warningTimeAfterMs, config.inactivityTimeAfterMs)
+
     val identifiedDeviceUp = new DeviceSpec.IdentifiedDeviceUp(deviceInfo, start, startSender)
     identifiedDeviceUp.reply(deviceActor)
 
@@ -164,7 +166,7 @@ class DeviceWorker(
 
   protected def deviceIdentificationTimeout = stop(FSM.Failure(new Exception(s"Device identification (${start.deviceIdentificationTimeoutInMs} milliseconds) timeout reached.")))
 
-  protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + extraTimeForWaitingOnSpeedTestResultInMs} milliseconds) timeout reached.")))
+  protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + config.extraTimeForWaitingOnSpeedTestResultInMs} milliseconds) timeout reached.")))
 
   protected def stopRequest(stopMessage: DeviceSpec.Stop, stopSender: ActorRef) = {
 

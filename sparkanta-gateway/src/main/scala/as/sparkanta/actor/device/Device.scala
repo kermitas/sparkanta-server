@@ -29,7 +29,7 @@ class Device(amaConfig: AmaConfig) extends Actor with ActorLogging {
   }
 
   protected def start(start: DeviceSpec.Start, startSender: ActorRef): Unit = try {
-    val props = Props(new DeviceWorker(start, startSender, amaConfig.broadcaster, self))
+    val props = Props(new DeviceWorker(start, startSender, amaConfig.broadcaster, self, DeviceWorkerConfig.fromTopKey(amaConfig.config)))
     context.actorOf(props, classOf[DeviceWorker].getSimpleName + "-" + start.connectionInfo.remote.id)
   } catch {
     case e: Exception => {

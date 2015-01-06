@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.inactivity
 
 import as.ama.addon.lifecycle.ShutdownSystem
@@ -123,3 +124,4 @@ class InactivityMonitor(amaConfig: AmaConfig) extends Actor with ActorLogging {
     log.debug(s"Id $id was removed, currently there are ${map.size} ids in map (ids: ${map.keySet.mkString(",")}).")
   }
 }
+*/ 

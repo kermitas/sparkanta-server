@@ -18,6 +18,7 @@ class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLog
   //protected var isLow = true
   protected var messagesCount = 0L
   protected var setting = true
+  protected var timer: Cancellable = null
 
   protected final val pins = Array(D0, D1, D2, D3, D4, D5, D6, D7)
   protected var pinNumber = 0
@@ -25,9 +26,9 @@ class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLog
   override def preStart(): Unit = {
     broadcaster ! new Broadcaster.Register(self, new BlinkerWorkerClassifier(id))
 
-    context.system.scheduler.schedule(1000 millis, 1000 millis, self, true)(context.dispatcher)
+    timer = context.system.scheduler.schedule(1000 millis, 1000 millis, self, true)(context.dispatcher)
 
-    val pinReadTimeInMs = 2000
+    val pinReadTimeInMs = 100
 
     val pinConfiguration = new PinConfiguration(
       new DigitalPinConfig(D0, new DigitalOutput(Low)),
@@ -78,11 +79,13 @@ class BlinkerWorker(id: Long, broadcaster: ActorRef) extends Actor with ActorLog
     case a: Device.SendMessageErrorResult => {
       log.error(a.exception, "Stopping because of sending message problem.")
       broadcaster ! new Device.StopDevice(id, a.exception)
+      if (timer != null) timer.cancel
       context.stop(self)
     }
 
     case a: Device.IdentifiedDeviceDown => {
       log.debug("Stopping because device stopped.")
+      if (timer != null) timer.cancel
       context.stop(self)
     }
 

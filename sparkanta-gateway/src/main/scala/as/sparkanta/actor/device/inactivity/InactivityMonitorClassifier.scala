@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device.inactivity
 
 import as.akka.broadcaster.Classifier
@@ -16,3 +17,4 @@ class InactivityMonitorClassifier extends Classifier {
     case _                              => None
   }
 }
+*/ 

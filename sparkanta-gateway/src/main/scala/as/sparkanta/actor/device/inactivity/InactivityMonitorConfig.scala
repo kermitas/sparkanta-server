@@ -1,3 +1,4 @@
+/*
 package as.sparkanta.actor.device.inactivity
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -39,3 +40,4 @@ class InactivityMonitorConfig(
   val warningTimeAfterMs:    Int,
   val inactivityTimeAfterMs: Int
 )
+*/ 
