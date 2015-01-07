@@ -18,6 +18,9 @@ import as.sparkanta.actor.device.message.serializer.Serializer
 
 object DeviceWorker {
   sealed trait State extends Serializable
+
+  // TODO add states: Uninitialized -> WaitingForSocketStart -> WaitingForDeviceIdentification -> CheckingIfDeviceIsNotOnline -> WaitingForSpeedTestResult -> Identified
+
   case object WaitingForDeviceIdentification extends State
   case object WaitingForSpeedTestResult extends State
   case object Identified extends State
