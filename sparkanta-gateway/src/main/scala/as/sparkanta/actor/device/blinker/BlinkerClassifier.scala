@@ -10,7 +10,7 @@ import as.sparkanta.gateway.Device
  */
 class BlinkerClassifier extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
-    //case _: Device.IdentifiedDeviceUp => Some(messageWithSender)
-    case _ => None
+    case _: Device.IdentifiedDeviceUp => Some(messageWithSender)
+    case _                            => None
   }
 }

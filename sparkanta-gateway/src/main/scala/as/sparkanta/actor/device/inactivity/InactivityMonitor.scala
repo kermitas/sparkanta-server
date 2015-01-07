@@ -59,13 +59,4 @@ class InactivityMonitor(id: Long, broadcaster: ActorRef, warningTimeAfterMs: Int
     cancelTimers
     setTimers
   }
-
-  /*
-  protected def stop(exception: Exception): Unit = {
-    cancelTimers
-
-    val exception = new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds).")
-    broadcaster ! new Device.StopDevice(id, exception)
-    context.stop(self)
-  }*/
 }
