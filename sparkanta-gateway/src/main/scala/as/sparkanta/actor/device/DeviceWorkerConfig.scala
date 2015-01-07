@@ -11,6 +11,7 @@ object DeviceWorkerConfig {
   final val warningTimeAfterMsConfigKey = "warningTimeAfterMs"
   final val inactivityTimeAfterMsConfigKey = "inactivityTimeAfterMs"
   final val extraTimeForWaitingOnSpeedTestResultInMsConfigKey = "extraTimeForWaitingOnSpeedTestResultInMs"
+  final val waitingForSendDataResultTimeoutInMsIfNotSetInAckConfigKey = "waitingForSendDataResultTimeoutInMsIfNotSetInAck"
 
   /**
    * Assumes that Config contains:
@@ -29,16 +30,18 @@ object DeviceWorkerConfig {
    *   ...
    */
   def apply(config: Config = ConfigFactory.load): DeviceWorkerConfig = {
-    val warningTimeAfterMs = config.getInt(warningTimeAfterMsConfigKey)
-    val inactivityTimeAfterMs = config.getInt(inactivityTimeAfterMsConfigKey)
-    val extraTimeForWaitingOnSpeedTestResultInMs = config.getInt(extraTimeForWaitingOnSpeedTestResultInMsConfigKey)
+    val warningTimeAfterMs = config.getLong(warningTimeAfterMsConfigKey)
+    val inactivityTimeAfterMs = config.getLong(inactivityTimeAfterMsConfigKey)
+    val extraTimeForWaitingOnSpeedTestResultInMs = config.getLong(extraTimeForWaitingOnSpeedTestResultInMsConfigKey)
+    val waitingForSendDataResultTimeoutInMsIfNotSetInAck = config.getLong(waitingForSendDataResultTimeoutInMsIfNotSetInAckConfigKey)
 
-    new DeviceWorkerConfig(warningTimeAfterMs, inactivityTimeAfterMs, extraTimeForWaitingOnSpeedTestResultInMs)
+    new DeviceWorkerConfig(warningTimeAfterMs, inactivityTimeAfterMs, extraTimeForWaitingOnSpeedTestResultInMs, waitingForSendDataResultTimeoutInMsIfNotSetInAck)
   }
 }
 
 class DeviceWorkerConfig(
-  val warningTimeAfterMs:                       Int,
-  val inactivityTimeAfterMs:                    Int,
-  val extraTimeForWaitingOnSpeedTestResultInMs: Int
+  val warningTimeAfterMs:                               Long,
+  val inactivityTimeAfterMs:                            Long,
+  val extraTimeForWaitingOnSpeedTestResultInMs:         Long,
+  val waitingForSendDataResultTimeoutInMsIfNotSetInAck: Long
 )

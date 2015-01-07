@@ -13,7 +13,7 @@ object InactivityMonitor {
   object WarningTimeout extends Serializable
   object InactivityTimeout extends Serializable
 
-  def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, warningTimeAfterMs: Int, inactivityTimeAfterMs: Int): ActorRef = {
+  def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, warningTimeAfterMs: Long, inactivityTimeAfterMs: Long): ActorRef = {
     val props = Props(new InactivityMonitor(id, broadcaster, warningTimeAfterMs, inactivityTimeAfterMs))
     val actor = actorRefFactory.actorOf(props, name = classOf[InactivityMonitor].getSimpleName + "-" + id)
     broadcaster ! new Broadcaster.Register(actor, new InactivityMonitorClassifier(id))
@@ -21,7 +21,7 @@ object InactivityMonitor {
   }
 }
 
-class InactivityMonitor(id: Long, broadcaster: ActorRef, warningTimeAfterMs: Int, inactivityTimeAfterMs: Int) extends Actor with ActorLogging {
+class InactivityMonitor(id: Long, broadcaster: ActorRef, warningTimeAfterMs: Long, inactivityTimeAfterMs: Long) extends Actor with ActorLogging {
 
   import InactivityMonitor._
   import context.dispatcher

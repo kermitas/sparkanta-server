@@ -118,7 +118,7 @@ class DeviceWorker(
   protected def init = try {
 
     val deserializer = Deserializer.startActor(context, start.connectionInfo, broadcaster, self)
-    val serializer = Serializer.startActor(context, start.connectionInfo.remote.id, broadcaster, self, start.maximumQueuedMessagesToSend)
+    val serializer = Serializer.startActor(context, start.connectionInfo.remote.id, broadcaster, self, start.maximumQueuedMessagesToSend, config.waitingForSendDataResultTimeoutInMsIfNotSetInAck)
 
     context.watch(deserializer)
     context.watch(serializer)

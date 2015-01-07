@@ -24,7 +24,11 @@ object Deserializer {
   }
 }
 
-class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, deviceActor: ActorRef) extends Actor with ActorLogging {
+class Deserializer(
+  var deviceInfo: DeviceInfo,
+  broadcaster:    ActorRef,
+  deviceActor:    ActorRef
+) extends Actor with ActorLogging {
 
   protected val deserializers = new Deserializers
 

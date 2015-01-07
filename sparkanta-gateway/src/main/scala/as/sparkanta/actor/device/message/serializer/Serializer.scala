@@ -13,9 +13,6 @@ import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.serialize.Serializers
 
 object Serializer {
-
-  lazy final val waitingForSendDataResultTimeoutInMsIfNoAck = 2 * 1000 // TODO move to config or do something with that (for example pass thru constructor)
-
   sealed trait State extends Serializable
   case object WaitingForDataToSend extends State
   case object WaitingForSendDataResult extends State
@@ -30,15 +27,21 @@ object Serializer {
 
   class Record(val sendMessage: Device.SendMessage, val sendMessageSender: ActorRef)
 
-  def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long): ActorRef = {
-    val props = Props(new Serializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages))
+  def startActor(actorRefFactory: ActorRefFactory, id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long, waitingForSendDataResultTimeoutInMsIfNotSetInAck: Long): ActorRef = {
+    val props = Props(new Serializer(id, broadcaster, deviceActor, maximumQueuedSendDataMessages, waitingForSendDataResultTimeoutInMsIfNotSetInAck))
     val actor = actorRefFactory.actorOf(props, name = classOf[Serializer].getSimpleName + "-" + id)
     broadcaster ! new Broadcaster.Register(actor, new SerializerClassifier(id, broadcaster))
     actor
   }
 }
 
-class Serializer(id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximumQueuedSendDataMessages: Long)
+class Serializer(
+  id:                                               Long,
+  broadcaster:                                      ActorRef,
+  deviceActor:                                      ActorRef,
+  maximumQueuedSendDataMessages:                    Long,
+  waitingForSendDataResultTimeoutInMsIfNotSetInAck: Long
+)
   extends FSM[Serializer.State, Serializer.StateData] {
 
   import Serializer._
@@ -103,9 +106,9 @@ class Serializer(id: Long, broadcaster: ActorRef, deviceActor: ActorRef, maximum
   protected def sendMessage(serializedMessageToDevice: Array[Byte], sendMessageMessage: Device.SendMessage, sendMessageSender: ActorRef): State = sendMessageMessage.ack match {
     case NoAck => {
       broadcaster ! new Socket.SendData(serializedMessageToDevice, id, NoAck)
-      val timeout = context.system.scheduler.scheduleOnce(waitingForSendDataResultTimeoutInMsIfNoAck millis, self, Timeout)
+      val timeout = context.system.scheduler.scheduleOnce(waitingForSendDataResultTimeoutInMsIfNotSetInAck millis, self, Timeout)
       val record = new Record(sendMessageMessage, sendMessageSender)
-      goto(WaitingForSendDataResult) using new WaitingForSendDataResultStateData(record, timeout, waitingForSendDataResultTimeoutInMsIfNoAck)
+      goto(WaitingForSendDataResult) using new WaitingForSendDataResultStateData(record, timeout, waitingForSendDataResultTimeoutInMsIfNotSetInAck)
     }
 
     case tcpAck: TcpAck => {
