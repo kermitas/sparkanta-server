@@ -3,9 +3,9 @@ package as.sparkanta.actor.device.message.deserializer
 import akka.actor.{ ActorRef, ActorLogging, Actor, ActorRefFactory, Props }
 import akka.util.ByteString
 import as.akka.broadcaster.Broadcaster
-import as.sparkanta.actor.message.MessageDataAccumulator
 import as.sparkanta.device.DeviceInfo
 import as.sparkanta.gateway.Device
+import scala.collection.mutable.ListBuffer
 import scala.net.IdentifiedConnectionInfo
 import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.deserialize.Deserializers
@@ -31,41 +31,56 @@ class Deserializer(
 ) extends Actor with ActorLogging {
 
   protected val deserializers = new Deserializers
-
-  override def preStart(): Unit = broadcaster ! new MessageDataAccumulator.StartDataAccumulation(deviceInfo.connectionInfo.remote.id)
-
-  override def postStop(): Unit = broadcaster ! new MessageDataAccumulator.StopDataAccumulation(deviceInfo.connectionInfo.remote.id)
+  protected var buffer = ByteString.empty
 
   override def receive = {
-    case a: Socket.NewData => newData(a)
-    case a: MessageDataAccumulator.MessageDataAccumulationSuccessResult => messageDataAccumulationSuccess(a)
-    case a: MessageDataAccumulator.MessageDataAccumulationErrorResult => messageDataAccumulationError(a)
-    case a: MessageDataAccumulator.StartDataAccumulationSuccessResult => // do nothing
-    case a: MessageDataAccumulator.StartDataAccumulationErrorResult => startDataAccumulationError(a)
+    case a: Socket.NewData            => newData(a)
     case a: Device.IdentifiedDeviceUp => identifiedDeviceUp(a)
 
-    case message => log.warning(s"Unhandled $message send by ${sender()}")
+    case message                      => log.warning(s"Unhandled $message send by ${sender()}")
   }
-
-  protected def startDataAccumulationError(startDataAccumulationErrorResult: MessageDataAccumulator.StartDataAccumulationErrorResult): Unit =
-    throw new Exception("Problem while starting message data accumulator.", startDataAccumulationErrorResult.exception)
 
   protected def identifiedDeviceUp(identifiedDeviceUpMessage: Device.IdentifiedDeviceUp): Unit =
     deviceInfo = identifiedDeviceUpMessage.deviceInfo
 
-  protected def newData(newDataMessage: Socket.NewData): Unit =
-    newData(newDataMessage.request1.message.connectionInfo.remote.id, newDataMessage.data)
+  protected def newData(newDataMessage: Socket.NewData): Unit = {
+    buffer = buffer ++ newDataMessage.data
 
-  protected def newData(id: Long, data: ByteString): Unit =
-    broadcaster ! new MessageDataAccumulator.AccumulateMessageData(id, data)
+    log.debug(s"There are ${buffer.size} accumulated bytes after accumulating new ${newDataMessage.data.size} bytes for id ${deviceInfo.connectionInfo.remote.id}.")
 
-  protected def messageDataAccumulationError(messageDataAccumulationErrorResult: MessageDataAccumulator.MessageDataAccumulationErrorResult): Unit =
-    throw new Exception("Problem during message data accumulation.", messageDataAccumulationErrorResult.exception)
+    val accumulatedMessageData = analyzeBuffer
 
-  protected def messageDataAccumulationSuccess(messageDataAccumulationSuccessResult: MessageDataAccumulator.MessageDataAccumulationSuccessResult): Unit =
-    messageDataAccumulationSuccessResult.messageData.foreach { serializedMessageFromDevice =>
+    accumulatedMessageData.foreach { serializedMessageFromDevice =>
       val deserializedMessageFromDevice = deserializers.deserialize(serializedMessageFromDevice)
       broadcaster.tell(new Device.NewMessage(deviceInfo, deserializedMessageFromDevice), deviceActor)
     }
+  }
 
+  protected def analyzeBuffer: Seq[Array[Byte]] = {
+
+    var bufferSize = buffer.size
+
+    if (bufferSize > 0) {
+      val result = new ListBuffer[Array[Byte]]
+
+      log.debug(s"New message (for id ${deviceInfo.connectionInfo.remote.id}) will have ${buffer(0)} bytes (${buffer(0) + 1 - bufferSize} bytes needs to be collected to have full message).")
+
+      while (bufferSize > 0 && bufferSize >= buffer(0) + 1) {
+        val messageLength = buffer(0)
+
+        log.debug(s"Got all $messageLength bytes for incoming message for id ${deviceInfo.connectionInfo.remote.id}.")
+
+        val messageDataAndRest = buffer.drop(1).splitAt(messageLength)
+
+        result += messageDataAndRest._1.toArray
+        buffer = messageDataAndRest._2
+
+        bufferSize = buffer.size
+      }
+
+      result
+    } else {
+      Seq.empty
+    }
+  }
 }
