@@ -12,9 +12,6 @@ import as.sparkanta.gateway.Device
 class DeserailizerClassifier(id: Long) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
     case a: Socket.NewData if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
-    case a: Device.StartSuccessResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
-    case a: Device.StartErrorResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
-    case a: Device.Stopped if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
     case a: Device.IdentifiedDeviceUp if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
     case _ => None
   }

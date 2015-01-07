@@ -24,10 +24,13 @@ object Deserializer {
   }
 }
 
-class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var deviceActor: ActorRef) extends Actor with ActorLogging {
+class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, deviceActor: ActorRef) extends Actor with ActorLogging {
 
   protected val deserializers = new Deserializers
-  protected var messageAccumulatorStarted = false
+
+  override def preStart(): Unit = broadcaster ! new MessageDataAccumulator.StartDataAccumulation(deviceInfo.connectionInfo.remote.id)
+
+  override def postStop(): Unit = broadcaster ! new MessageDataAccumulator.StopDataAccumulation(deviceInfo.connectionInfo.remote.id)
 
   override def receive = {
     case a: Socket.NewData => newData(a)
@@ -35,29 +38,13 @@ class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var device
     case a: MessageDataAccumulator.MessageDataAccumulationErrorResult => messageDataAccumulationError(a)
     case a: MessageDataAccumulator.StartDataAccumulationSuccessResult => // do nothing
     case a: MessageDataAccumulator.StartDataAccumulationErrorResult => startDataAccumulationError(a)
-    case a: Device.StartSuccessResult => deviceStartSuccess(sender)
-    case a: Device.StartErrorResult => deviceStartError(a)
-    case a: Device.Stopped => deviceStopped(a)
     case a: Device.IdentifiedDeviceUp => identifiedDeviceUp(a)
 
     case message => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
   protected def startDataAccumulationError(startDataAccumulationErrorResult: MessageDataAccumulator.StartDataAccumulationErrorResult): Unit =
-    startDataAccumulationError(startDataAccumulationErrorResult.request1.message.id, startDataAccumulationErrorResult.exception)
-
-  protected def startDataAccumulationError(id: Long, exception: Exception): Unit =
-    stop(new Exception("Problem while starting message data accumulator.", exception))
-
-  protected def deviceStartSuccess(startSuccessResultSender: ActorRef) = {
-    deviceActor = startSuccessResultSender
-    messageAccumulatorStarted = true
-    broadcaster ! new MessageDataAccumulator.StartDataAccumulation(deviceInfo.connectionInfo.remote.id)
-  }
-
-  protected def deviceStartError(startErrorResult: Device.StartErrorResult): Unit = stop
-
-  protected def deviceStopped(stopped: Device.Stopped): Unit = stop
+    throw new Exception("Problem while starting message data accumulator.", startDataAccumulationErrorResult.exception)
 
   protected def identifiedDeviceUp(identifiedDeviceUpMessage: Device.IdentifiedDeviceUp): Unit =
     deviceInfo = identifiedDeviceUpMessage.deviceInfo
@@ -69,30 +56,12 @@ class Deserializer(var deviceInfo: DeviceInfo, broadcaster: ActorRef, var device
     broadcaster ! new MessageDataAccumulator.AccumulateMessageData(id, data)
 
   protected def messageDataAccumulationError(messageDataAccumulationErrorResult: MessageDataAccumulator.MessageDataAccumulationErrorResult): Unit =
-    messageDataAccumulationError(messageDataAccumulationErrorResult.request1.message.id, messageDataAccumulationErrorResult.exception)
+    throw new Exception("Problem during message data accumulation.", messageDataAccumulationErrorResult.exception)
 
-  protected def messageDataAccumulationError(id: Long, exception: Exception): Unit =
-    stop(new Exception("Problem during message data accumulation.", exception))
-
-  protected def messageDataAccumulationSuccess(messageDataAccumulationSuccessResult: MessageDataAccumulator.MessageDataAccumulationSuccessResult): Unit = try {
+  protected def messageDataAccumulationSuccess(messageDataAccumulationSuccessResult: MessageDataAccumulator.MessageDataAccumulationSuccessResult): Unit =
     messageDataAccumulationSuccessResult.messageData.foreach { serializedMessageFromDevice =>
       val deserializedMessageFromDevice = deserializers.deserialize(serializedMessageFromDevice)
       broadcaster.tell(new Device.NewMessage(deviceInfo, deserializedMessageFromDevice), deviceActor)
     }
-  } catch {
-    case e: Exception => stop(new Exception("Problem during message deserialization.", e))
-  }
 
-  protected def stop: Unit = stop(None)
-
-  protected def stop(exception: Exception): Unit = stop(Some(exception))
-
-  protected def stop(exception: Option[Exception]): Unit = {
-    exception.map { e =>
-      log.error(e, "Stopping because of problem.")
-      broadcaster ! new Device.StopDevice(deviceInfo.connectionInfo.remote.id, e)
-    }
-    if (messageAccumulatorStarted) broadcaster ! new MessageDataAccumulator.StopDataAccumulation(deviceInfo.connectionInfo.remote.id)
-    context.stop(self)
-  }
 }
