@@ -1,5 +1,8 @@
 package as.sparkanta.actor.device
 
+import as.sparkanta.actor.device.message.deserializer.Deserializer
+import as.sparkanta.actor.device.message.serializer.Serializer
+
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy, Terminated, ActorRefFactory, Props }
@@ -60,7 +63,10 @@ class DeviceWorker(
   import context.dispatcher
 
   override val supervisorStrategy = OneForOneStrategy() {
-    case _ => SupervisorStrategy.Stop
+    case t => {
+      stop(FSM.Failure(new Exception("Stopping because of problem in child actor.", t)))
+      SupervisorStrategy.Stop
+    }
   }
 
   {
@@ -110,6 +116,13 @@ class DeviceWorker(
   self ! Initialize
 
   protected def init = try {
+
+    val deserializer = Deserializer.startActor(context, start.connectionInfo, broadcaster, self)
+    val serializer = Serializer.startActor(context, start.connectionInfo.remote.id, broadcaster, self, start.maximumQueuedMessagesToSend)
+
+    context.watch(deserializer)
+    context.watch(serializer)
+
     broadcaster ! new Socket.ListenAt(start.connectionInfo, start.akkaSocketTcpActor, start.maximumQueuedMessagesToSend)
     stay using stateData
   } catch {

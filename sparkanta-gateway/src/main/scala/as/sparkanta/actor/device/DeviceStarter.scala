@@ -6,8 +6,8 @@ import as.ama.addon.lifecycle.ShutdownSystem
 import as.sparkanta.actor.tcp.serversocket.ServerSocket
 import as.sparkanta.ama.config.AmaConfig
 import as.sparkanta.gateway.{ Device => DeviceSpec }
-import as.sparkanta.actor.device.message.serializer.Serializer
-import as.sparkanta.actor.device.message.deserializer.Deserializer
+//import as.sparkanta.actor.device.message.serializer.Serializer
+//import as.sparkanta.actor.device.message.deserializer.Deserializer
 
 class DeviceStarter(amaConfig: AmaConfig, config: DeviceStarterConfig) extends Actor with ActorLogging {
 
@@ -39,9 +39,8 @@ class DeviceStarter(amaConfig: AmaConfig, config: DeviceStarterConfig) extends A
 
   protected def newConnection(newConnectionMessage: ServerSocket.NewConnection): Unit = try {
 
-    Deserializer.startActor(context, newConnectionMessage.connectionInfo, amaConfig.broadcaster, self)
-
-    Serializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, config.maximumQueuedSendDataMessages)
+    //Deserializer.startActor(context, newConnectionMessage.connectionInfo, amaConfig.broadcaster, self)
+    //Serializer.startActor(context, newConnectionMessage.connectionInfo.remote.id, amaConfig.broadcaster, self, config.maximumQueuedSendDataMessages)
 
     amaConfig.broadcaster ! new DeviceSpec.Start(newConnectionMessage.connectionInfo, newConnectionMessage.akkaSocketTcpActor, config.maximumQueuedSendDataMessages, config.deviceIdentificationTimeoutInMs, config.pingPongSpeedTestTimeInMs)
 
