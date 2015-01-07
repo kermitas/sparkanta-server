@@ -1,8 +1,5 @@
 package as.sparkanta.actor.device
 
-import as.sparkanta.actor.device.message.deserializer.Deserializer
-import as.sparkanta.actor.device.message.serializer.Serializer
-
 import scala.language.postfixOps
 import scala.concurrent.duration._
 import akka.actor.{ ActorRef, FSM, Cancellable, OneForOneStrategy, SupervisorStrategy, Terminated, ActorRefFactory, Props }
@@ -16,16 +13,17 @@ import as.sparkanta.actor.tcp.socket.Socket
 import as.sparkanta.device.message.todevice.{ GatewayHello, ServerHello }
 import as.sparkanta.gateway.NoAck
 import as.sparkanta.actor.device.inactivity.InactivityMonitor
+import as.sparkanta.actor.device.message.deserializer.Deserializer
+import as.sparkanta.actor.device.message.serializer.Serializer
 
 object DeviceWorker {
-
   sealed trait State extends Serializable
   case object WaitingForDeviceIdentification extends State
   case object WaitingForSpeedTestResult extends State
   case object Identified extends State
 
   sealed trait StateData extends Serializable
-  case class WaitingForDeviceIdentificationStateData(timeout: Cancellable) extends StateData
+  case class WaitingForDeviceIdentificationStateData(timeout: Cancellable, var isStarted: Boolean = false) extends StateData
   case class WaitingForSpeedTestResultStateData(deviceIdentification: DeviceIdentification, timeout: Cancellable) extends StateData
   case class IdentifiedStateData(deviceInfo: DeviceInfo) extends StateData
 
@@ -115,8 +113,7 @@ class DeviceWorker(
   initialize
   self ! Initialize
 
-  protected def init = try {
-
+  protected def init = {
     val deserializer = Deserializer.startActor(context, start.connectionInfo, broadcaster, self)
     val serializer = Serializer.startActor(context, start.connectionInfo.remote.id, broadcaster, self, start.maximumQueuedMessagesToSend, config.waitingForSendDataResultTimeoutInMsIfNotSetInAck)
 
@@ -125,38 +122,22 @@ class DeviceWorker(
 
     broadcaster ! new Socket.ListenAt(start.connectionInfo, start.akkaSocketTcpActor, start.maximumQueuedMessagesToSend)
     stay using stateData
-  } catch {
-    case e: Exception => {
-      val startErrorResult = new DeviceSpec.StartErrorResult(e, start, startSender)
-      startErrorResult.reply(deviceActor)
-      stop(FSM.Failure(e))
-    }
   }
 
-  protected def socketListenAtResult(listenAtResultMessage: Socket.ListenAtResult, sd: WaitingForDeviceIdentificationStateData) = try {
-    listenAtResultMessage match {
-      case listenAtSuccessResult: Socket.ListenAtSuccessResult => {
-        val startSuccessResult = new DeviceSpec.StartSuccessResult(start, startSender)
-        val started = new DeviceSpec.Started(start, startSender)
+  protected def socketListenAtResult(listenAtResultMessage: Socket.ListenAtResult, sd: WaitingForDeviceIdentificationStateData) = listenAtResultMessage match {
+    case listenAtSuccessResult: Socket.ListenAtSuccessResult => {
+      val startSuccessResult = new DeviceSpec.StartSuccessResult(start, startSender)
+      val started = new DeviceSpec.Started(start, startSender)
 
-        startSuccessResult.reply(deviceActor)
-        started.reply(deviceActor)
+      startSuccessResult.reply(deviceActor)
+      started.reply(deviceActor)
 
-        stay using stateData
-      }
+      sd.isStarted = true
 
-      case listenAtErrorResult: Socket.ListenAtErrorResult => {
-        sd.timeout.cancel
-        stop(FSM.Failure(listenAtErrorResult.exception))
-      }
+      stay using stateData
     }
-  } catch {
-    case e: Exception => {
-      sd.timeout.cancel
-      val startErrorResult = new DeviceSpec.StartErrorResult(e, start, startSender)
-      startErrorResult.reply(deviceActor)
-      stop(FSM.Failure(e))
-    }
+
+    case listenAtErrorResult: Socket.ListenAtErrorResult => throw new Exception("Stopping because of problem with initializing socket actor.", listenAtErrorResult.exception)
   }
 
   protected def deviceIdentification(deviceIdentificationMessage: DeviceIdentificationMessage, sd: WaitingForDeviceIdentificationStateData) = {
@@ -198,7 +179,6 @@ class DeviceWorker(
   protected def speedTestTimeout = stop(FSM.Failure(new Exception(s"Speed test result (${start.pingPongSpeedTestTimeInMs.get + config.extraTimeForWaitingOnSpeedTestResultInMs} milliseconds) timeout reached.")))
 
   protected def stopRequest(stopMessage: DeviceSpec.Stop, stopSender: ActorRef) = {
-
     val stopSuccessResult = new DeviceSpec.StopSuccessResult(stopMessage, stopSender)
     stopSuccessResult.reply(deviceActor)
 
@@ -224,44 +204,74 @@ class DeviceWorker(
     stop(FSM.Failure(new Exception(s"Stopping because watched actor $diedActor died.")))
 
   protected def terminate(reason: FSM.Reason, currentState: DeviceWorker.State, stateData: DeviceWorker.StateData): Unit = {
-    //val exception = 
-    reason match {
+    val exception = reason match {
       case FSM.Normal => {
         log.debug(s"Stopping (normal), state $currentState, data $stateData.")
-        //None
+        None
       }
 
       case FSM.Shutdown => {
         log.debug(s"Stopping (shutdown), state $currentState, data $stateData.")
-        //Some(new Exception(s"${getClass.getSimpleName} actor was shutdown."))
+        Some(new Exception(s"${getClass.getSimpleName} actor was shutdown."))
       }
 
       case FSM.Failure(cause) => {
         log.warning(s"Stopping (failure, cause $cause), state $currentState, data $stateData.")
 
-        //cause match {
-        //  case e: Exception => Some(e)
-        //  case u            => Some(new Exception(s"Unknown stop cause of type ${u.getClass.getSimpleName}, $u."))
-        //}
+        cause match {
+          case e: Exception => Some(e)
+          case u            => Some(new Exception(s"Unknown stop cause of type ${u.getClass.getSimpleName}, $u."))
+        }
       }
     }
 
     broadcaster ! new Socket.StopListeningAt(start.connectionInfo.remote.id)
 
-    val stopType = DeviceSpec.StoppedByRemoteSide // TODO stop type is not supported yet, need some work to transform socket stop type to this type !!
+    val enforcedException = exception.getOrElse(new Exception(s"Actor ${getClass.getSimpleName} stopped normally."))
 
-    if (stateData.isInstanceOf[IdentifiedStateData]) {
-      val identifiedStateData = stateData.asInstanceOf[IdentifiedStateData]
+    val stopType = enforcedException match {
+      case a: StoppedByStopRequestedException => new DeviceSpec.StoppedBecauseOfLocalSideRequest(a.stop, a.stopSender)
 
-      log.info(s"!!!!!!!!!!!!!! Identified device ${identifiedStateData.deviceInfo} down.!!!!!!!!!!!!!!!!!")
+      case a: StoppedByStoppedSockedException => a.listeningStopType match {
+        case Socket.StoppedByRemoteSide                   => DeviceSpec.StoppedByRemoteSide
+        case a: Socket.StoppedBecauseOfLocalSideException => new DeviceSpec.StoppedBecauseOfLocalSideException(a.exception)
+        case a: Socket.StoppedBecauseOfLocalSideRequest   => new DeviceSpec.StoppedBecauseOfLocalSideException(new Exception(s"Stopped because of ${a.stopListeningAt.getClass.getSimpleName} message send by ${a.stopListeningAtSender} to socket actor."))
+      }
 
-      val identifiedDeviceDown = new DeviceSpec.IdentifiedDeviceDown(identifiedStateData.deviceInfo, stopType, identifiedStateData.deviceInfo.timeInSystemInMillis, start, startSender)
-      identifiedDeviceDown.reply(deviceActor)
-    } else {
-      log.info(s"!!!!!!!!!!!!!! Not identified device ${start.connectionInfo} down.!!!!!!!!!!!!!!!!!")
+      case e => new DeviceSpec.StoppedBecauseOfLocalSideException(e)
     }
 
-    val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
-    stopped.reply(deviceActor)
+    stateData match {
+      case a: WaitingForDeviceIdentificationStateData => {
+        a.timeout.cancel
+        log.info(s"!!!!!!!!!!!!!! Not identified device ${start.connectionInfo} down.!!!!!!!!!!!!!!!!!")
+
+        if (a.isStarted) {
+          val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
+          stopped.reply(deviceActor)
+        } else {
+          val startErrorResult = new DeviceSpec.StartErrorResult(enforcedException, start, startSender)
+          startErrorResult.reply(deviceActor)
+        }
+      }
+
+      case a: WaitingForSpeedTestResultStateData => {
+        a.timeout.cancel
+        log.info(s"!!!!!!!!!!!!!! Not identified device ${start.connectionInfo} down.!!!!!!!!!!!!!!!!!")
+
+        val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
+        stopped.reply(deviceActor)
+      }
+
+      case a: IdentifiedStateData => {
+        log.info(s"!!!!!!!!!!!!!! Identified device ${a.deviceInfo} down.!!!!!!!!!!!!!!!!!")
+
+        val identifiedDeviceDown = new DeviceSpec.IdentifiedDeviceDown(a.deviceInfo, stopType, a.deviceInfo.timeInSystemInMillis, start, startSender)
+        identifiedDeviceDown.reply(deviceActor)
+
+        val stopped = new DeviceSpec.Stopped(stopType, start, startSender)
+        stopped.reply(deviceActor)
+      }
+    }
   }
 }

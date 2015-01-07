@@ -32,7 +32,6 @@ object Device {
   class SendMessageSuccessResult(sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(None, sendMessage, sendMessageSender)
   class SendMessageErrorResult(val exception: Exception, sendMessage: SendMessage, sendMessageSender: ActorRef) extends SendMessageResult(Some(exception), sendMessage, sendMessageSender)
 
-  // TODO how to transform stop type from socket to this type?
   sealed trait StopType extends Serializable
   object StoppedByRemoteSide extends StopType
   sealed trait StoppedByLocalSide extends StopType
