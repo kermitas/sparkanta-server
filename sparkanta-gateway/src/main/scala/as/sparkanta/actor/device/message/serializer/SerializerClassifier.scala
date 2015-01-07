@@ -21,9 +21,6 @@ class SerializerClassifier(id: Long, broadcaster: ActorRef) extends Classifier {
     case a: Device.NewMessage if a.deviceInfo.connectionInfo.remote.id == id && a.messageFromDevice.isInstanceOf[Ack] =>
       Some(new MessageWithSender(a.messageFromDevice, messageWithSender.messageSender))
 
-    case a: Device.StartSuccessResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
-    case a: Device.StartErrorResult if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
-    case a: Device.Stopped if a.request1.message.connectionInfo.remote.id == id => Some(messageWithSender)
     case _ => None
   }
 }
