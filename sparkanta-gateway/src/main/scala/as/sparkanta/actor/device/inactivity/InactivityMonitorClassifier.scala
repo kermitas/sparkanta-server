@@ -10,7 +10,7 @@ import as.sparkanta.gateway.Device
  */
 class InactivityMonitorClassifier(id: Long) extends Classifier {
   override def map(messageWithSender: MessageWithSender[Any]) = messageWithSender.message match {
-    case _: Device.NewMessage => Some(messageWithSender)
-    case _                    => None
+    case a: Device.NewMessage if a.deviceInfo.connectionInfo.remote.id == id => Some(messageWithSender)
+    case _ => None
   }
 }

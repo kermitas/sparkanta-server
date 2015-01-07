@@ -36,12 +36,12 @@ class InactivityMonitor(id: Long, broadcaster: ActorRef, warningTimeAfterMs: Int
   override def receive = {
     case _: Device.NewMessage               => resetTimers
     case a: Device.SendMessageSuccessResult => // do nothing
-    case a: Device.SendMessageErrorResult   => stop(new Exception(s"Problem while sending $ping to device of remote address id $id.", a.exception))
+    case a: Device.SendMessageErrorResult   => throw new Exception(s"Problem while sending $ping to device of remote address id $id.", a.exception)
     case WarningTimeout => {
       log.debug(s"Device of remote address id $id is inactive for more than $warningTimeAfterMs milliseconds, sending ${ping.getClass.getSimpleName}.")
       broadcaster ! new Device.SendMessage(id, ping, NoAck)
     }
-    case InactivityTimeout => stop(new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds)."))
+    case InactivityTimeout => throw new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds).")
     case message           => log.warning(s"Unhandled $message send by ${sender()}")
   }
 
@@ -60,11 +60,12 @@ class InactivityMonitor(id: Long, broadcaster: ActorRef, warningTimeAfterMs: Int
     setTimers
   }
 
+  /*
   protected def stop(exception: Exception): Unit = {
     cancelTimers
 
     val exception = new Exception(s"Device of remote address id $id exceeded inactivity timeout ($inactivityTimeAfterMs milliseconds).")
     broadcaster ! new Device.StopDevice(id, exception)
     context.stop(self)
-  }
+  }*/
 }
